@@ -247,10 +247,13 @@ export default function Suppliers() {
       if (response.ok) {
         const scannedData = await response.json();
         
+        // Refresh the suppliers list to show updated products
+        await fetchSuppliers();
+        
         Alert.alert(
           '🚀 AI Scan Complete!',
           `Found ${scannedData.products_found || 0} products with codes and prices.\n\nYour inventory items will now show product codes for easy ordering!`,
-          [{ text: 'Awesome!', onPress: () => fetchSuppliers() }]
+          [{ text: 'Awesome!' }]
         );
       } else {
         const errorText = await response.text();
