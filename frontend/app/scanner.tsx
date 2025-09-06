@@ -544,9 +544,13 @@ export default function Scanner() {
 
       {/* Camera Scanner */}
       <View style={styles.scannerContainer}>
-        <BarCodeScanner
-          onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+        <CameraView
           style={styles.scanner}
+          facing={'back'}
+          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+          barcodeScannerSettings={{
+            barcodeTypes: ['qr', 'pdf417'],
+          }}
         />
         
         <View style={styles.scannerOverlay}>
@@ -554,6 +558,18 @@ export default function Scanner() {
           <Text style={styles.scannerText}>
             Position QR code within the frame
           </Text>
+          
+          {/* Flashlight Toggle */}
+          <TouchableOpacity
+            style={styles.flashlightButton}
+            onPress={() => setIsFlashlightOn(!isFlashlightOn)}
+          >
+            <Ionicons 
+              name={isFlashlightOn ? "flashlight" : "flashlight-outline"} 
+              size={24} 
+              color="#fff" 
+            />
+          </TouchableOpacity>
         </View>
       </View>
 
