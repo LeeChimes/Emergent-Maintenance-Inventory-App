@@ -126,48 +126,52 @@ export default function Suppliers() {
       return;
     }
 
+    // Check for duplicate supplier names
+    const existingSupplier = suppliers.find(
+      supplier => supplier.name.toLowerCase() === newSupplier.name.toLowerCase().trim()
+    );
+    
+    if (existingSupplier) {
+      Alert.alert(
+        'Duplicate Supplier',
+        `A supplier named "${existingSupplier.name}" already exists. Please use a different name.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     setCreatingSupplier(true);
     
     try {
-      // Debug alerts to see what's happening
-      Alert.alert('Debug Info', `Backend URL: ${EXPO_PUBLIC_BACKEND_URL}\nSupplier Name: ${newSupplier.name}`);
-      
-      console.log('🚀 Creating supplier:', newSupplier);
-      console.log('🌐 Backend URL:', EXPO_PUBLIC_BACKEND_URL);
-      
-      const apiUrl = `${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`;
-      console.log('📡 Full API URL:', apiUrl);
-      
-      const response = await fetch(apiUrl, {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(newSupplier),
       });
-
-      console.log('📡 Response status:', response.status);
-      console.log('📡 Response ok:', response.ok);
       
       if (response.ok) {
         const supplierData = await response.json();
-        console.log('✅ Supplier created successfully:', supplierData);
+        
+        // Refresh suppliers list first
+        await fetchSuppliers();
         
         Alert.alert(
           'Success! 🎉',
           `${newSupplier.name} has been added to your supplier database.`,
           [
-            { text: 'Add Another', onPress: resetForm },
-            { text: 'Done', onPress: () => {
-              setShowAddSupplier(false);
+            { text: 'Add Another', onPress: () => {
               resetForm();
-              fetchSuppliers();
+            }},
+            { text: 'Done', onPress: () => {
+              resetForm();
+              setShowAddSupplier(false);
             }}
           ]
         );
       } else {
         const errorText = await response.text();
-        console.error('❌ Failed to create supplier:', response.status, errorText);
         Alert.alert(
           'Error Creating Supplier',
           `Failed to create supplier: ${response.status} - ${errorText}`,
@@ -175,10 +179,9 @@ export default function Suppliers() {
         );
       }
     } catch (error) {
-      console.error('❌ Network error creating supplier:', error);
       Alert.alert(
         'Network Error',
-        `Failed to connect to server: ${error.message}. Please check your connection and try again.`,
+        `Failed to connect to server. Please check your connection and try again.`,
         [{ text: 'OK' }]
       );
     } finally {
