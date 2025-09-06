@@ -508,19 +508,29 @@ export default function Suppliers() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
         <Text style={styles.headerTitle}>Suppliers</Text>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => setShowAddSupplier(true)}
-        >
-          <Ionicons name="add" size={24} color="#4CAF50" />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => router.push('/dashboard')}
+          >
+            <Ionicons name="home" size={24} color="#4CAF50" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => setShowAddSupplier(true)}
+          >
+            <Ionicons name="add" size={24} color="#4CAF50" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search Bar */}
