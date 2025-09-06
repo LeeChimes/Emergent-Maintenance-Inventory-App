@@ -67,6 +67,38 @@ export default function Scanner() {
   const [condition, setCondition] = useState<'excellent' | 'good' | 'fair' | 'poor'>('good');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isFlashlightOn, setIsFlashlightOn] = useState(false);
+  const [quickTakeMode, setQuickTakeMode] = useState(false);
+  const [lastScannedLocation, setLastScannedLocation] = useState<string>('');
+
+  // Quick quantity buttons for materials
+  const quickQuantities = [1, 2, 5, 10];
+
+  useEffect(() => {
+    initializeUser();
+    requestCameraPermission();
+    loadLastLocation();
+  }, []);
+
+  const loadLastLocation = async () => {
+    try {
+      const location = await AsyncStorage.getItem('lastScannedLocation');
+      if (location) {
+        setLastScannedLocation(location);
+      }
+    } catch (error) {
+      console.error('Error loading last location:', error);
+    }
+  };
+
+  const saveLastLocation = async (location: string) => {
+    try {
+      await AsyncStorage.setItem('lastScannedLocation', location);
+      setLastScannedLocation(location);
+    } catch (error) {
+      console.error('Error saving location:', error);
+    }
+  };
 
   useEffect(() => {
     initializeUser();
