@@ -84,6 +84,26 @@ class Supplier(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+class SupplierCreate(BaseModel):
+    name: str
+    type: str = "general"
+    website: Optional[str] = None
+    contact_person: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    account_number: Optional[str] = None
+    delivery_info: Optional[str] = None
+
+class SupplierProduct(BaseModel):
+    name: str
+    product_code: str
+    category: str
+    price: Optional[float] = None
+    description: Optional[str] = None
+    availability: str = "in_stock"
+    supplier_id: str
+
 class ServiceRecord(BaseModel):
     date: datetime
     description: str
