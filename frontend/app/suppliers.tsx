@@ -130,24 +130,32 @@ export default function Suppliers() {
       return;
     }
 
-    // Check for duplicate supplier names
-    const existingSupplier = suppliers.find(
-      supplier => supplier.name.toLowerCase() === newSupplier.name.toLowerCase().trim()
-    );
-    
-    if (existingSupplier) {
-      Alert.alert(
-        'Duplicate Supplier',
-        `A supplier named "${existingSupplier.name}" already exists. Please use a different name.`,
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
     setCreatingSupplier(true);
     
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`, {
+      // First, refresh suppliers list to check for duplicates
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`);
+      let currentSuppliers = [];
+      if (response.ok) {
+        currentSuppliers = await response.json();
+      }
+
+      // Check for duplicate supplier names
+      const existingSupplier = currentSuppliers.find(
+        supplier => supplier.name.toLowerCase().trim() === newSupplier.name.toLowerCase().trim()
+      );
+      
+      if (existingSupplier) {
+        Alert.alert(
+          'Duplicate Supplier',
+          `A supplier named "${existingSupplier.name}" already exists. Please use a different name.`,
+          [{ text: 'OK' }]
+        );
+        setCreatingSupplier(false);
+        return;
+      }
+
+      const createResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -155,10 +163,10 @@ export default function Suppliers() {
         body: JSON.stringify(newSupplier),
       });
       
-      if (response.ok) {
-        const supplierData = await response.json();
+      if (createResponse.ok) {
+        const supplierData = await createResponse.json();
         
-        // Refresh suppliers list first
+        // Refresh suppliers list
         await fetchSuppliers();
         
         Alert.alert(
@@ -197,10 +205,10 @@ export default function Suppliers() {
           ]
         );
       } else {
-        const errorText = await response.text();
+        const errorText = await createResponse.text();
         Alert.alert(
           'Error Creating Supplier',
-          `Failed to create supplier: ${response.status} - ${errorText}`,
+          `Failed to create supplier: ${createResponse.status} - ${errorText}`,
           [{ text: 'OK' }]
         );
       }
