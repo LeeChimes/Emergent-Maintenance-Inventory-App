@@ -649,7 +649,9 @@ export default function Suppliers() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalContent}>
+          <ScrollView 
+            key={formKey}
+            style={styles.modalContent}>
             <View style={styles.formSection}>
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Supplier Name *</Text>
