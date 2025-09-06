@@ -9,6 +9,8 @@ import {
   Modal,
   ScrollView,
   TextInput,
+  Vibration,
+  Dimensions,
 } from 'react-native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 import { Camera } from 'expo-camera';
