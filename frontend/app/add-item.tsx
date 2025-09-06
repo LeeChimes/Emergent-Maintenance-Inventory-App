@@ -531,6 +531,9 @@ const styles = StyleSheet.create({
   toolButton: {
     backgroundColor: '#2196F3',
   },
+  bulkButton: {
+    backgroundColor: '#FF9800',
+  },
   typeButtonText: {
     color: '#fff',
     fontSize: 20,
