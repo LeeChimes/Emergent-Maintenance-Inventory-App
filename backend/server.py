@@ -70,11 +70,19 @@ class UserCreate(BaseModel):
     role: UserRole
 
 class Supplier(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
+    type: str = "general"  # electrical, hardware, safety, cleaning, general
+    website: Optional[str] = None
     contact_person: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     address: Optional[str] = None
+    account_number: Optional[str] = None
+    delivery_info: Optional[str] = None
+    products: List[dict] = []  # AI scanned products
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ServiceRecord(BaseModel):
     date: datetime
