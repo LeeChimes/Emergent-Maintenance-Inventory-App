@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,16 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import QRCode from 'react-native-qrcode-svg';
+import * as Print from 'expo-print';
+import { captureRef } from 'react-native-view-shot';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
