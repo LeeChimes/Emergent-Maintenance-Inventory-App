@@ -273,7 +273,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "All Phase 2 features tested and working"
+    - "Phase 3 Stock Take functionality tested and working"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
