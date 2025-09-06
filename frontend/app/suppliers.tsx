@@ -17,7 +17,7 @@ import { router } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import { AppErrorHandler } from '../utils/AppErrorHandler';
 
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
 interface User {
   id: string;
