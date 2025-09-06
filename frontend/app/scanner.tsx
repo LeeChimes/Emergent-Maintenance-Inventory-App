@@ -117,12 +117,7 @@ export default function Scanner() {
     }
   };
 
-  const requestCameraPermission = async () => {
-    const { status } = await Camera.requestCameraPermissionsAsync();
-    setHasPermission(status === 'granted');
-  };
-
-  const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
+  const handleBarCodeScanned = ({ data }: { data: string }) => {
     setScanned(true);
     
     // Vibration feedback for successful scan
@@ -132,7 +127,20 @@ export default function Scanner() {
       console.log('Vibration not available');
     }
     
-    await fetchItemDetails(data);
+    fetchItemDetails(data);
+  };
+
+  const requestCameraPermission = async () => {
+    if (!permission) {
+      return;
+    }
+
+    if (!permission.granted) {
+      const response = await requestPermission();
+      return response.granted;
+    }
+
+    return true;
   };
 
   const fetchItemDetails = async (itemId: string) => {
