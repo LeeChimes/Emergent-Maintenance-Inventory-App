@@ -133,28 +133,6 @@ export default function Suppliers() {
     setCreatingSupplier(true);
     
     try {
-      // First, refresh suppliers list to check for duplicates
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`);
-      let currentSuppliers = [];
-      if (response.ok) {
-        currentSuppliers = await response.json();
-      }
-
-      // Check for duplicate supplier names
-      const existingSupplier = currentSuppliers.find(
-        supplier => supplier.name.toLowerCase().trim() === newSupplier.name.toLowerCase().trim()
-      );
-      
-      if (existingSupplier) {
-        Alert.alert(
-          'Duplicate Supplier',
-          `A supplier named "${existingSupplier.name}" already exists. Please use a different name.`,
-          [{ text: 'OK' }]
-        );
-        setCreatingSupplier(false);
-        return;
-      }
-
       const createResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`, {
         method: 'POST',
         headers: { 
@@ -174,7 +152,7 @@ export default function Suppliers() {
           `${newSupplier.name} has been added to your supplier database.`,
           [
             { text: 'Add Another', onPress: () => {
-              // Force complete form reset
+              // Clear form by resetting state and forcing re-render
               setNewSupplier({
                 name: '',
                 type: 'general',
@@ -186,7 +164,6 @@ export default function Suppliers() {
                 account_number: '',
                 delivery_info: '',
               });
-              // Force re-render
               setFormKey(prev => prev + 1);
             }},
             { text: 'Done', onPress: () => {
@@ -203,8 +180,17 @@ export default function Suppliers() {
                 delivery_info: '',
               });
               setShowAddSupplier(false);
+              setFormKey(prev => prev + 1);
             }}
           ]
+        );
+      } else if (createResponse.status === 409) {
+        // Handle duplicate supplier error from backend
+        const errorData = await createResponse.json();
+        Alert.alert(
+          'Duplicate Supplier',
+          errorData.detail || 'A supplier with this name already exists.',
+          [{ text: 'OK' }]
         );
       } else {
         const errorText = await createResponse.text();
