@@ -603,8 +603,19 @@ export default function Suppliers() {
               <Ionicons name="close" size={24} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Add Supplier</Text>
-            <TouchableOpacity onPress={createSupplier}>
-              <Ionicons name="checkmark" size={24} color="#4CAF50" />
+            <TouchableOpacity 
+              onPress={createSupplier}
+              disabled={creatingSupplier}
+              style={[
+                styles.headerTickButton,
+                creatingSupplier && styles.headerTickButtonDisabled
+              ]}
+            >
+              {creatingSupplier ? (
+                <Text style={styles.loadingText}>...</Text>
+              ) : (
+                <Ionicons name="checkmark" size={24} color="#4CAF50" />
+              )}
             </TouchableOpacity>
           </View>
 
