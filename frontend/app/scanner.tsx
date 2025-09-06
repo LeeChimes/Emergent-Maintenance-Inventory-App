@@ -147,6 +147,12 @@ export default function Scanner() {
         setCurrentItem(material);
         setItemType('material');
         setShowItemModal(true);
+        
+        // Save location if available
+        if (material.location) {
+          await saveLastLocation(material.location);
+        }
+        
         return;
       }
 
@@ -157,13 +163,30 @@ export default function Scanner() {
         setCurrentItem(tool);
         setItemType('tool');
         setShowItemModal(true);
+        
+        // Save location if available
+        if (tool.location) {
+          await saveLastLocation(tool.location);
+        }
+        
         return;
       }
 
-      Alert.alert('Item Not Found', 'The scanned QR code does not match any items in the inventory.');
+      Alert.alert(
+        'Item Not Found 😔',
+        'The scanned QR code doesn\'t match any items in our inventory. Double-check the code!',
+        [
+          { text: 'Try Again', onPress: () => setScanned(false) },
+          { text: 'Browse Items', onPress: () => router.push('/inventory') }
+        ]
+      );
     } catch (error) {
       console.error('Error fetching item details:', error);
-      Alert.alert('Error', 'Could not retrieve item details. Please check your connection.');
+      Alert.alert(
+        'Connection Problem 📡',
+        'Couldn\'t connect to the server. Check your internet connection and try again.',
+        [{ text: 'Retry', onPress: () => setScanned(false) }]
+      );
     } finally {
       setLoading(false);
     }
