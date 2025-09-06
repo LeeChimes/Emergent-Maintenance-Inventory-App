@@ -126,6 +126,8 @@ export default function Suppliers() {
       return;
     }
 
+    setCreatingSupplier(true);
+    
     try {
       console.log('🚀 Creating supplier:', newSupplier);
       
@@ -171,6 +173,8 @@ export default function Suppliers() {
         'Failed to connect to server. Please check your connection and try again.',
         [{ text: 'OK' }]
       );
+    } finally {
+      setCreatingSupplier(false);
     }
   };
 
