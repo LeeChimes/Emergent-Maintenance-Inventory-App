@@ -219,8 +219,8 @@ export default function AddItem() {
               onPress={() => setItemType('material')}
             >
               <Ionicons name="cube" size={32} color="#fff" />
-              <Text style={styles.typeButtonText}>Material</Text>
-              <Text style={styles.typeButtonSubtext}>📦 Stock items with quantities</Text>
+              <Text style={styles.typeButtonText}>Single Material</Text>
+              <Text style={styles.typeButtonSubtext}>📦 Add one material with photo</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -228,8 +228,17 @@ export default function AddItem() {
               onPress={() => setItemType('tool')}
             >
               <Ionicons name="build" size={32} color="#fff" />
-              <Text style={styles.typeButtonText}>Tool</Text>
-              <Text style={styles.typeButtonSubtext}>🔧 Equipment for check-in/out</Text>
+              <Text style={styles.typeButtonText}>Single Tool</Text>
+              <Text style={styles.typeButtonSubtext}>🔧 Add one tool with photo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.typeButton, styles.bulkButton]}
+              onPress={() => router.push('/bulk-upload')}
+            >
+              <Ionicons name="cloud-upload" size={32} color="#fff" />
+              <Text style={styles.typeButtonText}>Bulk Upload</Text>
+              <Text style={styles.typeButtonSubtext}>⚡ Add hundreds of items quickly</Text>
             </TouchableOpacity>
           </View>
         </View>
