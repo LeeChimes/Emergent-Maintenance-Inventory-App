@@ -149,6 +149,8 @@ class Tool(BaseModel):
     current_user: Optional[str] = None
     service_records: List[ServiceRecord] = []
     next_service_due: Optional[datetime] = None
+    supplier: Optional[Supplier] = None  # Link to supplier
+    supplier_product_code: Optional[str] = None  # Link to supplier's product code
     photo: Optional[str] = None  # base64 encoded
     qr_code: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
