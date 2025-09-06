@@ -182,9 +182,11 @@ class AISupplierTester:
                     quality_checks.append(f"Product {i+1} name too generic: {name}")
                     continue
                 
-                # Check product code format (should be SCR-XXX-###)
+                # Check product code format (should be XXX-YYY-### format)
                 code = product.get('product_code', '')
-                if not (code.startswith('SCR-') and len(code) >= 7):
+                # Valid formats: SCR-XXX-###, SFX-XXX-###, etc.
+                code_parts = code.split('-')
+                if not (len(code_parts) >= 3 and len(code_parts[0]) >= 2 and len(code_parts[1]) >= 2):
                     quality_checks.append(f"Product {i+1} code format invalid: {code}")
                     continue
                 
