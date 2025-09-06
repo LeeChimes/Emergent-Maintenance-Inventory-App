@@ -102,17 +102,20 @@ export default function Suppliers() {
   };
 
   const fetchSuppliers = async () => {
-    const data = await AppErrorHandler.safeNetworkCall(
-      `${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`,
-      {},
-      'Fetch Suppliers'
-    );
-    
-    if (data) {
-      setSuppliers(data);
+    try {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`);
+      if (response.ok) {
+        const data = await response.json();
+        setSuppliers(data);
+      } else {
+        console.error('Failed to fetch suppliers:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    setLoading(false);
-    setRefreshing(false);
   };
 
   const handleRefresh = () => {
