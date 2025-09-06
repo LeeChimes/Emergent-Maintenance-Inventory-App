@@ -240,57 +240,6 @@ export default function Scanner() {
       setLoading(false);
     }
   };
-    if (!currentItem || !user || !actionType) return;
-
-    if ((actionType === 'take' || actionType === 'restock') && !quantity) {
-      Alert.alert('Error', 'Please enter a quantity.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const transactionData = {
-        item_id: currentItem.id,
-        item_type: itemType,
-        transaction_type: actionType === 'take' ? 'take' : 
-                         actionType === 'restock' ? 'restock' :
-                         actionType === 'checkout' ? 'check_out' : 'check_in',
-        user_id: user.id,
-        user_name: user.name,
-        quantity: quantity ? parseInt(quantity) : null,
-        condition: (actionType === 'checkin') ? condition : null,
-        notes: notes || null,
-      };
-
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/transactions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(transactionData),
-      });
-
-      if (response.ok) {
-        const actionText = actionType === 'take' ? 'taken' : 
-                          actionType === 'restock' ? 'restocked' :
-                          actionType === 'checkout' ? 'checked out' : 'checked in';
-        
-        Alert.alert(
-          'Success',
-          `${currentItem.name} has been ${actionText} successfully.`,
-          [{ text: 'OK', onPress: closeModal }]
-        );
-      } else {
-        const error = await response.json();
-        Alert.alert('Error', error.detail || 'Transaction failed.');
-      }
-    } catch (error) {
-      console.error('Error creating transaction:', error);
-      Alert.alert('Error', 'Could not complete transaction. Please check your connection.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const closeModal = () => {
     setShowItemModal(false);
