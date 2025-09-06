@@ -258,12 +258,30 @@ export default function Scanner() {
 
   const renderMaterialActions = (material: Material) => (
     <View style={styles.actionButtons}>
+      <Text style={styles.actionTitle}>🎯 Quick Actions</Text>
+      
+      {/* Quick Take Buttons */}
+      <View style={styles.quickButtonsContainer}>
+        <Text style={styles.quickButtonsTitle}>Quick Take:</Text>
+        <View style={styles.quickButtonsRow}>
+          {quickQuantities.map((qty) => (
+            <TouchableOpacity
+              key={qty}
+              style={styles.quickButton}
+              onPress={() => performQuickTransaction('take', qty)}
+            >
+              <Text style={styles.quickButtonText}>{qty}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
       <TouchableOpacity
-        style={[styles.actionButton, styles.takeButton]}
+        style={[styles.actionButton, styles.customTakeButton]}
         onPress={() => setActionType('take')}
       >
         <Ionicons name="remove-circle" size={24} color="#fff" />
-        <Text style={styles.actionButtonText}>Take Items</Text>
+        <Text style={styles.actionButtonText}>Custom Amount</Text>
       </TouchableOpacity>
       
       <TouchableOpacity
@@ -271,8 +289,17 @@ export default function Scanner() {
         onPress={() => setActionType('restock')}
       >
         <Ionicons name="add-circle" size={24} color="#fff" />
-        <Text style={styles.actionButtonText}>Restock</Text>
+        <Text style={styles.actionButtonText}>Restock Items</Text>
       </TouchableOpacity>
+
+      {lastScannedLocation && (
+        <View style={styles.locationHint}>
+          <Ionicons name="location" size={16} color="#4CAF50" />
+          <Text style={styles.locationHintText}>
+            💡 Last found: {lastScannedLocation}
+          </Text>
+        </View>
+      )}
     </View>
   );
 
