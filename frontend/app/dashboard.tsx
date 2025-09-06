@@ -247,6 +247,14 @@ export default function Dashboard() {
               <Ionicons name="qr-code" size={28} color="#9C27B0" />
               <Text style={styles.quickActionText}>QR Scanner</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickActionCard}
+              onPress={() => router.push('/suppliers')}
+            >
+              <Ionicons name="storefront" size={28} color="#FF9800" />
+              <Text style={styles.quickActionText}>Manage Suppliers</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
