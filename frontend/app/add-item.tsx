@@ -33,6 +33,11 @@ export default function AddItem() {
   const [user, setUser] = useState<User | null>(null);
   const [itemType, setItemType] = useState<'material' | 'tool' | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [showBulkMode, setShowBulkMode] = useState(false);
+  const [generatedQRCode, setGeneratedQRCode] = useState('');
+  const [itemPhoto, setItemPhoto] = useState<string | null>(null);
+  const qrRef = useRef<any>(null);
 
   // Form fields
   const [name, setName] = useState('');
@@ -46,6 +51,10 @@ export default function AddItem() {
   const [supplierContact, setSupplierContact] = useState('');
   const [supplierPhone, setSupplierPhone] = useState('');
   const [supplierEmail, setSupplierEmail] = useState('');
+
+  // Bulk mode
+  const [bulkItems, setBulkItems] = useState<string>('');
+  const [lastCreatedItem, setLastCreatedItem] = useState<any>(null);
 
   useEffect(() => {
     initializeUser();
