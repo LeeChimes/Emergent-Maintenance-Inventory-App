@@ -253,6 +253,7 @@ export default function Suppliers() {
       account_number: '',
       delivery_info: '',
     });
+    setFormKey(prev => prev + 1); // Force form re-render
   };
 
   const filterSuppliers = () => {
