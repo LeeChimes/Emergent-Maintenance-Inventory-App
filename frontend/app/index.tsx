@@ -445,7 +445,7 @@ export default function Index() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Enhanced Header */}
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Ionicons name="cube" size={32} color="#4CAF50" />
@@ -461,198 +461,205 @@ export default function Index() {
         </TouchableOpacity>
       </View>
 
-      {/* Supervisor Dashboard */}
-      {user.role === 'supervisor' && (
-        <View style={styles.supervisorDashboard}>
-          {/* Health Score */}
-          <View style={styles.healthScoreCard}>
-            <View style={styles.healthScoreContent}>
-              <View style={styles.healthScoreLeft}>
-                <Text style={styles.healthScoreTitle}>Inventory Health</Text>
-                <Text style={[
-                  styles.healthScoreValue,
-                  { color: getHealthScoreColor(stats.healthScore) }
-                ]}>
-                  {stats.healthScore}%
-                </Text>
-              </View>
-              <View style={[
-                styles.healthScoreIndicator,
-                { backgroundColor: getHealthScoreColor(stats.healthScore) }
-              ]}>
-                <Ionicons 
-                  name={stats.healthScore >= 80 ? 'checkmark' : stats.healthScore >= 60 ? 'warning' : 'alert'} 
-                  size={24} 
-                  color="#fff" 
-                />
-              </View>
-            </View>
-          </View>
-
-          {/* Today's Priorities */}
-          {priorities.length > 0 && (
-            <View style={styles.prioritiesCard}>
-              <Text style={styles.prioritiesTitle}>🎯 Today's Priorities</Text>
-              {priorities.map((priority, index) => (
-                <View key={priority.id} style={styles.priorityItem}>
-                  <View style={[
-                    styles.priorityIndicator,
-                    { backgroundColor: getPriorityColor(priority.priority) }
+      {/* Scrollable Content */}
+      <ScrollView 
+        style={styles.scrollContent}
+        contentContainerStyle={styles.scrollContentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Supervisor Dashboard */}
+        {user.role === 'supervisor' && (
+          <View style={styles.supervisorDashboard}>
+            {/* Health Score */}
+            <View style={styles.healthScoreCard}>
+              <View style={styles.healthScoreContent}>
+                <View style={styles.healthScoreLeft}>
+                  <Text style={styles.healthScoreTitle}>Inventory Health</Text>
+                  <Text style={[
+                    styles.healthScoreValue,
+                    { color: getHealthScoreColor(stats.healthScore) }
                   ]}>
-                    <Ionicons name={priority.icon as any} size={16} color="#fff" />
-                  </View>
-                  <View style={styles.priorityInfo}>
-                    <Text style={styles.priorityName}>{priority.name}</Text>
-                    <Text style={styles.priorityReason}>{priority.reason}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Team Activity */}
-          {teamActivity.length > 0 && (
-            <View style={styles.teamActivityCard}>
-              <Text style={styles.teamActivityTitle}>👥 Team Activity</Text>
-              {teamActivity.slice(0, 3).map((activity) => (
-                <View key={activity.id} style={styles.activityItem}>
-                  <Text style={styles.activityText}>
-                    <Text style={styles.activityUser}>{activity.user.split(' ')[0]}</Text>
-                    {' '}
-                    <Text style={styles.activityAction}>{activity.action}</Text>
-                    {' '}
-                    <Text style={styles.activityItem}>{activity.item}</Text>
+                    {stats.healthScore}%
                   </Text>
-                  <Text style={styles.activityTime}>{activity.time}</Text>
                 </View>
-              ))}
+                <View style={[
+                  styles.healthScoreIndicator,
+                  { backgroundColor: getHealthScoreColor(stats.healthScore) }
+                ]}>
+                  <Ionicons 
+                    name={stats.healthScore >= 80 ? 'checkmark' : stats.healthScore >= 60 ? 'warning' : 'alert'} 
+                    size={24} 
+                    color="#fff" 
+                  />
+                </View>
+              </View>
             </View>
+
+            {/* Today's Priorities */}
+            {priorities.length > 0 && (
+              <View style={styles.prioritiesCard}>
+                <Text style={styles.prioritiesTitle}>🎯 Today's Priorities</Text>
+                {priorities.slice(0, 2).map((priority, index) => (
+                  <View key={priority.id} style={styles.priorityItem}>
+                    <View style={[
+                      styles.priorityIndicator,
+                      { backgroundColor: getPriorityColor(priority.priority) }
+                    ]}>
+                      <Ionicons name={priority.icon as any} size={14} color="#fff" />
+                    </View>
+                    <View style={styles.priorityInfo}>
+                      <Text style={styles.priorityName}>{priority.name}</Text>
+                      <Text style={styles.priorityReason}>{priority.reason}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Team Activity - Compact */}
+            {teamActivity.length > 0 && (
+              <View style={styles.teamActivityCard}>
+                <Text style={styles.teamActivityTitle}>👥 Team Activity</Text>
+                {teamActivity.slice(0, 2).map((activity) => (
+                  <View key={activity.id} style={styles.activityItem}>
+                    <Text style={styles.activityText}>
+                      <Text style={styles.activityUser}>{activity.user.split(' ')[0]}</Text>
+                      {' '}
+                      <Text style={styles.activityAction}>{activity.action}</Text>
+                      {' '}
+                      <Text style={styles.activityItemText}>{activity.item}</Text>
+                    </Text>
+                    <Text style={styles.activityTime}>{activity.time}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Main Action Buttons */}
+        <View style={styles.mainActions}>
+          {user.role === 'supervisor' && (
+            <>
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.primaryButton]}
+                onPress={() => navigateToScreen('dashboard')}
+              >
+                <Ionicons name="analytics" size={28} color="#fff" />
+                <View style={styles.actionButtonContent}>
+                  <Text style={styles.actionButtonText}>Smart Dashboard</Text>
+                  <Text style={styles.actionButtonSubtext}>📊 Reports & Analytics</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.addButton]}
+                onPress={() => navigateToScreen('add-item')}
+              >
+                <Ionicons name="add-circle" size={28} color="#fff" />
+                <View style={styles.actionButtonContent}>
+                  <Text style={styles.actionButtonText}>Add New Item</Text>
+                  <Text style={styles.actionButtonSubtext}>➕ Materials & Tools</Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          )}
+
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.scanButton]}
+            onPress={() => navigateToScreen('scanner')}
+          >
+            <Ionicons name="qr-code" size={28} color="#fff" />
+            <View style={styles.actionButtonContent}>
+              <Text style={styles.actionButtonText}>Quick Scan</Text>
+              <Text style={styles.actionButtonSubtext}>📱 Instant Item Access</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.inventoryButton]}
+            onPress={() => navigateToScreen('inventory')}
+          >
+            <Ionicons name="grid" size={28} color="#fff" />
+            <View style={styles.actionButtonContent}>
+              <Text style={styles.actionButtonText}>Browse Inventory</Text>
+              <Text style={styles.actionButtonSubtext}>📦 Search & Find</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.stockTakeButton]}
+            onPress={() => navigateToScreen('stock-take')}
+          >
+            <Ionicons name="clipboard" size={28} color="#fff" />
+            <View style={styles.actionButtonContent}>
+              <Text style={styles.actionButtonText}>Stock Count</Text>
+              <Text style={styles.actionButtonSubtext}>📋 Easy Counting</Text>
+            </View>
+          </TouchableOpacity>
+
+          {user.role === 'supervisor' && (
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.settingsButton]}
+              onPress={() => navigateToScreen('settings')}
+            >
+              <Ionicons name="settings" size={28} color="#fff" />
+              <View style={styles.actionButtonContent}>
+                <Text style={styles.actionButtonText}>Settings</Text>
+                <Text style={styles.actionButtonSubtext}>⚙️ Customize App</Text>
+              </View>
+            </TouchableOpacity>
           )}
         </View>
-      )}
 
-      {/* Main Action Buttons */}
-      <View style={styles.mainActions}>
-        {user.role === 'supervisor' && (
-          <>
+        {/* Enhanced Quick Stats */}
+        <View style={styles.quickStats}>
+          <Text style={styles.quickStatsTitle}>📊 Quick Overview</Text>
+          <View style={styles.statsRow}>
             <TouchableOpacity 
-              style={[styles.actionButton, styles.primaryButton]}
-              onPress={() => navigateToScreen('dashboard')}
+              style={styles.statCard}
+              onPress={() => navigateToScreen('inventory')}
             >
-              <Ionicons name="analytics" size={28} color="#fff" />
-              <View style={styles.actionButtonContent}>
-                <Text style={styles.actionButtonText}>Smart Dashboard</Text>
-                <Text style={styles.actionButtonSubtext}>📊 Reports & Analytics</Text>
-              </View>
+              <Ionicons name="cube" size={20} color="#4CAF50" />
+              <Text style={styles.statNumber}>{stats.materials}</Text>
+              <Text style={styles.statLabel}>Materials</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.statCard}
+              onPress={() => navigateToScreen('inventory')}
+            >
+              <Ionicons name="build" size={20} color="#2196F3" />
+              <Text style={styles.statNumber}>{stats.tools}</Text>
+              <Text style={styles.statLabel}>Tools</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.statCard, stats.lowStock > 0 && styles.alertStatCard]}
+              onPress={() => user.role === 'supervisor' && navigateToScreen('dashboard')}
+            >
+              <Ionicons 
+                name="warning" 
+                size={20} 
+                color={stats.lowStock > 0 ? "#FF9800" : "#666"} 
+              />
+              <Text style={[
+                styles.statNumber,
+                stats.lowStock > 0 && styles.alertStatNumber
+              ]}>
+                {stats.lowStock}
+              </Text>
+              <Text style={styles.statLabel}>Low Stock</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.addButton]}
-              onPress={() => navigateToScreen('add-item')}
-            >
-              <Ionicons name="add-circle" size={28} color="#fff" />
-              <View style={styles.actionButtonContent}>
-                <Text style={styles.actionButtonText}>Add New Item</Text>
-                <Text style={styles.actionButtonSubtext}>➕ Materials & Tools</Text>
-              </View>
+            <TouchableOpacity style={styles.statCard}>
+              <Ionicons name="today" size={20} color="#9C27B0" />
+              <Text style={styles.statNumber}>{stats.todayTransactions}</Text>
+              <Text style={styles.statLabel}>Today</Text>
             </TouchableOpacity>
-          </>
-        )}
-
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.scanButton]}
-          onPress={() => navigateToScreen('scanner')}
-        >
-          <Ionicons name="qr-code" size={28} color="#fff" />
-          <View style={styles.actionButtonContent}>
-            <Text style={styles.actionButtonText}>Quick Scan</Text>
-            <Text style={styles.actionButtonSubtext}>📱 Instant Item Access</Text>
           </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.inventoryButton]}
-          onPress={() => navigateToScreen('inventory')}
-        >
-          <Ionicons name="grid" size={28} color="#fff" />
-          <View style={styles.actionButtonContent}>
-            <Text style={styles.actionButtonText}>Browse Inventory</Text>
-            <Text style={styles.actionButtonSubtext}>📦 Search & Find</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.stockTakeButton]}
-          onPress={() => navigateToScreen('stock-take')}
-        >
-          <Ionicons name="clipboard" size={28} color="#fff" />
-          <View style={styles.actionButtonContent}>
-            <Text style={styles.actionButtonText}>Stock Count</Text>
-            <Text style={styles.actionButtonSubtext}>📋 Easy Counting</Text>
-          </View>
-        </TouchableOpacity>
-
-        {user.role === 'supervisor' && (
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.settingsButton]}
-            onPress={() => navigateToScreen('settings')}
-          >
-            <Ionicons name="settings" size={28} color="#fff" />
-            <View style={styles.actionButtonContent}>
-              <Text style={styles.actionButtonText}>Settings</Text>
-              <Text style={styles.actionButtonSubtext}>⚙️ Customize App</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Enhanced Quick Stats */}
-      <View style={styles.quickStats}>
-        <Text style={styles.quickStatsTitle}>📊 Quick Overview</Text>
-        <View style={styles.statsRow}>
-          <TouchableOpacity 
-            style={styles.statCard}
-            onPress={() => navigateToScreen('inventory')}
-          >
-            <Ionicons name="cube" size={20} color="#4CAF50" />
-            <Text style={styles.statNumber}>{stats.materials}</Text>
-            <Text style={styles.statLabel}>Materials</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.statCard}
-            onPress={() => navigateToScreen('inventory')}
-          >
-            <Ionicons name="build" size={20} color="#2196F3" />
-            <Text style={styles.statNumber}>{stats.tools}</Text>
-            <Text style={styles.statLabel}>Tools</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.statCard, stats.lowStock > 0 && styles.alertStatCard]}
-            onPress={() => user.role === 'supervisor' && navigateToScreen('dashboard')}
-          >
-            <Ionicons 
-              name="warning" 
-              size={20} 
-              color={stats.lowStock > 0 ? "#FF9800" : "#666"} 
-            />
-            <Text style={[
-              styles.statNumber,
-              stats.lowStock > 0 && styles.alertStatNumber
-            ]}>
-              {stats.lowStock}
-            </Text>
-            <Text style={styles.statLabel}>Low Stock</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.statCard}>
-            <Ionicons name="today" size={20} color="#9C27B0" />
-            <Text style={styles.statNumber}>{stats.todayTransactions}</Text>
-            <Text style={styles.statLabel}>Today</Text>
-          </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
