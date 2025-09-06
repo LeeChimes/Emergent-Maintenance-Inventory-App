@@ -174,7 +174,7 @@ export default function Suppliers() {
           `${newSupplier.name} has been added to your supplier database.`,
           [
             { text: 'Add Another', onPress: () => {
-              // Completely reset the form state
+              // Force complete form reset
               setNewSupplier({
                 name: '',
                 type: 'general',
@@ -186,6 +186,8 @@ export default function Suppliers() {
                 account_number: '',
                 delivery_info: '',
               });
+              // Force re-render
+              setFormKey(prev => prev + 1);
             }},
             { text: 'Done', onPress: () => {
               // Reset form and close modal
