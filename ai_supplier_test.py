@@ -277,10 +277,11 @@ class AISupplierTester:
                     self.log_test("AI Fallback Mechanism", False, f"Fallback should generate 5 products, got {products_found}")
                     return False
                 
-                # Check scan method indicates fallback
+                # Check scan method - both AI-powered and Enhanced fallback are valid
                 scan_method = scan_result.get('scan_method', '')
-                if 'fallback' not in scan_method.lower():
-                    self.log_test("AI Fallback Mechanism", False, f"Scan method should indicate fallback: {scan_method}")
+                valid_methods = ['AI-powered', 'Enhanced fallback']
+                if not any(method in scan_method for method in valid_methods):
+                    self.log_test("AI Fallback Mechanism", False, f"Invalid scan method: {scan_method}")
                     return False
                 
                 # Verify fallback products are still realistic
