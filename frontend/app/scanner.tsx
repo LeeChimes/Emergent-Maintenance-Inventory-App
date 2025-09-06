@@ -350,15 +350,80 @@ export default function Scanner() {
     </View>
   );
 
+  const handleTransaction = async () => {
+    if (!currentItem || !user || !actionType) return;
+
+    if ((actionType === 'take' || actionType === 'restock') && !quantity) {
+      Alert.alert('Missing Info 📝', 'Please enter a quantity first!');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const transactionData = {
+        item_id: currentItem.id,
+        item_type: itemType,
+        transaction_type: actionType === 'take' ? 'take' : 
+                         actionType === 'restock' ? 'restock' :
+                         actionType === 'checkout' ? 'check_out' : 'check_in',
+        user_id: user.id,
+        user_name: user.name,
+        quantity: quantity ? parseInt(quantity) : null,
+        condition: (actionType === 'checkin') ? condition : null,
+        notes: notes || null,
+      };
+
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/transactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(transactionData),
+      });
+
+      if (response.ok) {
+        // Success vibration
+        try {
+          Vibration.vibrate([100, 50, 100]);
+        } catch (error) {
+          console.log('Vibration not available');
+        }
+
+        const actionText = actionType === 'take' ? 'taken' : 
+                          actionType === 'restock' ? 'restocked' :
+                          actionType === 'checkout' ? 'checked out' : 'returned';
+        
+        Alert.alert(
+          'Success! 🎉',
+          `${currentItem.name} has been ${actionText} successfully. Great work!`,
+          [{ text: 'Awesome!', onPress: closeModal }]
+        );
+      } else {
+        const error = await response.json();
+        Alert.alert('Oops! 😅', error.detail || 'Transaction failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating transaction:', error);
+      Alert.alert('Connection Issue 📡', 'Could not complete transaction. Check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderToolActions = (tool: Tool) => (
     <View style={styles.actionButtons}>
+      <Text style={styles.actionTitle}>🔧 Tool Actions</Text>
+      
       {tool.status === 'available' ? (
         <TouchableOpacity
           style={[styles.actionButton, styles.checkoutButton]}
           onPress={() => setActionType('checkout')}
         >
           <Ionicons name="log-out" size={24} color="#fff" />
-          <Text style={styles.actionButtonText}>Check Out</Text>
+          <View style={styles.actionButtonContent}>
+            <Text style={styles.actionButtonText}>Check Out Tool</Text>
+            <Text style={styles.actionButtonSubtext}>🔧 Take this tool</Text>
+          </View>
         </TouchableOpacity>
       ) : (
         <TouchableOpacity
@@ -366,8 +431,29 @@ export default function Scanner() {
           onPress={() => setActionType('checkin')}
         >
           <Ionicons name="log-in" size={24} color="#fff" />
-          <Text style={styles.actionButtonText}>Check In</Text>
+          <View style={styles.actionButtonContent}>
+            <Text style={styles.actionButtonText}>Return Tool</Text>
+            <Text style={styles.actionButtonSubtext}>✅ Bring it back</Text>
+          </View>
         </TouchableOpacity>
+      )}
+
+      {tool.current_user && (
+        <View style={styles.currentUserCard}>
+          <Ionicons name="person" size={16} color="#FF9800" />
+          <Text style={styles.currentUserText}>
+            Currently with: {tool.current_user}
+          </Text>
+        </View>
+      )}
+
+      {lastScannedLocation && (
+        <View style={styles.locationHint}>
+          <Ionicons name="location" size={16} color="#4CAF50" />
+          <Text style={styles.locationHintText}>
+            💡 Last found: {lastScannedLocation}
+          </Text>
+        </View>
       )}
     </View>
   );
