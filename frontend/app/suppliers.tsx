@@ -125,27 +125,50 @@ export default function Suppliers() {
       return;
     }
 
-    const supplierData = await AppErrorHandler.safeNetworkCall(
-      `${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`,
-      {
+    try {
+      console.log('🚀 Creating supplier:', newSupplier);
+      
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(newSupplier),
-      },
-      'Create Supplier'
-    );
+      });
 
-    if (supplierData) {
+      console.log('📡 Response status:', response.status);
+      
+      if (response.ok) {
+        const supplierData = await response.json();
+        console.log('✅ Supplier created successfully:', supplierData);
+        
+        Alert.alert(
+          'Success! 🎉',
+          `${newSupplier.name} has been added to your supplier database.`,
+          [
+            { text: 'Add Another', onPress: resetForm },
+            { text: 'Done', onPress: () => {
+              setShowAddSupplier(false);
+              resetForm();
+              fetchSuppliers();
+            }}
+          ]
+        );
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Failed to create supplier:', response.status, errorText);
+        Alert.alert(
+          'Error Creating Supplier',
+          `Failed to create supplier: ${response.status} - ${errorText}`,
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('❌ Network error creating supplier:', error);
       Alert.alert(
-        'Success! 🎉',
-        `${newSupplier.name} has been added to your supplier database.`,
-        [
-          { text: 'Add Another', onPress: resetForm },
-          { text: 'Done', onPress: () => {
-            setShowAddSupplier(false);
-            fetchSuppliers();
-          }}
-        ]
+        'Network Error',
+        'Failed to connect to server. Please check your connection and try again.',
+        [{ text: 'OK' }]
       );
     }
   };
