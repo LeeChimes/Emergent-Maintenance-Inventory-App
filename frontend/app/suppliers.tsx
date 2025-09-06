@@ -196,31 +196,35 @@ export default function Suppliers() {
     }
 
     setScanningProducts(true);
-    Alert.alert(
-      '🤖 AI Product Scanner',
-      `Starting intelligent scan of ${supplier.name} website for product codes and pricing...`,
-      [{ text: 'Great!' }]
-    );
-
-    // Simulate AI scanning process
+    
     try {
-      const scannedProducts = await AppErrorHandler.safeNetworkCall(
-        `${EXPO_PUBLIC_BACKEND_URL}/api/suppliers/${supplier.id}/scan-products`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ website: supplier.website }),
-        },
-        'AI Product Scanning'
+      Alert.alert(
+        '🤖 AI Product Scanner',
+        `Starting intelligent scan of ${supplier.name} website for product codes and pricing...`,
+        [{ text: 'Great!' }]
       );
 
-      if (scannedProducts) {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers/${supplier.id}/scan-products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ website: supplier.website }),
+      });
+
+      if (response.ok) {
+        const scannedData = await response.json();
+        
         Alert.alert(
-          '🚀 Scan Complete!',
-          `Found ${scannedProducts.products?.length || 0} products with codes and prices.\n\nYour inventory items will now show product codes for easy ordering!`,
-          [{ text: 'Awesome!' }]
+          '🚀 AI Scan Complete!',
+          `Found ${scannedData.products_found || 0} products with codes and prices.\n\nYour inventory items will now show product codes for easy ordering!`,
+          [{ text: 'Awesome!', onPress: () => fetchSuppliers() }]
         );
-        fetchSuppliers(); // Refresh to show updated products
+      } else {
+        const errorText = await response.text();
+        Alert.alert(
+          'Scan Error',
+          `Failed to scan website: ${response.status} - ${errorText}`,
+          [{ text: 'OK' }]
+        );
       }
     } catch (error) {
       Alert.alert(
