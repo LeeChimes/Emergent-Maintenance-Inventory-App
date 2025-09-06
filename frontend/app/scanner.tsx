@@ -492,7 +492,7 @@ export default function Scanner() {
     );
   };
 
-  if (hasPermission === null) {
+  if (!permission) {
     return (
       <SafeAreaView style={styles.container}>
         <Text style={styles.message}>Requesting camera permission...</Text>
@@ -500,15 +500,22 @@ export default function Scanner() {
     );
   }
 
-  if (hasPermission === false) {
+  if (!permission.granted) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.permissionContainer}>
           <Ionicons name="camera-off" size={64} color="#666" />
           <Text style={styles.permissionTitle}>Camera Permission Required</Text>
           <Text style={styles.permissionText}>
-            To scan QR codes, please allow camera access in your device settings.
+            We need camera access to scan QR codes for inventory management.
           </Text>
+          <TouchableOpacity
+            style={styles.permissionButton}
+            onPress={requestPermission}
+          >
+            <Ionicons name="camera" size={24} color="#fff" />
+            <Text style={styles.permissionButtonText}>Grant Camera Permission</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
