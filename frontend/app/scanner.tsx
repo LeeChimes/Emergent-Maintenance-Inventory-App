@@ -55,7 +55,7 @@ interface Tool {
 }
 
 export default function Scanner() {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [showItemModal, setShowItemModal] = useState(false);
@@ -75,7 +75,6 @@ export default function Scanner() {
 
   useEffect(() => {
     initializeUser();
-    requestCameraPermission();
     loadLastLocation();
   }, []);
 
