@@ -63,6 +63,7 @@ export default function Suppliers() {
   const [showAddSupplier, setShowAddSupplier] = useState(false);
   const [scanningProducts, setScanningProducts] = useState(false);
   const [creatingSupplier, setCreatingSupplier] = useState(false);
+  const [formKey, setFormKey] = useState(0); // Force form re-render
 
   // Form fields for new supplier
   const [newSupplier, setNewSupplier] = useState({
