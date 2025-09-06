@@ -11,6 +11,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -21,14 +22,27 @@ interface User {
   created_at: string;
 }
 
+interface Stats {
+  materials: number;
+  tools: number;
+  lowStock: number;
+}
+
 export default function Index() {
   const [user, setUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [stats, setStats] = useState<Stats>({ materials: 0, tools: 0, lowStock: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     initializeApp();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchStats();
+    }
+  }, [user]);
 
   const initializeApp = async () => {
     try {
@@ -57,6 +71,30 @@ export default function Index() {
     } catch (error) {
       console.error('Error fetching users:', error);
       Alert.alert('Error', 'Could not load users. Please check your connection.');
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      // Fetch materials count
+      const materialsResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/materials`);
+      const materials = materialsResponse.ok ? await materialsResponse.json() : [];
+      
+      // Fetch tools count
+      const toolsResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/tools`);
+      const tools = toolsResponse.ok ? await toolsResponse.json() : [];
+
+      // Fetch low stock alerts
+      const lowStockResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/alerts/low-stock`);
+      const lowStockData = lowStockResponse.ok ? await lowStockResponse.json() : { count: 0 };
+
+      setStats({
+        materials: materials.length || 0,
+        tools: tools.length || 0,
+        lowStock: lowStockData.count || 0,
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
     }
   };
 
@@ -95,11 +133,16 @@ export default function Index() {
           onPress: async () => {
             await AsyncStorage.multiRemove(['userToken', 'userData']);
             setUser(null);
+            setStats({ materials: 0, tools: 0, lowStock: 0 });
             await fetchUsers();
           },
         },
       ]
     );
+  };
+
+  const navigateToScreen = (screen: string) => {
+    router.push(`/${screen}` as any);
   };
 
   if (loading) {
@@ -176,13 +219,19 @@ export default function Index() {
       <View style={styles.mainActions}>
         {user.role === 'supervisor' && (
           <>
-            <TouchableOpacity style={[styles.actionButton, styles.primaryButton]}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.primaryButton]}
+              onPress={() => navigateToScreen('dashboard')}
+            >
               <Ionicons name="analytics" size={32} color="#fff" />
               <Text style={styles.actionButtonText}>Dashboard</Text>
               <Text style={styles.actionButtonSubtext}>View Reports & Alerts</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.actionButton, styles.addButton]}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.addButton]}
+              onPress={() => navigateToScreen('add-item')}
+            >
               <Ionicons name="add-circle" size={32} color="#fff" />
               <Text style={styles.actionButtonText}>Add New Item</Text>
               <Text style={styles.actionButtonSubtext}>Materials & Tools</Text>
@@ -190,26 +239,38 @@ export default function Index() {
           </>
         )}
 
-        <TouchableOpacity style={[styles.actionButton, styles.scanButton]}>
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.scanButton]}
+          onPress={() => navigateToScreen('scanner')}
+        >
           <Ionicons name="qr-code" size={32} color="#fff" />
           <Text style={styles.actionButtonText}>Scan QR Code</Text>
           <Text style={styles.actionButtonSubtext}>Quick Item Access</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.actionButton, styles.inventoryButton]}>
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.inventoryButton]}
+          onPress={() => navigateToScreen('inventory')}
+        >
           <Ionicons name="list" size={32} color="#fff" />
           <Text style={styles.actionButtonText}>View Inventory</Text>
           <Text style={styles.actionButtonSubtext}>Browse All Items</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.actionButton, styles.stockTakeButton]}>
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.stockTakeButton]}
+          onPress={() => navigateToScreen('stock-take')}
+        >
           <Ionicons name="clipboard" size={32} color="#fff" />
           <Text style={styles.actionButtonText}>Stock Take</Text>
           <Text style={styles.actionButtonSubtext}>Count & Update</Text>
         </TouchableOpacity>
 
         {user.role === 'supervisor' && (
-          <TouchableOpacity style={[styles.actionButton, styles.settingsButton]}>
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.settingsButton]}
+            onPress={() => navigateToScreen('settings')}
+          >
             <Ionicons name="settings" size={32} color="#fff" />
             <Text style={styles.actionButtonText}>Settings</Text>
             <Text style={styles.actionButtonSubtext}>App Configuration</Text>
@@ -221,21 +282,41 @@ export default function Index() {
       <View style={styles.quickStats}>
         <Text style={styles.quickStatsTitle}>Quick Overview</Text>
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
+          <TouchableOpacity 
+            style={styles.statCard}
+            onPress={() => navigateToScreen('inventory')}
+          >
             <Ionicons name="cube-outline" size={24} color="#4CAF50" />
-            <Text style={styles.statNumber}>-</Text>
+            <Text style={styles.statNumber}>{stats.materials}</Text>
             <Text style={styles.statLabel}>Materials</Text>
-          </View>
-          <View style={styles.statCard}>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.statCard}
+            onPress={() => navigateToScreen('inventory')}
+          >
             <Ionicons name="build-outline" size={24} color="#2196F3" />
-            <Text style={styles.statNumber}>-</Text>
+            <Text style={styles.statNumber}>{stats.tools}</Text>
             <Text style={styles.statLabel}>Tools</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="warning-outline" size={24} color="#FF9800" />
-            <Text style={styles.statNumber}>-</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.statCard, stats.lowStock > 0 && styles.alertStatCard]}
+            onPress={() => user.role === 'supervisor' && navigateToScreen('dashboard')}
+          >
+            <Ionicons 
+              name="warning-outline" 
+              size={24} 
+              color={stats.lowStock > 0 ? "#FF9800" : "#666"} 
+            />
+            <Text style={[
+              styles.statNumber,
+              stats.lowStock > 0 && styles.alertStatNumber
+            ]}>
+              {stats.lowStock}
+            </Text>
             <Text style={styles.statLabel}>Low Stock</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -390,11 +471,21 @@ const styles = StyleSheet.create({
   statCard: {
     alignItems: 'center',
     gap: 4,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#3d3d3d',
+    minWidth: 80,
+  },
+  alertStatCard: {
+    backgroundColor: '#4d3d2d',
   },
   statNumber: {
     color: '#fff',
     fontSize: 24,
     fontWeight: 'bold',
+  },
+  alertStatNumber: {
+    color: '#FF9800',
   },
   statLabel: {
     color: '#aaa',
