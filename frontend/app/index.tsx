@@ -954,12 +954,14 @@ const styles = StyleSheet.create({
   activityAction: {
     color: '#fff',
   },
+  activityItemText: {
+    color: '#fff',
+  },
   activityTime: {
     color: '#666',
     fontSize: 12,
   },
   mainActions: {
-    flex: 1,
     padding: 20,
     gap: 12,
   },
