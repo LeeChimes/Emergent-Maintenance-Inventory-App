@@ -10,6 +10,7 @@ import {
   TextInput,
   Dimensions,
   Animated,
+  ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
