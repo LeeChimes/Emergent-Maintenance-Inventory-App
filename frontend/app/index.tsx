@@ -987,12 +987,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 2,
   },
   actionButtonSubtext: {
     color: '#fff',
     fontSize: 12,
     opacity: 0.9,
-    marginTop: 2,
   },
   quickStats: {
     padding: 20,
