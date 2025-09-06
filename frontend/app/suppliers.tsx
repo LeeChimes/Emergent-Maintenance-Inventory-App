@@ -130,8 +130,12 @@ export default function Suppliers() {
     
     try {
       console.log('🚀 Creating supplier:', newSupplier);
+      console.log('🌐 Backend URL:', EXPO_PUBLIC_BACKEND_URL);
       
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`, {
+      const apiUrl = `${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`;
+      console.log('📡 Full API URL:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -140,6 +144,7 @@ export default function Suppliers() {
       });
 
       console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
       
       if (response.ok) {
         const supplierData = await response.json();
@@ -170,7 +175,7 @@ export default function Suppliers() {
       console.error('❌ Network error creating supplier:', error);
       Alert.alert(
         'Network Error',
-        'Failed to connect to server. Please check your connection and try again.',
+        `Failed to connect to server: ${error.message}. Please check your connection and try again.`,
         [{ text: 'OK' }]
       );
     } finally {
