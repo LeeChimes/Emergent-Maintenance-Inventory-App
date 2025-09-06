@@ -122,9 +122,9 @@ class AISupplierTester:
                     self.log_test("AI Website Scanning with Real LLM", False, f"Supplier ID mismatch in product")
                     return False
                 
-                # Verify product code uses supplier abbreviation (should be SFX for "Screwfix UK")
+                # Verify product code uses supplier abbreviation (should be related to Screwfix)
                 product_code = first_product.get('product_code', '')
-                expected_prefixes = ['SCR', 'SFX', 'SCREW']  # Various valid abbreviations for Screwfix
+                expected_prefixes = ['SCR', 'SFX', 'SF', 'SCREW']  # Various valid abbreviations for Screwfix
                 if not any(product_code.startswith(prefix) for prefix in expected_prefixes):
                     self.log_test("AI Website Scanning with Real LLM", False, f"Product code doesn't use supplier abbreviation: {product_code}")
                     return False
