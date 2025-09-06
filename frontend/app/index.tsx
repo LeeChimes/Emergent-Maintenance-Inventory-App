@@ -951,10 +951,10 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 20,
     borderRadius: 16,
     gap: 16,
-    minHeight: 70,
+    minHeight: 80,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -963,6 +963,7 @@ const styles = StyleSheet.create({
   },
   actionButtonContent: {
     flex: 1,
+    justifyContent: 'center',
   },
   primaryButton: {
     backgroundColor: '#4CAF50',
