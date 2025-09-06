@@ -285,8 +285,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Phase 3 Stock Take functionality tested and working"
-  stuck_tasks: []
+    - "Bulk Upload Functionality & Navigation - Critical accessibility issue"
+  stuck_tasks:
+    - "Bulk Upload Functionality & Navigation"
   test_all: false
   test_priority: "high_first"
 
