@@ -848,10 +848,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
   },
+  scrollContent: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
   supervisorDashboard: {
     paddingHorizontal: 20,
     paddingTop: 10,
-    gap: 12,
+    gap: 10,
   },
   healthScoreCard: {
     backgroundColor: '#2d2d2d',
