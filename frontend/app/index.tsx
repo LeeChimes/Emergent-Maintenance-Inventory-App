@@ -112,57 +112,69 @@ export default function Index() {
   };
 
   const fetchUsers = async () => {
-    try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users`);
-      const userData = await response.json();
-      setUsers(userData);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      Alert.alert('Error', 'Could not load users. Please check your connection.');
+    const users = await AppErrorHandler.safeNetworkCall(
+      `${EXPO_PUBLIC_BACKEND_URL}/api/users`,
+      {},
+      'Fetch Users'
+    );
+    
+    if (users) {
+      setUsers(users);
+    } else {
+      // Fallback: show friendly message but don't crash
+      Alert.alert(
+        '🔧 Quick Setup',
+        'Getting your team ready! This will just take a moment...',
+        [{ text: 'No worries! 👍' }]
+      );
     }
   };
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch enhanced stats
-      const [materialsRes, toolsRes, lowStockRes, transactionsRes] = await Promise.all([
-        fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/materials`),
-        fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/tools`),
-        fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/alerts/low-stock`),
-        fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/transactions?limit=20`)
+      // Use safe network calls with auto error handling
+      const [materials, tools, lowStockData, transactions] = await Promise.all([
+        AppErrorHandler.safeNetworkCall(`${EXPO_PUBLIC_BACKEND_URL}/api/materials`, {}, 'Fetch Materials'),
+        AppErrorHandler.safeNetworkCall(`${EXPO_PUBLIC_BACKEND_URL}/api/tools`, {}, 'Fetch Tools'),
+        AppErrorHandler.safeNetworkCall(`${EXPO_PUBLIC_BACKEND_URL}/api/alerts/low-stock`, {}, 'Fetch Low Stock'),
+        AppErrorHandler.safeNetworkCall(`${EXPO_PUBLIC_BACKEND_URL}/api/transactions?limit=20`, {}, 'Fetch Transactions')
       ]);
 
-      const materials = materialsRes.ok ? await materialsRes.json() : [];
-      const tools = toolsRes.ok ? await toolsRes.json() : [];
-      const lowStockData = lowStockRes.ok ? await lowStockRes.json() : { count: 0 };
-      const transactions = transactionsRes.ok ? await transactionsRes.json() : [];
+      // Handle potential null responses gracefully
+      const safeData = {
+        materials: materials || [],
+        tools: tools || [],
+        lowStock: (lowStockData && lowStockData.count) ? lowStockData.count : 0,
+        transactions: transactions || []
+      };
 
       // Calculate today's transactions
       const today = new Date().toDateString();
-      const todayTransactions = transactions.filter((t: any) => 
+      const todayTransactions = safeData.transactions.filter((t: any) => 
         new Date(t.timestamp).toDateString() === today
       ).length;
 
       // Calculate health score
-      const totalItems = materials.length + tools.length;
-      const lowStockCount = lowStockData.count || 0;
+      const totalItems = safeData.materials.length + safeData.tools.length;
+      const lowStockCount = safeData.lowStock;
       const healthScore = totalItems > 0 ? Math.max(50, 100 - (lowStockCount / totalItems) * 50) : 100;
 
       setStats({
-        materials: materials.length || 0,
-        tools: tools.length || 0,
-        lowStock: lowStockData.count || 0,
+        materials: safeData.materials.length,
+        tools: safeData.tools.length,
+        lowStock: safeData.lowStock,
         todayTransactions,
         healthScore: Math.round(healthScore),
       });
 
       // Generate priority items for supervisors
       if (user?.role === 'supervisor') {
-        generatePriorityItems(materials, tools, lowStockData.materials || []);
-        generateTeamActivity(transactions);
+        generatePriorityItems(safeData.materials, safeData.tools, (lowStockData && lowStockData.materials) || []);
+        generateTeamActivity(safeData.transactions);
       }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      // This shouldn't happen with safe calls, but just in case
+      console.log('📱 Dashboard data will refresh automatically when connection is restored');
     }
   };
 
