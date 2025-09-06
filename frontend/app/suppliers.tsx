@@ -62,6 +62,7 @@ export default function Suppliers() {
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [showAddSupplier, setShowAddSupplier] = useState(false);
   const [scanningProducts, setScanningProducts] = useState(false);
+  const [creatingSupplier, setCreatingSupplier] = useState(false);
 
   // Form fields for new supplier
   const [newSupplier, setNewSupplier] = useState({
