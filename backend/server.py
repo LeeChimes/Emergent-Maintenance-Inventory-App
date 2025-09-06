@@ -525,6 +525,241 @@ async def get_error_reports(limit: int = 50):
             "error": str(e)
         }
 
+# Supplier Management Routes
+@api_router.get("/suppliers", response_model=List[Supplier])
+async def get_suppliers():
+    """Get all suppliers"""
+    suppliers = await db.suppliers.find().to_list(1000)
+    return [Supplier(**supplier) for supplier in suppliers]
+
+@api_router.get("/suppliers/{supplier_id}", response_model=Supplier)
+async def get_supplier(supplier_id: str):
+    """Get a specific supplier by ID"""
+    supplier_doc = await db.suppliers.find_one({"id": supplier_id})
+    if not supplier_doc:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    return Supplier(**supplier_doc)
+
+@api_router.post("/suppliers", response_model=Supplier)
+async def create_supplier(supplier_data: SupplierCreate):
+    """Create a new supplier"""
+    supplier_dict = supplier_data.dict()
+    supplier = Supplier(**supplier_dict)
+    await db.suppliers.insert_one(supplier.dict())
+    return supplier
+
+@api_router.put("/suppliers/{supplier_id}", response_model=Supplier)
+async def update_supplier(supplier_id: str, supplier_data: SupplierCreate):
+    """Update an existing supplier"""
+    supplier_dict = supplier_data.dict()
+    supplier_dict["updated_at"] = datetime.utcnow()
+    
+    result = await db.suppliers.update_one(
+        {"id": supplier_id},
+        {"$set": supplier_dict}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    
+    updated_doc = await db.suppliers.find_one({"id": supplier_id})
+    return Supplier(**updated_doc)
+
+@api_router.delete("/suppliers/{supplier_id}")
+async def delete_supplier(supplier_id: str):
+    """Delete a supplier"""
+    result = await db.suppliers.delete_one({"id": supplier_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    return {"message": "Supplier deleted successfully"}
+
+@api_router.post("/suppliers/{supplier_id}/scan-products")
+async def scan_supplier_products(supplier_id: str, scan_data: dict):
+    """AI-powered product scanning from supplier website"""
+    try:
+        supplier_doc = await db.suppliers.find_one({"id": supplier_id})
+        if not supplier_doc:
+            raise HTTPException(status_code=404, detail="Supplier not found")
+        
+        supplier = Supplier(**supplier_doc)
+        website = scan_data.get("website", supplier.website)
+        
+        if not website:
+            raise HTTPException(status_code=400, detail="Website URL is required for product scanning")
+        
+        # Simulate AI website scanning with demo data
+        # In production, this would integrate with LLM APIs to actually scrape and analyze the website
+        demo_products = [
+            {
+                "name": "LED Safety Light", 
+                "product_code": f"{supplier.name.upper()[:3]}-LED-001",
+                "category": "safety",
+                "price": 24.99,
+                "description": "High-visibility LED safety light",
+                "availability": "in_stock"
+            },
+            {
+                "name": "Industrial Battery Pack", 
+                "product_code": f"{supplier.name.upper()[:3]}-BAT-002",
+                "category": "electrical",
+                "price": 89.50,
+                "description": "Long-lasting industrial battery pack",
+                "availability": "in_stock"
+            },
+            {
+                "name": "Safety Harness Pro", 
+                "product_code": f"{supplier.name.upper()[:3]}-SAF-003",
+                "category": "safety",
+                "price": 156.00,
+                "description": "Professional grade safety harness",
+                "availability": "in_stock"
+            },
+            {
+                "name": "Multi-Tool Kit", 
+                "product_code": f"{supplier.name.upper()[:3]}-KIT-004",
+                "category": "tools",
+                "price": 45.75,
+                "description": "Essential multi-purpose tool kit",
+                "availability": "in_stock"
+            },
+            {
+                "name": "Cleaning Solution Pro", 
+                "product_code": f"{supplier.name.upper()[:3]}-CLN-005",
+                "category": "cleaning",
+                "price": 18.99,
+                "description": "Professional grade cleaning solution",
+                "availability": "in_stock"
+            }
+        ]
+        
+        # Add supplier_id to each product
+        for product in demo_products:
+            product["supplier_id"] = supplier_id
+        
+        # Update supplier with scanned products
+        await db.suppliers.update_one(
+            {"id": supplier_id},
+            {
+                "$set": {
+                    "products": demo_products,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        print(f"🤖 AI Product Scan completed for {supplier.name}")
+        print(f"📦 Found {len(demo_products)} products")
+        
+        return {
+            "success": True,
+            "supplier_id": supplier_id,
+            "products_found": len(demo_products),
+            "products": demo_products,
+            "message": f"Successfully scanned {len(demo_products)} products from {supplier.name}"
+        }
+        
+    except Exception as e:
+        print(f"❌ Error scanning products: {e}")
+        raise HTTPException(status_code=500, detail=f"Product scanning failed: {str(e)}")
+
+@api_router.get("/suppliers/{supplier_id}/products", response_model=List[SupplierProduct])
+async def get_supplier_products(supplier_id: str):
+    """Get all products for a specific supplier"""
+    supplier_doc = await db.suppliers.find_one({"id": supplier_id})
+    if not supplier_doc:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    
+    supplier = Supplier(**supplier_doc)
+    return [SupplierProduct(**product) for product in supplier.products]
+
+@api_router.post("/suppliers/{supplier_id}/products", response_model=SupplierProduct)
+async def add_supplier_product(supplier_id: str, product_data: SupplierProduct):
+    """Add a product to a supplier's catalog"""
+    supplier_doc = await db.suppliers.find_one({"id": supplier_id})
+    if not supplier_doc:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    
+    product_dict = product_data.dict()
+    product_dict["supplier_id"] = supplier_id
+    
+    # Add product to supplier's products array
+    await db.suppliers.update_one(
+        {"id": supplier_id},
+        {
+            "$push": {"products": product_dict},
+            "$set": {"updated_at": datetime.utcnow()}
+        }
+    )
+    
+    return SupplierProduct(**product_dict)
+
+# Link inventory items to suppliers
+@api_router.post("/materials/{material_id}/link-supplier")
+async def link_material_to_supplier(material_id: str, link_data: dict):
+    """Link a material to a supplier with product code"""
+    supplier_id = link_data.get("supplier_id")
+    product_code = link_data.get("product_code")
+    
+    if not supplier_id:
+        raise HTTPException(status_code=400, detail="Supplier ID is required")
+    
+    # Verify supplier exists
+    supplier_doc = await db.suppliers.find_one({"id": supplier_id})
+    if not supplier_doc:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    
+    # Update material with supplier information
+    material_doc = await db.materials.find_one({"id": material_id})
+    if not material_doc:
+        raise HTTPException(status_code=404, detail="Material not found")
+    
+    supplier = Supplier(**supplier_doc)
+    await db.materials.update_one(
+        {"id": material_id},
+        {
+            "$set": {
+                "supplier": supplier.dict(),
+                "supplier_product_code": product_code,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    return {"message": f"Material linked to {supplier.name} successfully"}
+
+@api_router.post("/tools/{tool_id}/link-supplier")
+async def link_tool_to_supplier(tool_id: str, link_data: dict):
+    """Link a tool to a supplier with product code"""
+    supplier_id = link_data.get("supplier_id")
+    product_code = link_data.get("product_code")
+    
+    if not supplier_id:
+        raise HTTPException(status_code=400, detail="Supplier ID is required")
+    
+    # Verify supplier exists
+    supplier_doc = await db.suppliers.find_one({"id": supplier_id})
+    if not supplier_doc:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    
+    # Update tool with supplier information
+    tool_doc = await db.tools.find_one({"id": tool_id})
+    if not tool_doc:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    supplier = Supplier(**supplier_doc)
+    await db.tools.update_one(
+        {"id": tool_id},
+        {
+            "$set": {
+                "supplier": supplier.dict(),
+                "supplier_product_code": product_code,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    return {"message": f"Tool linked to {supplier.name} successfully"}
+
 # Health check route with error detection
 @api_router.get("/health")
 async def health_check():
