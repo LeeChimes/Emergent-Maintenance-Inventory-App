@@ -126,6 +126,14 @@ export default function Scanner() {
 
   const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
     setScanned(true);
+    
+    // Vibration feedback for successful scan
+    try {
+      Vibration.vibrate(100);
+    } catch (error) {
+      console.log('Vibration not available');
+    }
+    
     await fetchItemDetails(data);
   };
 
