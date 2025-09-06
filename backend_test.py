@@ -601,6 +601,328 @@ class AssetInventoryAPITester:
         except Exception as e:
             self.log_test("Invalid Item Error", False, f"Error: {str(e)}")
         return False
+
+    # Supplier Management Tests
+    def test_create_supplier(self):
+        """Test creating a new supplier"""
+        try:
+            supplier_data = {
+                "name": "Screwfix Trade",
+                "type": "hardware",
+                "website": "https://www.screwfix.com",
+                "contact_person": "John Smith",
+                "phone": "+44 800 123 4567",
+                "email": "trade@screwfix.com",
+                "account_number": "SCR123456",
+                "delivery_info": "Next day delivery available"
+            }
+            
+            response = self.session.post(f"{self.base_url}/suppliers", json=supplier_data)
+            if response.status_code == 200:
+                supplier = response.json()
+                if supplier.get('id') and supplier.get('name') == supplier_data['name']:
+                    self.created_suppliers.append(supplier['id'])
+                    self.log_test("Create Supplier", True, f"Created supplier: {supplier['name']} (ID: {supplier['id']}, Type: {supplier['type']})")
+                    return True
+                else:
+                    self.log_test("Create Supplier", False, f"Invalid supplier response: {supplier}")
+            else:
+                self.log_test("Create Supplier", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Create Supplier", False, f"Error: {str(e)}")
+        return False
+
+    def test_get_suppliers(self):
+        """Test retrieving all suppliers"""
+        try:
+            response = self.session.get(f"{self.base_url}/suppliers")
+            if response.status_code == 200:
+                suppliers = response.json()
+                if isinstance(suppliers, list):
+                    self.log_test("Get All Suppliers", True, f"Retrieved {len(suppliers)} suppliers")
+                    return True
+                else:
+                    self.log_test("Get All Suppliers", False, f"Invalid suppliers format: {suppliers}")
+            else:
+                self.log_test("Get All Suppliers", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Get All Suppliers", False, f"Error: {str(e)}")
+        return False
+
+    def test_get_specific_supplier(self):
+        """Test retrieving a specific supplier"""
+        if not self.created_suppliers:
+            self.log_test("Get Specific Supplier", False, "No suppliers created to test")
+            return False
+            
+        try:
+            supplier_id = self.created_suppliers[0]
+            response = self.session.get(f"{self.base_url}/suppliers/{supplier_id}")
+            if response.status_code == 200:
+                supplier = response.json()
+                if supplier.get('id') == supplier_id:
+                    self.log_test("Get Specific Supplier", True, f"Retrieved supplier: {supplier['name']} (Type: {supplier['type']})")
+                    return True
+                else:
+                    self.log_test("Get Specific Supplier", False, f"Supplier ID mismatch: {supplier}")
+            else:
+                self.log_test("Get Specific Supplier", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Get Specific Supplier", False, f"Error: {str(e)}")
+        return False
+
+    def test_update_supplier(self):
+        """Test updating a supplier"""
+        if not self.created_suppliers:
+            self.log_test("Update Supplier", False, "No suppliers created to test")
+            return False
+            
+        try:
+            supplier_id = self.created_suppliers[0]
+            update_data = {
+                "name": "Screwfix Trade - Updated",
+                "type": "hardware",
+                "website": "https://www.screwfix.com/trade",
+                "contact_person": "Jane Smith",
+                "phone": "+44 800 123 4568",
+                "email": "jane@screwfix.com",
+                "account_number": "SCR123456-UPD",
+                "delivery_info": "Same day delivery available"
+            }
+            
+            response = self.session.put(f"{self.base_url}/suppliers/{supplier_id}", json=update_data)
+            if response.status_code == 200:
+                supplier = response.json()
+                if supplier.get('name') == update_data['name'] and supplier.get('contact_person') == 'Jane Smith':
+                    self.log_test("Update Supplier", True, f"Updated supplier: {supplier['name']} (Contact: {supplier['contact_person']})")
+                    return True
+                else:
+                    self.log_test("Update Supplier", False, f"Update not reflected: {supplier}")
+            else:
+                self.log_test("Update Supplier", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Update Supplier", False, f"Error: {str(e)}")
+        return False
+
+    def test_ai_product_scanning(self):
+        """Test AI product scanning from supplier website"""
+        if not self.created_suppliers:
+            self.log_test("AI Product Scanning", False, "No suppliers created to test")
+            return False
+            
+        try:
+            supplier_id = self.created_suppliers[0]
+            scan_data = {
+                "website": "https://www.screwfix.com"
+            }
+            
+            response = self.session.post(f"{self.base_url}/suppliers/{supplier_id}/scan-products", json=scan_data)
+            if response.status_code == 200:
+                scan_result = response.json()
+                if (scan_result.get('success') and 
+                    scan_result.get('products_found') == 5 and 
+                    isinstance(scan_result.get('products'), list)):
+                    
+                    products = scan_result['products']
+                    # Verify product structure
+                    first_product = products[0]
+                    if (first_product.get('name') and 
+                        first_product.get('product_code') and 
+                        first_product.get('category')):
+                        self.log_test("AI Product Scanning", True, f"Successfully scanned {scan_result['products_found']} products from supplier website")
+                        return True
+                    else:
+                        self.log_test("AI Product Scanning", False, f"Invalid product structure: {first_product}")
+                else:
+                    self.log_test("AI Product Scanning", False, f"Invalid scan result: {scan_result}")
+            else:
+                self.log_test("AI Product Scanning", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("AI Product Scanning", False, f"Error: {str(e)}")
+        return False
+
+    def test_get_supplier_products(self):
+        """Test retrieving products for a specific supplier"""
+        if not self.created_suppliers:
+            self.log_test("Get Supplier Products", False, "No suppliers created to test")
+            return False
+            
+        try:
+            supplier_id = self.created_suppliers[0]
+            response = self.session.get(f"{self.base_url}/suppliers/{supplier_id}/products")
+            if response.status_code == 200:
+                products = response.json()
+                if isinstance(products, list):
+                    if len(products) > 0:
+                        # Check if products have proper structure
+                        first_product = products[0]
+                        if (first_product.get('name') and 
+                            first_product.get('product_code') and 
+                            first_product.get('supplier_id') == supplier_id):
+                            self.log_test("Get Supplier Products", True, f"Retrieved {len(products)} products for supplier")
+                            return True
+                        else:
+                            self.log_test("Get Supplier Products", False, f"Invalid product structure: {first_product}")
+                    else:
+                        self.log_test("Get Supplier Products", True, "No products found for supplier (expected if no scanning done)")
+                        return True
+                else:
+                    self.log_test("Get Supplier Products", False, f"Invalid products format: {products}")
+            else:
+                self.log_test("Get Supplier Products", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Get Supplier Products", False, f"Error: {str(e)}")
+        return False
+
+    def test_add_supplier_product(self):
+        """Test adding a product to supplier catalog"""
+        if not self.created_suppliers:
+            self.log_test("Add Supplier Product", False, "No suppliers created to test")
+            return False
+            
+        try:
+            supplier_id = self.created_suppliers[0]
+            product_data = {
+                "name": "Professional Hammer",
+                "product_code": "SCR-HAM-001",
+                "category": "tools",
+                "price": 29.99,
+                "description": "Heavy duty professional hammer",
+                "availability": "in_stock",
+                "supplier_id": supplier_id
+            }
+            
+            response = self.session.post(f"{self.base_url}/suppliers/{supplier_id}/products", json=product_data)
+            if response.status_code == 200:
+                product = response.json()
+                if (product.get('name') == product_data['name'] and 
+                    product.get('product_code') == product_data['product_code'] and
+                    product.get('supplier_id') == supplier_id):
+                    self.log_test("Add Supplier Product", True, f"Added product: {product['name']} (Code: {product['product_code']})")
+                    return True
+                else:
+                    self.log_test("Add Supplier Product", False, f"Invalid product response: {product}")
+            else:
+                self.log_test("Add Supplier Product", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Add Supplier Product", False, f"Error: {str(e)}")
+        return False
+
+    def test_link_material_to_supplier(self):
+        """Test linking a material to a supplier"""
+        if not self.created_materials or not self.created_suppliers:
+            self.log_test("Link Material to Supplier", False, "Need both materials and suppliers to test")
+            return False
+            
+        try:
+            material_id = self.created_materials[0]
+            supplier_id = self.created_suppliers[0]
+            link_data = {
+                "supplier_id": supplier_id,
+                "product_code": "SCR-LED-001"
+            }
+            
+            response = self.session.post(f"{self.base_url}/materials/{material_id}/link-supplier", json=link_data)
+            if response.status_code == 200:
+                result = response.json()
+                if "successfully" in result.get('message', '').lower():
+                    self.log_test("Link Material to Supplier", True, f"Successfully linked material to supplier: {result['message']}")
+                    return True
+                else:
+                    self.log_test("Link Material to Supplier", False, f"Invalid link response: {result}")
+            else:
+                self.log_test("Link Material to Supplier", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Link Material to Supplier", False, f"Error: {str(e)}")
+        return False
+
+    def test_link_tool_to_supplier(self):
+        """Test linking a tool to a supplier"""
+        if not self.created_tools or not self.created_suppliers:
+            self.log_test("Link Tool to Supplier", False, "Need both tools and suppliers to test")
+            return False
+            
+        try:
+            tool_id = self.created_tools[0]
+            supplier_id = self.created_suppliers[0]
+            link_data = {
+                "supplier_id": supplier_id,
+                "product_code": "SCR-KIT-004"
+            }
+            
+            response = self.session.post(f"{self.base_url}/tools/{tool_id}/link-supplier", json=link_data)
+            if response.status_code == 200:
+                result = response.json()
+                if "successfully" in result.get('message', '').lower():
+                    self.log_test("Link Tool to Supplier", True, f"Successfully linked tool to supplier: {result['message']}")
+                    return True
+                else:
+                    self.log_test("Link Tool to Supplier", False, f"Invalid link response: {result}")
+            else:
+                self.log_test("Link Tool to Supplier", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Link Tool to Supplier", False, f"Error: {str(e)}")
+        return False
+
+    def test_delete_supplier(self):
+        """Test deleting a supplier"""
+        if not self.created_suppliers:
+            self.log_test("Delete Supplier", False, "No suppliers created to test")
+            return False
+            
+        try:
+            # Create a temporary supplier for deletion test
+            temp_supplier_data = {
+                "name": "Temp Supplier for Deletion",
+                "type": "general",
+                "website": "https://temp.com",
+                "contact_person": "Temp Person",
+                "phone": "+44 123 456 789",
+                "email": "temp@temp.com"
+            }
+            
+            # Create temp supplier
+            create_response = self.session.post(f"{self.base_url}/suppliers", json=temp_supplier_data)
+            if create_response.status_code != 200:
+                self.log_test("Delete Supplier", False, "Failed to create temp supplier for deletion test")
+                return False
+                
+            temp_supplier = create_response.json()
+            temp_supplier_id = temp_supplier['id']
+            
+            # Delete the temp supplier
+            response = self.session.delete(f"{self.base_url}/suppliers/{temp_supplier_id}")
+            if response.status_code == 200:
+                result = response.json()
+                if "successfully" in result.get('message', '').lower():
+                    self.log_test("Delete Supplier", True, f"Successfully deleted supplier: {result['message']}")
+                    return True
+                else:
+                    self.log_test("Delete Supplier", False, f"Invalid delete response: {result}")
+            else:
+                self.log_test("Delete Supplier", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Delete Supplier", False, f"Error: {str(e)}")
+        return False
+
+    def test_supplier_error_handling(self):
+        """Test error handling for supplier operations"""
+        try:
+            # Test getting non-existent supplier
+            fake_id = str(uuid.uuid4())
+            response = self.session.get(f"{self.base_url}/suppliers/{fake_id}")
+            if response.status_code == 404:
+                error_data = response.json()
+                if "not found" in error_data.get('detail', '').lower():
+                    self.log_test("Supplier Error Handling", True, f"Correctly handled non-existent supplier: {error_data['detail']}")
+                    return True
+                else:
+                    self.log_test("Supplier Error Handling", False, f"Wrong error message: {error_data}")
+            else:
+                self.log_test("Supplier Error Handling", False, f"Expected 404 error, got {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Supplier Error Handling", False, f"Error: {str(e)}")
+        return False
         
     def run_all_tests(self):
         """Run all tests in sequence"""
