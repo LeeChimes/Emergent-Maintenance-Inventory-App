@@ -966,6 +966,19 @@ class AssetInventoryAPITester:
         self.test_insufficient_stock_error()
         self.test_invalid_item_error()
         
+        # Supplier Management tests
+        self.test_create_supplier()
+        self.test_get_suppliers()
+        self.test_get_specific_supplier()
+        self.test_update_supplier()
+        self.test_ai_product_scanning()
+        self.test_get_supplier_products()
+        self.test_add_supplier_product()
+        self.test_link_material_to_supplier()
+        self.test_link_tool_to_supplier()
+        self.test_delete_supplier()
+        self.test_supplier_error_handling()
+        
         # Summary
         print("\n" + "=" * 80)
         print("📊 TEST SUMMARY")
