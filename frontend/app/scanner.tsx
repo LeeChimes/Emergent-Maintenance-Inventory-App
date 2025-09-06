@@ -192,7 +192,54 @@ export default function Scanner() {
     }
   };
 
-  const handleTransaction = async () => {
+  const performQuickTransaction = async (type: 'take' | 'restock', quantity: number) => {
+    if (!currentItem || !user) return;
+
+    setLoading(true);
+    try {
+      const transactionData = {
+        item_id: currentItem.id,
+        item_type: itemType,
+        transaction_type: type,
+        user_id: user.id,
+        user_name: user.name,
+        quantity: quantity,
+        notes: `Quick ${type} - ${quantity} items`,
+      };
+
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/transactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(transactionData),
+      });
+
+      if (response.ok) {
+        // Vibration feedback for success
+        try {
+          Vibration.vibrate([100, 50, 100]);
+        } catch (error) {
+          console.log('Vibration not available');
+        }
+
+        const actionText = type === 'take' ? 'taken' : 'restocked';
+        Alert.alert(
+          `Success! 🎉`,
+          `${quantity} ${(currentItem as Material).unit} of ${currentItem.name} ${actionText} successfully.`,
+          [{ text: 'Great!', onPress: closeModal }]
+        );
+      } else {
+        const error = await response.json();
+        Alert.alert('Oops! 😅', error.detail || 'Transaction failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating quick transaction:', error);
+      Alert.alert('Connection Issue 📡', 'Could not complete transaction. Check your connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
     if (!currentItem || !user || !actionType) return;
 
     if ((actionType === 'take' || actionType === 'restock') && !quantity) {
