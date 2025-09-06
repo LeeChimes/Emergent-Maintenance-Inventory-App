@@ -950,9 +950,67 @@ const styles = StyleSheet.create({
   },
   actionTitle: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 16,
+    textAlign: 'center',
+  },
+  quickButtonsContainer: {
+    marginBottom: 16,
+  },
+  quickButtonsTitle: {
+    color: '#4CAF50',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  quickButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  quickButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    alignItems: 'center',
+    minWidth: 50,
+  },
+  quickButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  customTakeButton: {
+    backgroundColor: '#FF9800',
+  },
+  currentUserCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4d3d2d',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+    marginTop: 12,
+  },
+  currentUserText: {
+    color: '#FF9800',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  locationHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2d4d2d',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+    marginTop: 12,
+  },
+  locationHintText: {
+    color: '#4CAF50',
+    fontSize: 12,
+    flex: 1,
   },
   actionButtons: {
     gap: 12,
@@ -965,8 +1023,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 12,
   },
-  takeButton: {
-    backgroundColor: '#F44336',
+  actionButtonContent: {
+    flex: 1,
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  actionButtonSubtext: {
+    color: '#fff',
+    fontSize: 12,
+    opacity: 0.8,
+    marginTop: 2,
   },
   restockButton: {
     backgroundColor: '#4CAF50',
