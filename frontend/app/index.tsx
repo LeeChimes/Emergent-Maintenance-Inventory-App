@@ -1040,4 +1040,13 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontSize: 11,
   },
+  scrollContent: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    flexGrow: 1,
+  },
+  activityItemText: {
+    color: '#fff',
+  },
 });
