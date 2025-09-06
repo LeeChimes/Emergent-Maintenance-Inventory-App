@@ -121,6 +121,7 @@ class Material(BaseModel):
     min_stock: int = 0
     location: Optional[str] = None
     supplier: Optional[Supplier] = None
+    supplier_product_code: Optional[str] = None  # Link to supplier's product code
     photo: Optional[str] = None  # base64 encoded
     qr_code: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
