@@ -129,6 +129,9 @@ export default function Suppliers() {
     setCreatingSupplier(true);
     
     try {
+      // Debug alerts to see what's happening
+      Alert.alert('Debug Info', `Backend URL: ${EXPO_PUBLIC_BACKEND_URL}\nSupplier Name: ${newSupplier.name}`);
+      
       console.log('🚀 Creating supplier:', newSupplier);
       console.log('🌐 Backend URL:', EXPO_PUBLIC_BACKEND_URL);
       
