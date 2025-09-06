@@ -545,11 +545,22 @@ async def get_supplier(supplier_id: str):
 
 @api_router.post("/suppliers", response_model=Supplier)
 async def create_supplier(supplier_data: SupplierCreate):
-    """Create a new supplier"""
-    supplier_dict = supplier_data.dict()
-    supplier = Supplier(**supplier_dict)
-    await db.suppliers.insert_one(supplier.dict())
-    return supplier
+    """Create a new supplier with duplicate prevention"""
+    try:
+        # Check if supplier name already exists
+        existing_supplier = await db.suppliers.find_one({"name": {"$regex": f"^{supplier_data.name}$", "$options": "i"}})
+        if existing_supplier:
+            raise HTTPException(status_code=409, detail=f"Supplier '{supplier_data.name}' already exists")
+        
+        supplier_dict = supplier_data.dict()
+        supplier = Supplier(**supplier_dict)
+        await db.suppliers.insert_one(supplier.dict())
+        return supplier
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
+    except Exception as e:
+        print(f"❌ Error creating supplier: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create supplier: {str(e)}")
 
 @api_router.put("/suppliers/{supplier_id}", response_model=Supplier)
 async def update_supplier(supplier_id: str, supplier_data: SupplierCreate):
