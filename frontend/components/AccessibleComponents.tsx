@@ -186,7 +186,7 @@ export const AccessibleButton: React.FC<{
     <TouchableOpacity
       style={[
         styles.accessibleButton,
-        getButtonSize(),
+        getLocalButtonSize(),
         {
           backgroundColor: getButtonColor(),
           opacity: disabled ? 0.5 : 1,
