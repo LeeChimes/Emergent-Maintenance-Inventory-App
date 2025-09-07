@@ -179,6 +179,7 @@ class DeliveryCreate(BaseModel):
     delivery_number: Optional[str] = None
     expected_date: Optional[datetime] = None
     driver_name: Optional[str] = None
+    receiver_name: Optional[str] = None
     tracking_number: Optional[str] = None
     estimated_delivery_window: Optional[str] = None
     items: List[DeliveryItem] = []
