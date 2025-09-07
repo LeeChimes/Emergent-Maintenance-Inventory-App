@@ -84,8 +84,6 @@ export default function Deliveries() {
   const [showDeliveryDetails, setShowDeliveryDetails] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
   const [showAIProcessing, setShowAIProcessing] = useState(false);
-  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
-  const [loading, setLoading] = useState(true);
   const [newDelivery, setNewDelivery] = useState({
     supplier_id: '',
     supplier_name: '',
