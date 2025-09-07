@@ -1188,33 +1188,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  aiResultsContainer: {
-    backgroundColor: '#404040',
-    borderRadius: 12,
-    padding: 16,
-  },
-  aiConfidence: {
-    color: '#4CAF50',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  aiItem: {
-    backgroundColor: '#2d2d2d',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  aiItemName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  aiItemDetails: {
-    color: '#aaa',
-    fontSize: 14,
-    marginTop: 4,
-  },
   aiModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.8)',
