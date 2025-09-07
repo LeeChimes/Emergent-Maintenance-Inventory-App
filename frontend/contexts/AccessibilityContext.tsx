@@ -115,12 +115,21 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const speak = (text: string) => {
     if (settings.audioFeedback || settings.readAloud) {
-      Speech.speak(text, {
-        language: 'en-US',
-        pitch: 1.0,
-        rate: 0.8,
-        volume: 1.0,
-      });
+      try {
+        if (Speech && Speech.speak) {
+          Speech.speak(text, {
+            language: 'en-US',
+            pitch: 1.0,
+            rate: 0.8,
+            volume: 1.0,
+          });
+        } else {
+          console.log('🗣️ Speech:', text);
+        }
+      } catch (error) {
+        console.warn('Speech error:', error);
+        console.log('🗣️ Speech (fallback):', text);
+      }
     }
   };
 
@@ -128,18 +137,20 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!settings.audioFeedback) return;
     
     try {
-      // Simple audio feedback using system sounds
-      // In production, you'd use actual sound files
-      if (type === 'success') {
-        Speech.speak('Success', { language: 'en-US', rate: 2.0, pitch: 1.2, volume: 0.3 });
-      } else if (type === 'error') {
-        Speech.speak('Error', { language: 'en-US', rate: 2.0, pitch: 0.8, volume: 0.3 });
-      } else if (type === 'click') {
-        // Simple click sound simulation
-        Speech.speak('Click', { language: 'en-US', rate: 3.0, pitch: 1.5, volume: 0.1 });
+      // Simple audio feedback using system sounds or speech
+      if (Speech && Speech.speak) {
+        const soundMap = {
+          success: '✓',
+          error: '✗', 
+          warning: '⚠',
+          click: '·'
+        };
+        Speech.speak(soundMap[type], { language: 'en-US', rate: 3.0, pitch: 1.5, volume: 0.1 });
+      } else {
+        console.log('🔊 Sound:', type);
       }
     } catch (error) {
-      console.error('Error playing sound:', error);
+      console.warn('Audio error:', error);
     }
   };
 
