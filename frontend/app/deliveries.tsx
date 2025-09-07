@@ -217,60 +217,17 @@ export default function Deliveries() {
     });
   };
 
-  const takeDeliveryNotePhoto = async () => {
-    try {
-      console.log('🔍 Starting takeDeliveryNotePhoto...');
-      
-      // Check if supplier is selected first
-      if (!newDelivery.supplier_id) {
-        Alert.alert(
-          'Select Supplier First',
-          'Please select a supplier before taking photos.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-      
-      console.log('✅ Supplier selected:', newDelivery.supplier_name);
-      console.log('🔍 Requesting camera permissions...');
-      
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      console.log('📱 Camera permission status:', status);
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Camera Permission Required', 
-          'Camera permission is needed to take photos of delivery notes. You can still use manual entry.',
-          [
-            { text: 'Manual Entry', onPress: () => setShowManualEntry(true) },
-            { text: 'OK', style: 'cancel' }
-          ]
-        );
-        return;
-      }
-
-      console.log('✅ Camera permission granted, showing options...');
-      Alert.alert(
-        '📸 Delivery Note Photo',
-        'How would you like to add the delivery note?',
-        [
-          { text: 'Manual Entry', onPress: () => setShowManualEntry(true) },
-          { text: 'Take Photo', onPress: openCamera },
-          { text: 'Choose from Gallery', onPress: openGallery },
-          { text: 'Cancel', style: 'cancel' }
-        ]
-      );
-    } catch (error) {
-      console.error('❌ Error requesting camera permission:', error);
-      Alert.alert(
-        'Camera Error', 
-        'Unable to access camera. Would you like to enter delivery details manually?',
-        [
-          { text: 'Manual Entry', onPress: () => setShowManualEntry(true) },
-          { text: 'Cancel', style: 'cancel' }
-        ]
-      );
-    }
+  const takeDeliveryNotePhoto = () => {
+    Alert.alert(
+      '📸 Delivery Note Photo',
+      'How would you like to add the delivery note?',
+      [
+        { text: 'Manual Entry', onPress: () => setShowManualEntry(true) },
+        { text: 'Take Photo', onPress: openCamera },
+        { text: 'Choose from Gallery', onPress: openGallery },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
   };
 
   const openCamera = async () => {
