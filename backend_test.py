@@ -22,6 +22,7 @@ class AssetInventoryAPITester:
         self.created_materials = []
         self.created_tools = []
         self.created_suppliers = []
+        self.created_deliveries = []
         self.test_user_id = "lee_carter"  # Using default supervisor
         
     def log_test(self, test_name, success, message="", response_data=None):
