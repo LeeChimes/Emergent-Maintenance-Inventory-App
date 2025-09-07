@@ -19,6 +19,8 @@ export default function RootLayout() {
         <Stack.Screen name="dashboard" options={{ headerShown: false }} />
         <Stack.Screen name="add-item" options={{ headerShown: false }} />
         <Stack.Screen name="bulk-upload" options={{ headerShown: false }} />
+        <Stack.Screen name="suppliers" options={{ headerShown: false }} />
+        <Stack.Screen name="deliveries" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
       </Stack>
     </ErrorBoundary>
