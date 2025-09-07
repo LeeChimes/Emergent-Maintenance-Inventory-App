@@ -258,6 +258,58 @@ export default function StockTake() {
     }
   };
 
+  const handleManualEntry = async () => {
+    if (!manualCode.trim()) {
+      Alert.alert('Invalid Code', 'Please enter a valid item code.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const endpoint = selectedType === 'material' ? 'materials' : 'tools';
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/${endpoint}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        const items = await response.json();
+        // Search for item by ID or name that matches the manual code
+        const item = items.find((i: any) => 
+          i.id === manualCode.trim() || 
+          i.name.toLowerCase().includes(manualCode.toLowerCase()) ||
+          i.qr_code === manualCode.trim()
+        );
+
+        if (item) {
+          setCurrentItem(item);
+          setCurrentItemType(selectedType);
+          setShowManualEntry(false);
+          setManualCode('');
+          setShowEntryModal(true);
+          
+          // Set default quantity for materials
+          if (selectedType === 'material') {
+            setCountedQuantity(item.quantity.toString());
+          }
+        } else {
+          Alert.alert(
+            'Item Not Found',
+            `Could not find any ${selectedType} matching "${manualCode}". Try entering the exact item name or code.`,
+            [{ text: 'OK' }]
+          );
+        }
+      } else {
+        Alert.alert('Error', `Could not search for ${selectedType}s.`);
+      }
+    } catch (error) {
+      console.error('Error searching for item:', error);
+      Alert.alert('Error', 'Could not search for item.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderScanner = () => (
     <Modal visible={showScanner} animationType="slide">
       <SafeAreaView style={styles.scannerModal}>
