@@ -202,6 +202,14 @@ class SupplierProduct(BaseModel):
     name: str
     product_code: str
     category: str
+    price: float
+    description: Optional[str] = None
+    availability: str = "in_stock"
+
+class SupplierProduct(BaseModel):
+    name: str
+    product_code: str
+    category: str
     price: Optional[float] = None
     description: Optional[str] = None
     availability: str = "in_stock"
