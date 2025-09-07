@@ -158,13 +158,27 @@ export default function Deliveries() {
 
   const fetchSuppliers = async () => {
     try {
+      console.log('📋 Fetching suppliers...');
       const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`);
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Suppliers loaded:', data.length);
         setSuppliers(data);
+        
+        // Auto-select first supplier if available to make testing easier
+        if (data.length > 0 && !newDelivery.supplier_id) {
+          setNewDelivery(prev => ({
+            ...prev,
+            supplier_id: data[0].id,
+            supplier_name: data[0].name
+          }));
+          console.log('🎯 Auto-selected first supplier:', data[0].name);
+        }
+      } else {
+        console.error('❌ Failed to fetch suppliers:', response.status);
       }
     } catch (error) {
-      console.error('Error fetching suppliers:', error);
+      console.error('❌ Error fetching suppliers:', error);
     }
   };
 
