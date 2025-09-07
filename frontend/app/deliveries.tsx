@@ -769,19 +769,8 @@ export default function Deliveries() {
 
             {/* Entry Options */}
             <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>📋 How would you like to enter delivery details?</Text>
+              <Text style={styles.sectionTitle}>📋 Delivery Entry</Text>
               
-              <TouchableOpacity 
-                style={styles.optionButton}
-                onPress={() => Alert.alert('Camera Works!', 'Photo button pressed successfully!')}
-              >
-                <Ionicons name="camera" size={24} color="#4CAF50" />
-                <View style={styles.optionContent}>
-                  <Text style={styles.optionTitle}>📸 Photo + AI Processing</Text>
-                  <Text style={styles.optionDescription}>Take photo of delivery note, AI extracts details</Text>
-                </View>
-              </TouchableOpacity>
-
               <TouchableOpacity 
                 style={styles.optionButton}
                 onPress={() => setShowManualEntry(true)}
@@ -789,7 +778,7 @@ export default function Deliveries() {
                 <Ionicons name="create" size={24} color="#FF9800" />
                 <View style={styles.optionContent}>
                   <Text style={styles.optionTitle}>✍️ Manual Entry</Text>
-                  <Text style={styles.optionDescription}>Type delivery details manually</Text>
+                  <Text style={styles.optionDescription}>Enter delivery details manually</Text>
                 </View>
               </TouchableOpacity>
             </View>
