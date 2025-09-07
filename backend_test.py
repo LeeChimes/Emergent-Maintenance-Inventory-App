@@ -924,6 +924,334 @@ class AssetInventoryAPITester:
         except Exception as e:
             self.log_test("Supplier Error Handling", False, f"Error: {str(e)}")
         return False
+
+    # Delivery Management Tests
+    def test_create_delivery(self):
+        """Test creating a new delivery"""
+        if not self.created_suppliers:
+            self.log_test("Create Delivery", False, "No suppliers created to test delivery")
+            return False
+            
+        try:
+            supplier_id = self.created_suppliers[0]
+            
+            # First get supplier details
+            supplier_response = self.session.get(f"{self.base_url}/suppliers/{supplier_id}")
+            if supplier_response.status_code != 200:
+                self.log_test("Create Delivery", False, "Failed to get supplier for delivery test")
+                return False
+                
+            supplier = supplier_response.json()
+            
+            delivery_data = {
+                "supplier_id": supplier_id,
+                "supplier_name": supplier['name'],
+                "delivery_number": "DEL-2024-001",
+                "expected_date": "2024-01-15T10:00:00Z",
+                "driver_name": "Mike Johnson",
+                "receiver_name": "Lee Carter",
+                "tracking_number": "TRK123456789",
+                "estimated_delivery_window": "9:00 AM - 11:00 AM",
+                "items": [
+                    {
+                        "item_name": "Safety Helmets",
+                        "item_code": "SAF-HEL-001",
+                        "quantity_expected": 20,
+                        "quantity_received": 0,
+                        "unit": "pieces",
+                        "condition": "perfect",
+                        "notes": "White safety helmets",
+                        "price_per_unit": 15.99
+                    },
+                    {
+                        "item_name": "LED Work Lights",
+                        "item_code": "LED-WRK-002",
+                        "quantity_expected": 10,
+                        "quantity_received": 0,
+                        "unit": "pieces",
+                        "condition": "perfect",
+                        "notes": "Rechargeable LED work lights",
+                        "price_per_unit": 45.50
+                    }
+                ],
+                "delivery_note_photo": "base64_encoded_photo_data_here",
+                "created_by": self.test_user_id
+            }
+            
+            response = self.session.post(f"{self.base_url}/deliveries", json=delivery_data)
+            if response.status_code == 200:
+                delivery = response.json()
+                if (delivery.get('id') and 
+                    delivery.get('supplier_name') == supplier['name'] and
+                    delivery.get('delivery_number') == "DEL-2024-001" and
+                    len(delivery.get('items', [])) == 2):
+                    
+                    self.created_deliveries.append(delivery['id'])
+                    self.log_test("Create Delivery", True, f"Created delivery: {delivery['delivery_number']} from {delivery['supplier_name']} (ID: {delivery['id']})")
+                    return True
+                else:
+                    self.log_test("Create Delivery", False, f"Invalid delivery response: {delivery}")
+            else:
+                self.log_test("Create Delivery", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Create Delivery", False, f"Error: {str(e)}")
+        return False
+
+    def test_get_deliveries(self):
+        """Test retrieving all deliveries"""
+        try:
+            response = self.session.get(f"{self.base_url}/deliveries")
+            if response.status_code == 200:
+                deliveries = response.json()
+                if isinstance(deliveries, list):
+                    self.log_test("Get All Deliveries", True, f"Retrieved {len(deliveries)} deliveries")
+                    return True
+                else:
+                    self.log_test("Get All Deliveries", False, f"Invalid deliveries format: {deliveries}")
+            else:
+                self.log_test("Get All Deliveries", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Get All Deliveries", False, f"Error: {str(e)}")
+        return False
+
+    def test_get_deliveries_with_filters(self):
+        """Test retrieving deliveries with filters"""
+        try:
+            # Test with status filter
+            response = self.session.get(f"{self.base_url}/deliveries?status=pending&limit=10")
+            if response.status_code == 200:
+                deliveries = response.json()
+                if isinstance(deliveries, list):
+                    self.log_test("Get Deliveries with Filters", True, f"Retrieved {len(deliveries)} pending deliveries with filters")
+                    return True
+                else:
+                    self.log_test("Get Deliveries with Filters", False, f"Invalid filtered deliveries format: {deliveries}")
+            else:
+                self.log_test("Get Deliveries with Filters", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Get Deliveries with Filters", False, f"Error: {str(e)}")
+        return False
+
+    def test_ai_delivery_note_processing(self):
+        """Test AI-powered delivery note processing"""
+        if not self.created_deliveries:
+            self.log_test("AI Delivery Note Processing", False, "No deliveries created to test AI processing")
+            return False
+            
+        try:
+            delivery_id = self.created_deliveries[0]
+            ai_data = {
+                "delivery_note_photo": "base64_encoded_delivery_note_photo_data",
+                "user_id": self.test_user_id
+            }
+            
+            response = self.session.post(f"{self.base_url}/deliveries/{delivery_id}/process-delivery-note", json=ai_data)
+            if response.status_code == 200:
+                ai_result = response.json()
+                if (ai_result.get('success') and 
+                    ai_result.get('extracted_data') and
+                    ai_result.get('confidence_score') and
+                    isinstance(ai_result.get('extracted_data', {}).get('items'), list)):
+                    
+                    extracted_data = ai_result['extracted_data']
+                    items_count = len(extracted_data['items'])
+                    confidence = ai_result['confidence_score']
+                    
+                    self.log_test("AI Delivery Note Processing", True, f"AI processed delivery note successfully - extracted {items_count} items with {confidence:.1%} confidence")
+                    return True
+                else:
+                    self.log_test("AI Delivery Note Processing", False, f"Invalid AI processing result: {ai_result}")
+            else:
+                self.log_test("AI Delivery Note Processing", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("AI Delivery Note Processing", False, f"Error: {str(e)}")
+        return False
+
+    def test_confirm_delivery_and_update_inventory(self):
+        """Test confirming delivery and updating inventory"""
+        if not self.created_deliveries:
+            self.log_test("Confirm Delivery and Update Inventory", False, "No deliveries created to test confirmation")
+            return False
+            
+        try:
+            delivery_id = self.created_deliveries[0]
+            confirmation_data = {
+                "confirmed_items": [
+                    {
+                        "item_name": "Safety Helmets",
+                        "item_code": "SAF-HEL-001",
+                        "quantity_received": 18,
+                        "unit": "pieces",
+                        "condition": "perfect",
+                        "notes": "2 items damaged in transit",
+                        "is_new_item": True,
+                        "item_type": "material",
+                        "category": "safety",
+                        "min_stock": 10,
+                        "location": "Safety Storage"
+                    },
+                    {
+                        "item_name": "LED Work Lights",
+                        "item_code": "LED-WRK-002",
+                        "quantity_received": 10,
+                        "unit": "pieces",
+                        "condition": "perfect",
+                        "notes": "All items in perfect condition",
+                        "is_new_item": True,
+                        "item_type": "material",
+                        "category": "electrical",
+                        "min_stock": 5,
+                        "location": "Electrical Storage"
+                    }
+                ],
+                "user_id": self.test_user_id,
+                "user_name": "Lee Carter"
+            }
+            
+            response = self.session.post(f"{self.base_url}/deliveries/{delivery_id}/confirm-and-update-inventory", json=confirmation_data)
+            if response.status_code == 200:
+                confirmation_result = response.json()
+                if (confirmation_result.get('success') and 
+                    confirmation_result.get('materials_updated') is not None and
+                    confirmation_result.get('total_items_processed') == 2):
+                    
+                    materials_updated = confirmation_result['materials_updated']
+                    items_processed = confirmation_result['total_items_processed']
+                    
+                    self.log_test("Confirm Delivery and Update Inventory", True, f"Delivery confirmed successfully - {materials_updated} materials updated, {items_processed} items processed")
+                    return True
+                else:
+                    self.log_test("Confirm Delivery and Update Inventory", False, f"Invalid confirmation result: {confirmation_result}")
+            else:
+                self.log_test("Confirm Delivery and Update Inventory", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Confirm Delivery and Update Inventory", False, f"Error: {str(e)}")
+        return False
+
+    def test_delivery_data_validation(self):
+        """Test delivery data validation and error handling"""
+        try:
+            # Test creating delivery without required fields
+            invalid_delivery_data = {
+                "supplier_name": "Test Supplier",
+                # Missing supplier_id and created_by
+                "delivery_number": "INVALID-001"
+            }
+            
+            response = self.session.post(f"{self.base_url}/deliveries", json=invalid_delivery_data)
+            if response.status_code in [400, 422]:  # Validation error expected
+                self.log_test("Delivery Data Validation", True, f"Correctly rejected invalid delivery data with HTTP {response.status_code}")
+                return True
+            else:
+                self.log_test("Delivery Data Validation", False, f"Expected validation error, got HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Delivery Data Validation", False, f"Error: {str(e)}")
+        return False
+
+    def test_delivery_ai_processing_validation(self):
+        """Test AI processing validation and error handling"""
+        if not self.created_deliveries:
+            self.log_test("Delivery AI Processing Validation", False, "No deliveries created to test AI validation")
+            return False
+            
+        try:
+            delivery_id = self.created_deliveries[0]
+            
+            # Test AI processing without required photo
+            invalid_ai_data = {
+                "user_id": self.test_user_id
+                # Missing delivery_note_photo
+            }
+            
+            response = self.session.post(f"{self.base_url}/deliveries/{delivery_id}/process-delivery-note", json=invalid_ai_data)
+            if response.status_code == 400:
+                error_data = response.json()
+                if "photo" in error_data.get('detail', '').lower():
+                    self.log_test("Delivery AI Processing Validation", True, f"Correctly rejected AI processing without photo: {error_data['detail']}")
+                    return True
+                else:
+                    self.log_test("Delivery AI Processing Validation", False, f"Wrong error message: {error_data}")
+            else:
+                self.log_test("Delivery AI Processing Validation", False, f"Expected 400 error, got HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Delivery AI Processing Validation", False, f"Error: {str(e)}")
+        return False
+
+    def test_delivery_not_found_error(self):
+        """Test error handling for non-existent delivery"""
+        try:
+            fake_delivery_id = str(uuid.uuid4())
+            
+            # Test AI processing on non-existent delivery
+            ai_data = {
+                "delivery_note_photo": "base64_photo_data",
+                "user_id": self.test_user_id
+            }
+            
+            response = self.session.post(f"{self.base_url}/deliveries/{fake_delivery_id}/process-delivery-note", json=ai_data)
+            if response.status_code == 404:
+                error_data = response.json()
+                if "not found" in error_data.get('detail', '').lower():
+                    self.log_test("Delivery Not Found Error", True, f"Correctly handled non-existent delivery: {error_data['detail']}")
+                    return True
+                else:
+                    self.log_test("Delivery Not Found Error", False, f"Wrong error message: {error_data}")
+            else:
+                self.log_test("Delivery Not Found Error", False, f"Expected 404 error, got HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Delivery Not Found Error", False, f"Error: {str(e)}")
+        return False
+
+    def test_delivery_integration_with_suppliers(self):
+        """Test delivery integration with existing suppliers"""
+        if not self.created_suppliers:
+            self.log_test("Delivery Integration with Suppliers", False, "No suppliers created to test integration")
+            return False
+            
+        try:
+            supplier_id = self.created_suppliers[0]
+            
+            # Get supplier details first
+            supplier_response = self.session.get(f"{self.base_url}/suppliers/{supplier_id}")
+            if supplier_response.status_code != 200:
+                self.log_test("Delivery Integration with Suppliers", False, "Failed to get supplier details")
+                return False
+                
+            supplier = supplier_response.json()
+            
+            # Create delivery with supplier reference
+            delivery_data = {
+                "supplier_id": supplier_id,
+                "supplier_name": supplier['name'],
+                "delivery_number": "INT-2024-001",
+                "created_by": self.test_user_id,
+                "items": [
+                    {
+                        "item_name": "Integration Test Item",
+                        "item_code": "INT-001",
+                        "quantity_expected": 5,
+                        "unit": "pieces",
+                        "condition": "perfect"
+                    }
+                ]
+            }
+            
+            response = self.session.post(f"{self.base_url}/deliveries", json=delivery_data)
+            if response.status_code == 200:
+                delivery = response.json()
+                if (delivery.get('supplier_id') == supplier_id and 
+                    delivery.get('supplier_name') == supplier['name']):
+                    
+                    self.created_deliveries.append(delivery['id'])
+                    self.log_test("Delivery Integration with Suppliers", True, f"Successfully integrated delivery with supplier: {supplier['name']}")
+                    return True
+                else:
+                    self.log_test("Delivery Integration with Suppliers", False, f"Supplier integration failed: {delivery}")
+            else:
+                self.log_test("Delivery Integration with Suppliers", False, f"HTTP {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Delivery Integration with Suppliers", False, f"Error: {str(e)}")
+        return False
         
     def run_all_tests(self):
         """Run all tests in sequence"""
