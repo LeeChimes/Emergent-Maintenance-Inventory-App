@@ -734,39 +734,38 @@ export default function Deliveries() {
                 </ScrollView>
               </View>
             </View>
+          </ScrollView>
 
-            {/* Entry Options */}
-            <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>📋 How would you like to enter delivery details?</Text>
-              
-              <TouchableOpacity 
-                style={styles.optionButton}
-                onPress={() => {
-                  Alert.alert('📸 Camera Options', 'Choose how to capture delivery note:', [
-                    { text: 'Take Photo', onPress: () => Alert.alert('Camera', 'Camera would open here') },
-                    { text: 'Manual Entry', onPress: () => setShowManualEntry(true) },
-                    { text: 'Cancel', style: 'cancel' }
-                  ]);
-                }}
-              >
-                <Ionicons name="camera" size={24} color="#4CAF50" />
-                <View style={styles.optionContent}>
-                  <Text style={styles.optionTitle}>📸 Photo + AI Processing</Text>
-                  <Text style={styles.optionDescription}>Take photo of delivery note, AI extracts details</Text>
-                </View>
-              </TouchableOpacity>
+          {/* Fixed Entry Options - Outside ScrollView */}
+          <View style={[styles.formSection, { backgroundColor: '#1a1a1a', paddingHorizontal: 20, paddingBottom: 20 }]}>
+            <Text style={styles.sectionTitle}>📋 How would you like to enter delivery details?</Text>
+            
+            <TouchableOpacity 
+              style={styles.optionButton}
+              onPress={() => {
+                Alert.alert('📸 Camera Test', 'Photo button is working!', [
+                  { text: 'Great!', onPress: () => setShowManualEntry(true) }
+                ]);
+              }}
+            >
+              <Ionicons name="camera" size={24} color="#4CAF50" />
+              <View style={styles.optionContent}>
+                <Text style={styles.optionTitle}>📸 Photo + AI Processing</Text>
+                <Text style={styles.optionDescription}>Take photo of delivery note, AI extracts details</Text>
+              </View>
+            </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={styles.optionButton}
-                onPress={() => setShowManualEntry(true)}
-              >
-                <Ionicons name="create" size={24} color="#FF9800" />
-                <View style={styles.optionContent}>
-                  <Text style={styles.optionTitle}>✍️ Manual Entry</Text>
-                  <Text style={styles.optionDescription}>Type delivery details manually</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity 
+              style={styles.optionButton}
+              onPress={() => setShowManualEntry(true)}
+            >
+              <Ionicons name="create" size={24} color="#FF9800" />
+              <View style={styles.optionContent}>
+                <Text style={styles.optionTitle}>✍️ Manual Entry</Text>
+                <Text style={styles.optionDescription}>Type delivery details manually</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
 
             {/* AI Results */}
             {aiResults && (
