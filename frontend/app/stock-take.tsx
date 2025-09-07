@@ -65,6 +65,8 @@ export default function StockTake() {
   const [condition, setCondition] = useState<'excellent' | 'good' | 'fair' | 'poor'>('good');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualCode, setManualCode] = useState('');
 
   useEffect(() => {
     initializeUser();
