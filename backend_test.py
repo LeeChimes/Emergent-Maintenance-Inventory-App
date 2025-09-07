@@ -1308,6 +1308,17 @@ class AssetInventoryAPITester:
         self.test_delete_supplier()
         self.test_supplier_error_handling()
         
+        # Delivery Management tests
+        self.test_create_delivery()
+        self.test_get_deliveries()
+        self.test_get_deliveries_with_filters()
+        self.test_ai_delivery_note_processing()
+        self.test_confirm_delivery_and_update_inventory()
+        self.test_delivery_data_validation()
+        self.test_delivery_ai_processing_validation()
+        self.test_delivery_not_found_error()
+        self.test_delivery_integration_with_suppliers()
+        
         # Summary
         print("\n" + "=" * 80)
         print("📊 TEST SUMMARY")
