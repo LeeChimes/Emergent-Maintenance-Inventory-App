@@ -539,7 +539,12 @@ export default function Scanner() {
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Scan QR Code</Text>
-        <View style={styles.headerButton} />
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => setShowManualEntry(true)}
+        >
+          <Ionicons name="create" size={24} color="#4CAF50" />
+        </TouchableOpacity>
       </View>
 
       {/* Camera Scanner */}
