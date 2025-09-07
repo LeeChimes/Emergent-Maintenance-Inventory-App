@@ -334,10 +334,12 @@ export default function Deliveries() {
       return;
     }
 
+    console.log('🤖 Starting AI processing...');
     setProcessingAI(true);
     
     try {
       // First create the delivery
+      console.log('📝 Creating delivery...');
       const deliveryResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/deliveries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -347,13 +349,19 @@ export default function Deliveries() {
         }),
       });
 
+      console.log('📝 Delivery creation response:', deliveryResponse.status);
+
       if (!deliveryResponse.ok) {
-        throw new Error('Failed to create delivery');
+        const errorText = await deliveryResponse.text();
+        console.error('❌ Failed to create delivery:', errorText);
+        throw new Error(`Failed to create delivery: ${errorText}`);
       }
 
       const createdDelivery = await deliveryResponse.json();
+      console.log('✅ Delivery created:', createdDelivery.id);
 
       // Process with AI
+      console.log('🤖 Calling AI processing endpoint...');
       const aiResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/deliveries/${createdDelivery.id}/process-delivery-note`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -363,8 +371,11 @@ export default function Deliveries() {
         }),
       });
 
+      console.log('🤖 AI processing response:', aiResponse.status);
+
       if (aiResponse.ok) {
         const aiData = await aiResponse.json();
+        console.log('✅ AI processing successful:', aiData);
         setAiResults(aiData);
         
         Alert.alert(
@@ -373,14 +384,26 @@ export default function Deliveries() {
           [{ text: 'Review Results', onPress: () => setShowAIProcessing(false) }]
         );
       } else {
-        throw new Error('AI processing failed');
+        const errorText = await aiResponse.text();
+        console.error('❌ AI processing failed:', errorText);
+        throw new Error(`AI processing failed: ${errorText}`);
       }
       
       await fetchDeliveries();
       
     } catch (error) {
-      console.error('Error processing with AI:', error);
-      Alert.alert('AI Processing Failed', 'AI processing failed. You can still enter delivery details manually.');
+      console.error('❌ Error processing with AI:', error);
+      Alert.alert(
+        'AI Processing Failed', 
+        `AI processing encountered an error: ${error.message}\n\nYou can still enter delivery details manually.`,
+        [
+          { text: 'Manual Entry', onPress: () => {
+            setShowAIProcessing(false);
+            setShowManualEntry(true);
+          }},
+          { text: 'OK', style: 'cancel' }
+        ]
+      );
     } finally {
       setProcessingAI(false);
     }
