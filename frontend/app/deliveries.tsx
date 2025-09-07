@@ -741,16 +741,8 @@ export default function Deliveries() {
               
               <TouchableOpacity 
                 style={styles.optionButton}
-                onPress={() => Alert.alert('Test', 'Photo button was pressed!')}
+                onPress={() => setShowManualEntry(true)}
               >
-                <Ionicons name="camera" size={24} color="#4CAF50" />
-                <View style={styles.optionContent}>
-                  <Text style={styles.optionTitle}>📸 Photo + AI Processing</Text>
-                  <Text style={styles.optionDescription}>Take photo of delivery note, AI extracts details</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.optionButton} onPress={() => setShowManualEntry(true)}>
                 <Ionicons name="create" size={24} color="#FF9800" />
                 <View style={styles.optionContent}>
                   <Text style={styles.optionTitle}>✍️ Manual Entry</Text>
