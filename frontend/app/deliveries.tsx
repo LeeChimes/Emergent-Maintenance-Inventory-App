@@ -57,7 +57,7 @@ interface Delivery {
   expected_date?: string;
   actual_delivery_date?: string;
   driver_name?: string;
-  receiver_name: string;
+  receiver_name?: string;
   items: DeliveryItem[];
   delivery_note_photo?: string;
   ai_extracted_data?: any;
@@ -83,6 +83,7 @@ export default function Deliveries() {
   const [showDeliveryDetails, setShowDeliveryDetails] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
   const [showAIProcessing, setShowAIProcessing] = useState(false);
+  const [showManualEntry, setShowManualEntry] = useState(false);
   
   // Form states
   const [newDelivery, setNewDelivery] = useState({
@@ -99,6 +100,23 @@ export default function Deliveries() {
   
   const [processingAI, setProcessingAI] = useState(false);
   const [aiResults, setAiResults] = useState<any>(null);
+  
+  // Manual entry states
+  const [manualDeliveryData, setManualDeliveryData] = useState({
+    delivery_number: '',
+    driver_name: '',
+    items: [
+      {
+        item_name: '',
+        item_code: '',
+        quantity_expected: 0,
+        quantity_received: 0,
+        unit: 'pieces',
+        condition: 'good',
+        notes: ''
+      }
+    ]
+  });
 
   useEffect(() => {
     loadUserAndData();
@@ -168,6 +186,21 @@ export default function Deliveries() {
       items: []
     });
     setAiResults(null);
+    setManualDeliveryData({
+      delivery_number: '',
+      driver_name: '',
+      items: [
+        {
+          item_name: '',
+          item_code: '',
+          quantity_expected: 0,
+          quantity_received: 0,
+          unit: 'pieces',
+          condition: 'good',
+          notes: ''
+        }
+      ]
+    });
   };
 
   const takeDeliveryNotePhoto = async () => {
@@ -180,9 +213,9 @@ export default function Deliveries() {
 
       Alert.alert(
         '📸 Delivery Note Photo',
-        'Take a clear photo of the delivery note for AI processing',
+        'Take a clear photo of the delivery note for AI processing, or choose manual entry',
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: 'Manual Entry', onPress: () => setShowManualEntry(true) },
           { text: 'Take Photo', onPress: openCamera },
           { text: 'Choose from Gallery', onPress: openGallery }
         ]
@@ -210,9 +243,9 @@ export default function Deliveries() {
         
         Alert.alert(
           '🤖 AI Processing Available',
-          'Would you like AI to automatically extract delivery information from this photo?',
+          'Would you like AI to automatically extract delivery information from this photo, or enter manually?',
           [
-            { text: 'Manual Entry', style: 'cancel' },
+            { text: 'Manual Entry', onPress: () => setShowManualEntry(true) },
             { text: 'Use AI', onPress: () => setShowAIProcessing(true) }
           ]
         );
@@ -241,9 +274,9 @@ export default function Deliveries() {
         
         Alert.alert(
           '🤖 AI Processing Available',
-          'Would you like AI to automatically extract delivery information from this photo?',
+          'Would you like AI to automatically extract delivery information from this photo, or enter manually?',
           [
-            { text: 'Manual Entry', style: 'cancel' },
+            { text: 'Manual Entry', onPress: () => setShowManualEntry(true) },
             { text: 'Use AI', onPress: () => setShowAIProcessing(true) }
           ]
         );
@@ -311,20 +344,25 @@ export default function Deliveries() {
     }
   };
 
-  const createDelivery = async () => {
+  const createManualDelivery = async () => {
     if (!newDelivery.supplier_id) {
       Alert.alert('Missing Information', 'Please select a supplier.');
       return;
     }
 
+    const deliveryData = {
+      ...newDelivery,
+      delivery_number: manualDeliveryData.delivery_number || newDelivery.delivery_number,
+      driver_name: manualDeliveryData.driver_name || newDelivery.driver_name,
+      items: manualDeliveryData.items.filter(item => item.item_name.trim() !== ''),
+      created_by: user?.id || 'unknown'
+    };
+
     try {
       const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/deliveries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...newDelivery,
-          created_by: user?.id || 'unknown'
-        }),
+        body: JSON.stringify(deliveryData),
       });
 
       if (response.ok) {
@@ -333,6 +371,7 @@ export default function Deliveries() {
           'Delivery has been logged successfully.',
           [{ text: 'OK', onPress: () => {
             setShowAddDelivery(false);
+            setShowManualEntry(false);
             resetDeliveryForm();
             fetchDeliveries();
           }}]
@@ -344,6 +383,37 @@ export default function Deliveries() {
       console.error('Error creating delivery:', error);
       Alert.alert('Error', 'Failed to create delivery. Please try again.');
     }
+  };
+
+  const addManualItem = () => {
+    setManualDeliveryData(prev => ({
+      ...prev,
+      items: [...prev.items, {
+        item_name: '',
+        item_code: '',
+        quantity_expected: 0,
+        quantity_received: 0,
+        unit: 'pieces',
+        condition: 'good',
+        notes: ''
+      }]
+    }));
+  };
+
+  const removeManualItem = (index: number) => {
+    setManualDeliveryData(prev => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateManualItem = (index: number, field: string, value: any) => {
+    setManualDeliveryData(prev => ({
+      ...prev,
+      items: prev.items.map((item, i) => 
+        i === index ? { ...item, [field]: value } : item
+      )
+    }));
   };
 
   const confirmDeliveryItems = async (confirmedItems: DeliveryItem[]) => {
@@ -391,7 +461,7 @@ export default function Deliveries() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending': return 'time-outline';
-      case 'in_transit': return 'car-outline';
+      case 'in_transit': return 'car-outline'; 
       case 'delivered': return 'checkmark-circle-outline';
       case 'completed': return 'checkmark-done-circle';
       case 'damaged': return 'warning-outline';
@@ -404,7 +474,7 @@ export default function Deliveries() {
       delivery.supplier_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       delivery.delivery_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       delivery.driver_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      delivery.receiver_name.toLowerCase().includes(searchQuery.toLowerCase());
+      delivery.receiver_name?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = filterStatus === 'all' || delivery.status === filterStatus;
     
@@ -527,7 +597,7 @@ export default function Deliveries() {
               <View style={styles.deliveryDetails}>
                 <View style={styles.detailRow}>
                   <Ionicons name="person" size={16} color="#666" />
-                  <Text style={styles.detailText}>Received by: {delivery.receiver_name}</Text>
+                  <Text style={styles.detailText}>Received by: {delivery.receiver_name || 'Unknown'}</Text>
                 </View>
                 
                 {delivery.driver_name && (
@@ -578,9 +648,7 @@ export default function Deliveries() {
               <Ionicons name="close" size={24} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Log New Delivery</Text>
-            <TouchableOpacity onPress={createDelivery}>
-              <Ionicons name="checkmark" size={24} color="#4CAF50" />
-            </TouchableOpacity>
+            <View style={styles.headerButton} />
           </View>
 
           <ScrollView style={styles.modalContent}>
@@ -614,69 +682,27 @@ export default function Deliveries() {
                   ))}
                 </ScrollView>
               </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Delivery Number</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter delivery/reference number"
-                  placeholderTextColor="#aaa"
-                  value={newDelivery.delivery_number}
-                  onChangeText={(text) => setNewDelivery(prev => ({ ...prev, delivery_number: text }))}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Driver Name</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter driver's name"
-                  placeholderTextColor="#aaa"
-                  value={newDelivery.driver_name}
-                  onChangeText={(text) => setNewDelivery(prev => ({ ...prev, driver_name: text }))}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Tracking Number</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter tracking number (optional)"
-                  placeholderTextColor="#aaa"
-                  value={newDelivery.tracking_number}
-                  onChangeText={(text) => setNewDelivery(prev => ({ ...prev, tracking_number: text }))}
-                />
-              </View>
             </View>
 
-            {/* Photo Section */}
+            {/* Entry Options */}
             <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>📸 Delivery Documentation</Text>
+              <Text style={styles.sectionTitle}>📋 How would you like to enter delivery details?</Text>
               
-              <TouchableOpacity style={styles.photoButton} onPress={takeDeliveryNotePhoto}>
+              <TouchableOpacity style={styles.optionButton} onPress={takeDeliveryNotePhoto}>
                 <Ionicons name="camera" size={24} color="#4CAF50" />
-                <Text style={styles.photoButtonText}>
-                  {newDelivery.delivery_note_photo ? 'Photo Captured ✓' : 'Take Photo of Delivery Note'}
-                </Text>
+                <View style={styles.optionContent}>
+                  <Text style={styles.optionTitle}>📸 Photo + AI Processing</Text>
+                  <Text style={styles.optionDescription}>Take photo of delivery note, AI extracts details</Text>
+                </View>
               </TouchableOpacity>
 
-              {newDelivery.delivery_note_photo && (
-                <View style={styles.photoPreview}>
-                  <Image
-                    source={{ uri: `data:image/jpeg;base64,${newDelivery.delivery_note_photo}` }}
-                    style={styles.photoImage}
-                  />
-                  <View style={styles.photoActions}>
-                    <TouchableOpacity
-                      style={styles.aiProcessButton}
-                      onPress={() => setShowAIProcessing(true)}
-                    >
-                      <Ionicons name="brain" size={20} color="#fff" />
-                      <Text style={styles.aiProcessButtonText}>Process with AI</Text>
-                    </TouchableOpacity>
-                  </View>
+              <TouchableOpacity style={styles.optionButton} onPress={() => setShowManualEntry(true)}>
+                <Ionicons name="create" size={24} color="#FF9800" />
+                <View style={styles.optionContent}>
+                  <Text style={styles.optionTitle}>✍️ Manual Entry</Text>
+                  <Text style={styles.optionDescription}>Type delivery details manually</Text>
                 </View>
-              )}
+              </TouchableOpacity>
             </View>
 
             {/* AI Results */}
@@ -698,6 +724,149 @@ export default function Deliveries() {
                 </View>
               </View>
             )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Manual Entry Modal */}
+      <Modal
+        visible={showManualEntry}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowManualEntry(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowManualEntry(false)}>
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Manual Delivery Entry</Text>
+            <TouchableOpacity onPress={createManualDelivery}>
+              <Ionicons name="checkmark" size={24} color="#4CAF50" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            <View style={styles.formSection}>
+              <Text style={styles.sectionTitle}>📋 Delivery Details</Text>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Delivery Number</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Enter delivery number"
+                  placeholderTextColor="#aaa"
+                  value={manualDeliveryData.delivery_number}
+                  onChangeText={(text) => setManualDeliveryData(prev => ({ ...prev, delivery_number: text }))}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Driver Name</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Enter driver's name"
+                  placeholderTextColor="#aaa"
+                  value={manualDeliveryData.driver_name}
+                  onChangeText={(text) => setManualDeliveryData(prev => ({ ...prev, driver_name: text }))}
+                />
+              </View>
+            </View>
+
+            {/* Items */}
+            <View style={styles.formSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>📦 Items</Text>
+                <TouchableOpacity style={styles.addButton} onPress={addManualItem}>
+                  <Ionicons name="add" size={20} color="#4CAF50" />
+                  <Text style={styles.addButtonText}>Add Item</Text>
+                </TouchableOpacity>
+              </View>
+
+              {manualDeliveryData.items.map((item, index) => (
+                <View key={index} style={styles.itemCard}>
+                  <View style={styles.itemHeader}>
+                    <Text style={styles.itemNumber}>Item {index + 1}</Text>
+                    {manualDeliveryData.items.length > 1 && (
+                      <TouchableOpacity onPress={() => removeManualItem(index)}>
+                        <Ionicons name="trash" size={20} color="#F44336" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Item Name *</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Enter item name"
+                      placeholderTextColor="#aaa"
+                      value={item.item_name}
+                      onChangeText={(text) => updateManualItem(index, 'item_name', text)}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Item Code</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Enter item code (optional)"
+                      placeholderTextColor="#aaa"
+                      value={item.item_code}
+                      onChangeText={(text) => updateManualItem(index, 'item_code', text)}
+                    />
+                  </View>
+
+                  <View style={styles.inputRow}>
+                    <View style={styles.inputHalf}>
+                      <Text style={styles.inputLabel}>Expected Qty</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="0"
+                        placeholderTextColor="#aaa"
+                        keyboardType="numeric"
+                        value={item.quantity_expected.toString()}
+                        onChangeText={(text) => updateManualItem(index, 'quantity_expected', parseInt(text) || 0)}
+                      />
+                    </View>
+                    
+                    <View style={styles.inputHalf}>
+                      <Text style={styles.inputLabel}>Received Qty</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="0"
+                        placeholderTextColor="#aaa"
+                        keyboardType="numeric"
+                        value={item.quantity_received.toString()}
+                        onChangeText={(text) => updateManualItem(index, 'quantity_received', parseInt(text) || 0)}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Unit</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="pieces"
+                      placeholderTextColor="#aaa"
+                      value={item.unit}
+                      onChangeText={(text) => updateManualItem(index, 'unit', text)}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Notes</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Any notes about this item"
+                      placeholderTextColor="#aaa"
+                      value={item.notes}
+                      onChangeText={(text) => updateManualItem(index, 'notes', text)}
+                      multiline
+                    />
+                  </View>
+                </View>
+              ))}
+            </View>
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -773,7 +942,7 @@ export default function Deliveries() {
 
                 <View style={styles.detailsSection}>
                   <Text style={styles.sectionTitle}>📋 Delivery Information</Text>
-                  <Text style={styles.detailItem}>Received by: {selectedDelivery.receiver_name}</Text>
+                  <Text style={styles.detailItem}>Received by: {selectedDelivery.receiver_name || 'Unknown'}</Text>
                   {selectedDelivery.driver_name && (
                     <Text style={styles.detailItem}>Driver: {selectedDelivery.driver_name}</Text>
                   )}
@@ -1025,6 +1194,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 12,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  addButtonText: {
+    color: '#4CAF50',
+    fontSize: 14,
+    fontWeight: '500',
+  },
   inputGroup: {
     marginBottom: 16,
   },
@@ -1039,6 +1224,15 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#404040',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  inputHalf: {
+    flex: 1,
   },
   supplierSelector: {
     flexDirection: 'row',
@@ -1061,42 +1255,46 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-  photoButton: {
+  optionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#404040',
+    backgroundColor: '#2d2d2d',
     padding: 16,
     borderRadius: 12,
-    gap: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#404040',
   },
-  photoButtonText: {
+  optionContent: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  optionTitle: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
   },
-  photoPreview: {
-    marginTop: 16,
+  optionDescription: {
+    color: '#aaa',
+    fontSize: 14,
   },
-  photoImage: {
-    width: '100%',
-    height: 200,
+  itemCard: {
+    backgroundColor: '#2d2d2d',
+    padding: 16,
     borderRadius: 12,
-    resizeMode: 'cover',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#404040',
   },
-  photoActions: {
-    marginTop: 12,
-  },
-  aiProcessButton: {
+  itemHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#4CAF50',
-    padding: 12,
-    borderRadius: 8,
-    gap: 8,
+    marginBottom: 12,
   },
-  aiProcessButtonText: {
-    color: '#fff',
+  itemNumber: {
+    color: '#4CAF50',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -1199,12 +1397,6 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontSize: 16,
     marginBottom: 8,
-  },
-  itemCard: {
-    backgroundColor: '#404040',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
   },
   itemName: {
     color: '#fff',
