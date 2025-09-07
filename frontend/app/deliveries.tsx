@@ -741,6 +741,23 @@ export default function Deliveries() {
               
               <TouchableOpacity 
                 style={styles.optionButton}
+                onPress={() => {
+                  Alert.alert('📸 Camera Options', 'Choose how to capture delivery note:', [
+                    { text: 'Take Photo', onPress: () => Alert.alert('Camera', 'Camera would open here') },
+                    { text: 'Manual Entry', onPress: () => setShowManualEntry(true) },
+                    { text: 'Cancel', style: 'cancel' }
+                  ]);
+                }}
+              >
+                <Ionicons name="camera" size={24} color="#4CAF50" />
+                <View style={styles.optionContent}>
+                  <Text style={styles.optionTitle}>📸 Photo + AI Processing</Text>
+                  <Text style={styles.optionDescription}>Take photo of delivery note, AI extracts details</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.optionButton}
                 onPress={() => setShowManualEntry(true)}
               >
                 <Ionicons name="create" size={24} color="#FF9800" />
