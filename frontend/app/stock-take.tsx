@@ -271,7 +271,14 @@ export default function StockTake() {
           <Text style={styles.scannerTitle}>
             Scan {selectedType === 'material' ? 'Material' : 'Tool'}
           </Text>
-          <View style={{ width: 24 }} />
+          <TouchableOpacity
+            onPress={() => {
+              setShowScanner(false);
+              setShowManualEntry(true);
+            }}
+          >
+            <Ionicons name="create" size={24} color="#4CAF50" />
+          </TouchableOpacity>
         </View>
 
         {hasPermission === false ? (
