@@ -1022,6 +1022,9 @@ const styles = StyleSheet.create({
   stockTakeButton: {
     backgroundColor: '#795548',
   },
+  deliveryButton: {
+    backgroundColor: '#9C27B0',
+  },
   settingsButton: {
     backgroundColor: '#607D8B',
   },
