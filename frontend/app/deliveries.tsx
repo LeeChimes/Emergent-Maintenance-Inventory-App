@@ -770,7 +770,7 @@ export default function Deliveries() {
         visible={showAIProcessing}
         animationType="fade"
         transparent={true}
-        onRequestClose={() => !processingAI && setShowAIProcessing(false)}
+        onRequestClose={() => setShowAIProcessing(false)}
       >
         <View style={styles.aiModalOverlay}>
           <View style={styles.aiModalContent}>
@@ -780,26 +780,22 @@ export default function Deliveries() {
               Reading delivery note and extracting item information...
             </Text>
             
-            {processingAI ? (
-              <ActivityIndicator size="large" color="#4CAF50" style={styles.aiLoader} />
-            ) : (
-              <View style={styles.aiModalButtons}>
-                <TouchableOpacity
-                  style={styles.aiModalButton}
-                  onPress={() => setShowAIProcessing(false)}
-                >
-                  <Text style={styles.aiModalButtonText}>Manual Entry</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.aiModalButton, styles.aiModalButtonPrimary]}
-                  onPress={processWithAI}
-                >
-                  <Text style={[styles.aiModalButtonText, styles.aiModalButtonTextPrimary]}>
-                    Process with AI
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            <View style={styles.aiModalButtons}>
+              <TouchableOpacity
+                style={styles.aiModalButton}
+                onPress={() => setShowAIProcessing(false)}
+              >
+                <Text style={styles.aiModalButtonText}>Manual Entry</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.aiModalButton, styles.aiModalButtonPrimary]}
+                onPress={() => setShowAIProcessing(false)}
+              >
+                <Text style={[styles.aiModalButtonText, styles.aiModalButtonTextPrimary]}>
+                  Process with AI
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
