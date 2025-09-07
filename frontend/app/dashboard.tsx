@@ -255,6 +255,14 @@ export default function Dashboard() {
               <Ionicons name="storefront" size={28} color="#FF9800" />
               <Text style={styles.quickActionText}>Manage Suppliers</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickActionCard}
+              onPress={() => router.push('/deliveries')}
+            >
+              <Ionicons name="cube" size={28} color="#9C27B0" />
+              <Text style={styles.quickActionText}>Log Deliveries</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
