@@ -80,12 +80,10 @@ export default function Deliveries() {
   
   // Modal states
   const [showAddDelivery, setShowAddDelivery] = useState(false);
-  const [showDeliveryDetails, setShowDeliveryDetails] = useState(false);
-  const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
-  const [showAIProcessing, setShowAIProcessing] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
-  
-  // Form states
+  const [suppliers, setSuppliers] = useState([]);
+  const [deliveries, setDeliveries] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [newDelivery, setNewDelivery] = useState({
     supplier_id: '',
     supplier_name: '',
