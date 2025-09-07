@@ -782,7 +782,16 @@ export default function Deliveries() {
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>📋 How would you like to enter delivery details?</Text>
               
-              <TouchableOpacity style={styles.optionButton} onPress={takeDeliveryNotePhoto}>
+              <TouchableOpacity 
+                style={styles.optionButton} 
+                onPress={() => {
+                  console.log('🔵 Photo + AI button pressed!');
+                  Alert.alert('Debug', 'Photo + AI button pressed! Check console for logs.', [
+                    { text: 'Continue', onPress: takeDeliveryNotePhoto },
+                    { text: 'Cancel' }
+                  ]);
+                }}
+              >
                 <Ionicons name="camera" size={24} color="#4CAF50" />
                 <View style={styles.optionContent}>
                   <Text style={styles.optionTitle}>📸 Photo + AI Processing</Text>
