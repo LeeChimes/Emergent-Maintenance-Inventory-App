@@ -11,16 +11,16 @@ import {
   RefreshControl,
   Modal,
   Dimensions,
+  StyleSheet,
 } from 'react-native';
-import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const { width } = Dimensions.get('window');
 
 interface User {
   id: string;
