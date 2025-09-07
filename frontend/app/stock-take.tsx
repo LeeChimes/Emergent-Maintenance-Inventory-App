@@ -1102,4 +1102,72 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  manualEntrySection: {
+    padding: 20,
+  },
+  sectionTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  sectionDescription: {
+    color: '#aaa',
+    fontSize: 14,
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  manualInput: {
+    backgroundColor: '#2d2d2d',
+    color: '#fff',
+    fontSize: 16,
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#404040',
+  },
+  helpSection: {
+    backgroundColor: '#2d2d2d',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  helpTitle: {
+    color: '#4CAF50',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  helpText: {
+    color: '#aaa',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  manualSubmitButton: {
+    backgroundColor: '#4CAF50',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  disabledButton: {
+    backgroundColor: '#666',
+    opacity: 0.5,
+  },
+  manualSubmitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
