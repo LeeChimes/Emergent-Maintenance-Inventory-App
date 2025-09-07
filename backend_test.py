@@ -12,7 +12,7 @@ import sys
 import os
 
 # Get backend URL from environment
-BACKEND_URL = "https://tool-inventory-7.preview.emergentagent.com/api"
+BACKEND_URL = "https://qr-asset-manager.preview.emergentagent.com/api"
 
 class AssetInventoryAPITester:
     def __init__(self):
