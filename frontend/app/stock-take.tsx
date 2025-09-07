@@ -651,6 +651,75 @@ export default function StockTake() {
 
       {renderScanner()}
       {renderEntryModal()}
+      
+      {/* Manual Entry Modal */}
+      <Modal
+        visible={showManualEntry}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowManualEntry(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowManualEntry(false)}>
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Manual Entry</Text>
+            <TouchableOpacity 
+              onPress={handleManualEntry}
+              disabled={!manualCode.trim() || loading}
+            >
+              <Ionicons name="checkmark" size={24} color={manualCode.trim() && !loading ? "#4CAF50" : "#666"} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.modalContent}>
+            <View style={styles.manualEntrySection}>
+              <Text style={styles.sectionTitle}>
+                🔍 Find {selectedType === 'material' ? 'Material' : 'Tool'}
+              </Text>
+              <Text style={styles.sectionDescription}>
+                Enter the item name, code, or QR code to find it in your inventory
+              </Text>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Search for {selectedType} *</Text>
+                <TextInput
+                  style={styles.manualInput}
+                  placeholder={`Enter ${selectedType} name or code`}
+                  placeholderTextColor="#aaa"
+                  value={manualCode}
+                  onChangeText={setManualCode}
+                  autoFocus={true}
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.helpSection}>
+                <Text style={styles.helpTitle}>💡 Search Examples:</Text>
+                <Text style={styles.helpText}>• Item names: "Safety Helmet", "Cordless Drill"</Text>
+                <Text style={styles.helpText}>• Item codes: "SAF-HEL-001", "DRL-COR-001"</Text>
+                <Text style={styles.helpText}>• QR codes: Full scanned text from stickers</Text>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.manualSubmitButton, (!manualCode.trim() || loading) && styles.disabledButton]}
+                onPress={handleManualEntry}
+                disabled={!manualCode.trim() || loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="search" size={20} color="#fff" />
+                )}
+                <Text style={styles.manualSubmitButtonText}>
+                  {loading ? 'Searching...' : `Find ${selectedType}`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
