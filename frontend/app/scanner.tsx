@@ -721,6 +721,79 @@ export default function Scanner() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {/* Manual Entry Modal */}
+      <Modal
+        visible={showManualEntry}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowManualEntry(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowManualEntry(false)}>
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Manual Entry</Text>
+            <TouchableOpacity 
+              onPress={() => {
+                if (manualCode.trim()) {
+                  handleBarCodeScanned({ type: 'manual', data: manualCode.trim() });
+                  setShowManualEntry(false);
+                  setManualCode('');
+                }
+              }}
+              disabled={!manualCode.trim()}
+            >
+              <Ionicons name="checkmark" size={24} color={manualCode.trim() ? "#4CAF50" : "#666"} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            <View style={styles.manualEntrySection}>
+              <Text style={styles.sectionTitle}>🔢 Enter Code Manually</Text>
+              <Text style={styles.sectionDescription}>
+                Type in the QR code or item code if camera scanning isn't working
+              </Text>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Item Code or QR Code *</Text>
+                <TextInput
+                  style={styles.manualInput}
+                  placeholder="Enter item code (e.g., MAT-001, TOOL-123)"
+                  placeholderTextColor="#aaa"
+                  value={manualCode}
+                  onChangeText={setManualCode}
+                  autoFocus={true}
+                  autoCapitalize="characters"
+                />
+              </View>
+
+              <View style={styles.helpSection}>
+                <Text style={styles.helpTitle}>💡 Code Examples:</Text>
+                <Text style={styles.helpText}>• Material codes: MAT-001, SAF-HEL-001</Text>
+                <Text style={styles.helpText}>• Tool codes: TOOL-001, DRL-COR-001</Text>
+                <Text style={styles.helpText}>• QR codes: Full scanned text from stickers</Text>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.manualSubmitButton, !manualCode.trim() && styles.disabledButton]}
+                onPress={() => {
+                  if (manualCode.trim()) {
+                    handleBarCodeScanned({ type: 'manual', data: manualCode.trim() });
+                    setShowManualEntry(false);
+                    setManualCode('');
+                  }
+                }}
+                disabled={!manualCode.trim()}
+              >
+                <Ionicons name="search" size={20} color="#fff" />
+                <Text style={styles.manualSubmitButtonText}>Find Item</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
