@@ -95,6 +95,109 @@ class SupplierCreate(BaseModel):
     account_number: Optional[str] = None
     delivery_info: Optional[str] = None
 
+class DeliveryStatus(str, Enum):
+    PENDING = "pending"
+    IN_TRANSIT = "in_transit"
+    DELIVERED = "delivered"
+    PARTIALLY_RECEIVED = "partially_received"
+    DAMAGED = "damaged"
+    COMPLETED = "completed"
+
+class DeliveryItemCondition(str, Enum):
+    PERFECT = "perfect"
+    GOOD = "good"
+    MINOR_DAMAGE = "minor_damage"
+    MAJOR_DAMAGE = "major_damage"
+    UNUSABLE = "unusable"
+
+class DeliveryItem(BaseModel):
+    item_name: str
+    item_code: Optional[str] = None
+    quantity_expected: int
+    quantity_received: int = 0
+    unit: str = "pieces"
+    condition: DeliveryItemCondition = DeliveryItemCondition.PERFECT
+    notes: Optional[str] = None
+    matched_inventory_id: Optional[str] = None  # Link to existing material/tool
+    price_per_unit: Optional[float] = None
+
+class AuditEntry(BaseModel):
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    user_id: str
+    user_name: str
+    action: str
+    details: Dict[str, Any]
+    screen: str
+    ip_address: Optional[str] = None
+
+class Delivery(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    delivery_number: Optional[str] = None  # From delivery note
+    supplier_id: str
+    supplier_name: str
+    status: DeliveryStatus = DeliveryStatus.PENDING
+    expected_date: Optional[datetime] = None
+    actual_delivery_date: Optional[datetime] = None
+    
+    # Delivery Personnel
+    driver_name: Optional[str] = None
+    driver_signature: Optional[str] = None  # base64
+    receiver_name: str
+    receiver_signature: Optional[str] = None  # base64
+    
+    # Items
+    items: List[DeliveryItem] = []
+    
+    # Documentation
+    delivery_note_photo: Optional[str] = None  # base64
+    receipt_photos: List[str] = []  # base64 images
+    damage_photos: List[str] = []  # base64 images
+    
+    # AI Processing
+    ai_extracted_data: Optional[Dict[str, Any]] = None
+    ai_confidence_score: Optional[float] = None
+    user_confirmed: bool = False
+    
+    # Tracking
+    tracking_number: Optional[str] = None
+    estimated_delivery_window: Optional[str] = None
+    
+    # Totals
+    total_items_expected: int = 0
+    total_items_received: int = 0
+    total_value: Optional[float] = None
+    
+    # Audit
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    audit_log: List[AuditEntry] = []
+
+class DeliveryCreate(BaseModel):
+    supplier_id: str
+    supplier_name: str
+    delivery_number: Optional[str] = None
+    expected_date: Optional[datetime] = None
+    driver_name: Optional[str] = None
+    tracking_number: Optional[str] = None
+    estimated_delivery_window: Optional[str] = None
+    items: List[DeliveryItem] = []
+    delivery_note_photo: Optional[str] = None
+    created_by: str
+
+class DeliveryUpdate(BaseModel):
+    status: Optional[DeliveryStatus] = None
+    actual_delivery_date: Optional[datetime] = None
+    driver_name: Optional[str] = None
+    driver_signature: Optional[str] = None
+    receiver_name: Optional[str] = None
+    receiver_signature: Optional[str] = None
+    items: Optional[List[DeliveryItem]] = None
+    receipt_photos: Optional[List[str]] = None
+    damage_photos: Optional[List[str]] = None
+    user_confirmed: Optional[bool] = None
+    updated_by: str
+
 class SupplierProduct(BaseModel):
     name: str
     product_code: str
