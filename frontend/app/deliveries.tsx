@@ -219,7 +219,21 @@ export default function Deliveries() {
 
   const takeDeliveryNotePhoto = async () => {
     try {
+      console.log('🔍 Starting takeDeliveryNotePhoto...');
+      
+      // Check if supplier is selected first
+      if (!newDelivery.supplier_id) {
+        Alert.alert(
+          'Select Supplier First',
+          'Please select a supplier before taking photos.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      console.log('✅ Supplier selected:', newDelivery.supplier_name);
       console.log('🔍 Requesting camera permissions...');
+      
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       console.log('📱 Camera permission status:', status);
       
@@ -235,6 +249,7 @@ export default function Deliveries() {
         return;
       }
 
+      console.log('✅ Camera permission granted, showing options...');
       Alert.alert(
         '📸 Delivery Note Photo',
         'How would you like to add the delivery note?',
