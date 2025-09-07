@@ -199,7 +199,6 @@ export default function Deliveries() {
       receiver_name: user?.name || '',
       items: []
     });
-    setAiResults(null);
     setManualDeliveryData({
       delivery_number: '',
       driver_name: '',
