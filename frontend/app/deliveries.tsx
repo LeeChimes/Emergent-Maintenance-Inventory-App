@@ -99,8 +99,7 @@ export default function Deliveries() {
     items: [] as DeliveryItem[]
   });
   
-  const [processingAI, setProcessingAI] = useState(false);
-  const [aiResults, setAiResults] = useState<any>(null);
+
   
   // Manual entry states
   const [manualDeliveryData, setManualDeliveryData] = useState({
