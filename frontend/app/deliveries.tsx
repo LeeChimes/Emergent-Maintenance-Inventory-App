@@ -795,7 +795,7 @@ export default function Deliveries() {
                 }}
               >
                 <Ionicons name="camera" size={24} color="#4CAF50" />
-                <View style={styles.optionContent} pointerEvents="none">
+                <View style={styles.optionContent}>
                   <Text style={styles.optionTitle}>📸 Photo + AI Processing</Text>
                   <Text style={styles.optionDescription}>Take photo of delivery note, AI extracts details</Text>
                 </View>
