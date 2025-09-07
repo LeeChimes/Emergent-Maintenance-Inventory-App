@@ -741,7 +741,7 @@ export default function Deliveries() {
               
               <TouchableOpacity 
                 style={styles.optionButton}
-                onPress={takeDeliveryNotePhoto}
+                onPress={() => Alert.alert('Test', 'Photo button was pressed!')}
               >
                 <Ionicons name="camera" size={24} color="#4CAF50" />
                 <View style={styles.optionContent}>
