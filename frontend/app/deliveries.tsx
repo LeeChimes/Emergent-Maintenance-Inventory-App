@@ -246,6 +246,7 @@ export default function Deliveries() {
 
   const openCamera = async () => {
     try {
+      console.log('📸 Opening camera...');
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -254,7 +255,10 @@ export default function Deliveries() {
         base64: true,
       });
 
-      if (!result.canceled && result.assets[0].base64) {
+      console.log('📸 Camera result:', { canceled: result.canceled, hasAssets: result.assets?.length > 0 });
+
+      if (!result.canceled && result.assets && result.assets[0] && result.assets[0].base64) {
+        console.log('✅ Photo captured successfully');
         setNewDelivery(prev => ({
           ...prev,
           delivery_note_photo: result.assets[0].base64
@@ -262,16 +266,35 @@ export default function Deliveries() {
         
         Alert.alert(
           '🤖 AI Processing Available',
-          'Would you like AI to automatically extract delivery information from this photo, or enter manually?',
+          'Photo captured! Would you like AI to automatically extract delivery information from this photo, or enter manually?',
           [
             { text: 'Manual Entry', onPress: () => setShowManualEntry(true) },
-            { text: 'Use AI', onPress: () => setShowAIProcessing(true) }
+            { text: 'Use AI Processing', onPress: () => setShowAIProcessing(true) }
+          ]
+        );
+      } else {
+        console.log('❌ Photo capture canceled or failed');
+        Alert.alert(
+          'Photo Capture',
+          'Photo capture was cancelled. Would you like to try again or enter manually?',
+          [
+            { text: 'Try Again', onPress: openCamera },
+            { text: 'Manual Entry', onPress: () => setShowManualEntry(true) },
+            { text: 'Cancel', style: 'cancel' }
           ]
         );
       }
     } catch (error) {
-      console.error('Error taking photo:', error);
-      Alert.alert('Error', 'Failed to take photo. Please try again.');
+      console.error('❌ Error taking photo:', error);
+      Alert.alert(
+        'Camera Error', 
+        'Failed to take photo. This might be due to camera permissions or device limitations. Would you like to enter delivery details manually?',
+        [
+          { text: 'Manual Entry', onPress: () => setShowManualEntry(true) },
+          { text: 'Try Again', onPress: openCamera },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
     }
   };
 
