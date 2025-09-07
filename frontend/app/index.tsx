@@ -612,6 +612,17 @@ export default function Index() {
             </View>
           </TouchableOpacity>
 
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.deliveryButton]}
+            onPress={() => navigateToScreen('deliveries')}
+          >
+            <Ionicons name="cube" size={28} color="#fff" />
+            <View style={styles.actionButtonContent}>
+              <Text style={styles.actionButtonText}>Log Delivery</Text>
+              <Text style={styles.actionButtonSubtext}>📦 Receive Items</Text>
+            </View>
+          </TouchableOpacity>
+
           {user.role === 'supervisor' && (
             <TouchableOpacity 
               style={[styles.actionButton, styles.settingsButton]}
