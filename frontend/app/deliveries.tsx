@@ -124,7 +124,7 @@ export default function Deliveries() {
 
   const loadUserAndData = async () => {
     try {
-      const userData = await AsyncStorage.getItem('user');
+      const userData = await AsyncStorage.getItem('userData');
       if (userData) {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
