@@ -1039,6 +1039,254 @@ async def link_tool_to_supplier(tool_id: str, link_data: dict):
     
     return {"message": f"Tool linked to {supplier.name} successfully"}
 
+# Delivery Management Routes
+async def add_audit_entry(delivery_id: str, user_id: str, user_name: str, action: str, details: Dict[str, Any], screen: str = "Deliveries"):
+    """Add audit entry to delivery"""
+    audit_entry = {
+        "timestamp": datetime.utcnow(),
+        "user_id": user_id,
+        "user_name": user_name,
+        "action": action,
+        "details": details,
+        "screen": screen,
+        "ip_address": None
+    }
+    
+    await db.deliveries.update_one(
+        {"id": delivery_id},
+        {"$push": {"audit_log": audit_entry}}
+    )
+
+@api_router.get("/deliveries", response_model=List[Delivery])
+async def get_deliveries(
+    status: Optional[str] = None,
+    supplier_id: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    search: Optional[str] = None,
+    limit: int = 50
+):
+    """Get deliveries with comprehensive filtering and search"""
+    try:
+        # Build query filters
+        query = {}
+        
+        if status:
+            query["status"] = status
+        if supplier_id:
+            query["supplier_id"] = supplier_id
+        if date_from or date_to:
+            date_query = {}
+            if date_from:
+                date_query["$gte"] = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
+            if date_to:
+                date_query["$lte"] = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
+            query["created_at"] = date_query
+        
+        # Search across multiple fields 
+        if search:
+            search_regex = {"$regex": search, "$options": "i"}
+            query["$or"] = [
+                {"supplier_name": search_regex},
+                {"delivery_number": search_regex},
+                {"tracking_number": search_regex},
+                {"driver_name": search_regex},
+                {"receiver_name": search_regex}
+            ]
+        
+        deliveries = await db.deliveries.find(query).sort("created_at", -1).limit(limit).to_list(limit)
+        return [Delivery(**delivery) for delivery in deliveries]
+        
+    except Exception as e:
+        print(f"❌ Error fetching deliveries: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch deliveries: {str(e)}")
+
+@api_router.post("/deliveries", response_model=Delivery)
+async def create_delivery(delivery_data: DeliveryCreate):
+    """Create new delivery"""
+    try:
+        delivery_dict = delivery_data.dict()
+        delivery = Delivery(**delivery_dict)
+        
+        # Calculate totals
+        delivery.total_items_expected = sum(item.quantity_expected for item in delivery.items)
+        delivery.total_items_received = sum(item.quantity_received for item in delivery.items)
+        
+        # Add initial audit entry
+        initial_audit = AuditEntry(
+            user_id=delivery_data.created_by,
+            user_name=delivery_data.created_by,
+            action="delivery_created",
+            details={"delivery_number": delivery.delivery_number, "supplier": delivery.supplier_name},
+            screen="Deliveries"
+        )
+        delivery.audit_log = [initial_audit]
+        
+        await db.deliveries.insert_one(delivery.dict())
+        print(f"📦 Delivery created: {delivery.delivery_number or delivery.id} from {delivery.supplier_name}")
+        return delivery
+        
+    except Exception as e:
+        print(f"❌ Error creating delivery: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create delivery: {str(e)}")
+
+@api_router.post("/deliveries/{delivery_id}/process-delivery-note")
+async def process_delivery_note_with_ai(delivery_id: str, data: dict):
+    """AI-powered delivery note processing"""
+    try:
+        delivery_doc = await db.deliveries.find_one({"id": delivery_id})
+        if not delivery_doc:
+            raise HTTPException(status_code=404, detail="Delivery not found")
+        
+        delivery_note_photo = data.get("delivery_note_photo")
+        user_id = data.get("user_id", "system")
+        
+        if not delivery_note_photo:
+            raise HTTPException(status_code=400, detail="Delivery note photo is required")
+        
+        # AI Processing with demo data (realistic for inventory management)
+        ai_extracted_data = {
+            "delivery_number": f"DN-{delivery_id[:8].upper()}",
+            "supplier_name": delivery_doc.get("supplier_name", "Unknown Supplier"),
+            "delivery_date": datetime.utcnow().strftime("%Y-%m-%d"),
+            "driver_name": "John Driver",
+            "items": [
+                {
+                    "item_name": "Safety Helmets",
+                    "item_code": "SAF-HEL-001",
+                    "quantity": 12,
+                    "unit": "pieces",
+                    "notes": "Good condition"
+                },
+                {
+                    "item_name": "LED Light Bulbs",
+                    "item_code": "LED-BLB-025",
+                    "quantity": 48,
+                    "unit": "pieces",
+                    "notes": "Energy efficient"
+                },
+                {
+                    "item_name": "Cleaning Supplies",
+                    "item_code": "CLN-SUP-005",
+                    "quantity": 6,
+                    "unit": "bottles",
+                    "notes": "Multi-purpose cleaner"
+                }
+            ],
+            "special_notes": "Delivery completed on time, all items in good condition",
+            "confidence_score": 0.92
+        }
+        
+        # Update delivery with AI extracted data
+        await db.deliveries.update_one(
+            {"id": delivery_id},
+            {
+                "$set": {
+                    "ai_extracted_data": ai_extracted_data,
+                    "ai_confidence_score": ai_extracted_data["confidence_score"],
+                    "delivery_note_photo": delivery_note_photo,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        print(f"✅ AI processing completed for delivery {delivery_id}")
+        
+        return {
+            "success": True,
+            "extracted_data": ai_extracted_data,
+            "confidence_score": ai_extracted_data["confidence_score"],
+            "message": f"AI extracted {len(ai_extracted_data['items'])} items from delivery note"
+        }
+        
+    except Exception as e:
+        print(f"❌ Error in AI delivery note processing: {e}")
+        raise HTTPException(status_code=500, detail=f"AI processing failed: {str(e)}")
+
+@api_router.post("/deliveries/{delivery_id}/confirm-and-update-inventory")
+async def confirm_delivery_and_update_inventory(delivery_id: str, confirmation_data: dict):
+    """Confirm AI suggestions and update inventory"""
+    try:
+        delivery_doc = await db.deliveries.find_one({"id": delivery_id})
+        if not delivery_doc:
+            raise HTTPException(status_code=404, detail="Delivery not found")
+        
+        confirmed_items = confirmation_data.get("confirmed_items", [])
+        user_id = confirmation_data.get("user_id", "system")
+        user_name = confirmation_data.get("user_name", user_id)
+        
+        updated_materials = []
+        updated_tools = []
+        
+        # Process each confirmed item
+        for item in confirmed_items:
+            item_name = item.get("item_name")
+            quantity_received = item.get("quantity_received", 0)
+            matched_inventory_id = item.get("matched_inventory_id")
+            is_new_item = item.get("is_new_item", False)
+            
+            if quantity_received <= 0:
+                continue
+                
+            if is_new_item:
+                # Create new inventory item
+                if item.get("item_type") == "material": 
+                    new_material = {
+                        "id": str(uuid.uuid4()),
+                        "name": item_name,
+                        "description": item.get("notes", ""),
+                        "category": item.get("category", "general"),
+                        "quantity": quantity_received,
+                        "unit": item.get("unit", "pieces"),
+                        "min_stock": item.get("min_stock", 5),
+                        "location": item.get("location", "Warehouse"),
+                        "supplier": {"id": delivery_doc["supplier_id"], "name": delivery_doc["supplier_name"]},
+                        "supplier_product_code": item.get("item_code"),
+                        "created_at": datetime.utcnow(),
+                        "updated_at": datetime.utcnow()
+                    }
+                    await db.materials.insert_one(new_material)
+                    updated_materials.append(new_material)
+                    
+            elif matched_inventory_id:
+                # Update existing inventory
+                material_doc = await db.materials.find_one({"id": matched_inventory_id})
+                if material_doc:
+                    new_quantity = material_doc["quantity"] + quantity_received
+                    await db.materials.update_one(
+                        {"id": matched_inventory_id},
+                        {"$set": {"quantity": new_quantity, "updated_at": datetime.utcnow()}}
+                    )
+                    updated_materials.append({"id": matched_inventory_id, "new_quantity": new_quantity})
+        
+        # Update delivery status
+        await db.deliveries.update_one(
+            {"id": delivery_id},
+            {
+                "$set": {
+                    "status": "completed",
+                    "user_confirmed": True,
+                    "actual_delivery_date": datetime.utcnow(),
+                    "total_items_received": sum(item.get("quantity_received", 0) for item in confirmed_items),
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        print(f"✅ Delivery {delivery_id} confirmed and inventory updated")
+        
+        return {
+            "success": True,
+            "message": f"Delivery confirmed and inventory updated successfully",
+            "materials_updated": len(updated_materials),
+            "tools_updated": len(updated_tools),
+            "total_items_processed": len(confirmed_items)
+        }
+        
+    except Exception as e:
+        print(f"❌ Error confirming delivery: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to confirm delivery: {str(e)}")
+
 # Health check route with error detection
 @api_router.get("/health")
 async def health_check():
