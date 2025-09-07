@@ -156,7 +156,7 @@ export const AccessibleButton: React.FC<{
     }
   };
 
-  const getButtonSize = () => {
+  const getLocalButtonSize = () => {
     if (settings.bigButtonMode) {
       switch (size) {
         case 'small': return { height: buttonHeight + 8, paddingHorizontal: 20 };
