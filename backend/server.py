@@ -142,7 +142,7 @@ class Delivery(BaseModel):
     # Delivery Personnel
     driver_name: Optional[str] = None
     driver_signature: Optional[str] = None  # base64
-    receiver_name: str
+    receiver_name: Optional[str] = None
     receiver_signature: Optional[str] = None  # base64
     
     # Items
