@@ -618,25 +618,6 @@ export default function Deliveries() {
               </TouchableOpacity>
             </View>
 
-            {/* AI Results */}
-            {aiResults && (
-              <View style={styles.formSection}>
-                <Text style={styles.sectionTitle}>🤖 AI Extracted Information</Text>
-                <View style={styles.aiResultsContainer}>
-                  <Text style={styles.aiConfidence}>
-                    Confidence: {Math.round((aiResults.confidence_score || 0) * 100)}%
-                  </Text>
-                  {aiResults.extracted_data?.items?.map((item: any, index: number) => (
-                    <View key={index} style={styles.aiItem}>
-                      <Text style={styles.aiItemName}>{item.item_name}</Text>
-                      <Text style={styles.aiItemDetails}>
-                        Qty: {item.quantity} {item.unit} • Code: {item.item_code || 'N/A'}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
           </ScrollView>
         </SafeAreaView>
       </Modal>
