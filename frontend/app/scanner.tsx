@@ -69,6 +69,8 @@ export default function Scanner() {
   const [isFlashlightOn, setIsFlashlightOn] = useState(false);
   const [quickTakeMode, setQuickTakeMode] = useState(false);
   const [lastScannedLocation, setLastScannedLocation] = useState<string>('');
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualCode, setManualCode] = useState('');
 
   // Quick quantity buttons for materials
   const quickQuantities = [1, 2, 5, 10];
