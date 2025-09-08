@@ -520,7 +520,8 @@ export default function Scanner() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => router.push('/')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="arrow-back" size={24} color="#fff" />
             <Text style={styles.backButtonText}>Go Back</Text>
