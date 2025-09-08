@@ -623,6 +623,17 @@ export default function Index() {
             </View>
           </TouchableOpacity>
 
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.helpButton]}
+            onPress={() => navigateToScreen('help')}
+          >
+            <Ionicons name="help-circle" size={28} color="#fff" />
+            <View style={styles.actionButtonContent}>
+              <Text style={styles.actionButtonText}>Help & Support</Text>
+              <Text style={styles.actionButtonSubtext}>💡 Get Help</Text>
+            </View>
+          </TouchableOpacity>
+
           {user.role === 'supervisor' && (
             <TouchableOpacity 
               style={[styles.actionButton, styles.settingsButton]}
