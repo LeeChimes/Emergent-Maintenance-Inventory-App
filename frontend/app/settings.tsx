@@ -83,6 +83,32 @@ export default function Settings() {
     saveSetting('notificationsEnabled', value);
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout? You\'ll need to select your user and enter your PIN again.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'default',
+          onPress: async () => {
+            try {
+              // Clear user data but keep app settings
+              await AsyncStorage.removeItem('userData');
+              // Navigate back to main login screen
+              router.replace('/');
+            } catch (error) {
+              console.error('Error during logout:', error);
+              // Force navigation even if there's an error
+              router.replace('/');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleResetApp = () => {
     Alert.alert(
       'Reset App Data',
