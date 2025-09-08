@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } fr
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import UniversalHeader from '../components/UniversalHeader';
-import UniversalHeader from '../components/UniversalHeader';
 
 export default function Help() {
   const helpCategories = [
