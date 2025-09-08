@@ -577,6 +577,8 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 8,
+    padding: 8,
   },
   headerTitle: {
     color: '#fff',
