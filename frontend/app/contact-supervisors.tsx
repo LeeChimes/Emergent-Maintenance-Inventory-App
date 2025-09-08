@@ -79,7 +79,7 @@ export default function ContactSupervisors() {
         
         Alert.alert(
           '✅ Help Request Sent!',
-          `Your request has been sent to the supervisors.\n\nRequest ID: ${result.id}\n\nLee Carter and Dan Brooks will be notified and will help you soon.`,
+          `Your request has been sent to the supervisors.\n\nRequest ID: ${result.id}\n\nLee Carter and Dan Carter will be notified and will help you soon.`,
           [
             { 
               text: 'OK', 
