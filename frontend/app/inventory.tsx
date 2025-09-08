@@ -435,24 +435,8 @@ export default function Inventory() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => router.push('/')}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Inventory</Text>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => router.push('/scanner')}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="qr-code" size={24} color="#4CAF50" />
-        </TouchableOpacity>
-      </View>
+      {/* Universal Header */}
+      <UniversalHeader title="Inventory" showBackButton={true} />
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
