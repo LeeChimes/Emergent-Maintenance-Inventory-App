@@ -1,47 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  Image,
-  ActivityIndicator,
-  RefreshControl,
-  Modal,
-  Dimensions,
-  StyleSheet,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as ImagePicker from 'expo-image-picker';
 
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
-const { width } = Dimensions.get('window');
+const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 interface User {
   id: string;
   name: string;
-  role: string;
+  role: 'supervisor' | 'engineer';
 }
 
 interface Supplier {
   id: string;
   name: string;
-  type: string;
-  website?: string;
-  products: any[];
+  website_url?: string;
+  contact_person?: string;
+  phone?: string;
+  email?: string;
 }
 
 interface DeliveryItem {
   item_name: string;
-  item_code?: string;
-  quantity_expected: number;
-  quantity_received: number;
+  quantity_expected?: number;
+  quantity_received?: number;
   unit: string;
+  item_code?: string;
+  price_per_unit?: number;
   condition: string;
   notes?: string;
   matched_inventory_id?: string;
@@ -50,23 +36,20 @@ interface DeliveryItem {
 
 interface Delivery {
   id: string;
-  delivery_number?: string;
   supplier_id: string;
   supplier_name: string;
-  status: string;
+  delivery_number: string;
   expected_date?: string;
-  actual_delivery_date?: string;
+  delivery_date?: string;
   driver_name?: string;
-  receiver_name?: string;
+  tracking_number?: string;
+  notes?: string;
+  status: 'pending' | 'delivered' | 'partial' | 'cancelled';
   items: DeliveryItem[];
-  delivery_note_photo?: string;
-  ai_extracted_data?: any;
-  ai_confidence_score?: number;
-  user_confirmed: boolean;
-  total_items_expected: number;
-  total_items_received: number;
-  created_at: string;
   created_by: string;
+  created_at: string;
+  delivery_note_photo?: string;
+  receiver_name: string;
 }
 
 export default function Deliveries() {
@@ -74,10 +57,7 @@ export default function Deliveries() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  
+
   // Modal states
   const [showAddDelivery, setShowAddDelivery] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
@@ -91,50 +71,35 @@ export default function Deliveries() {
     expected_date: '',
     driver_name: '',
     tracking_number: '',
+    notes: '',
+    status: 'pending' as const,
     delivery_note_photo: '',
     receiver_name: '',
     items: [] as DeliveryItem[]
   });
-  
-
-  
-  // Manual entry states
-  const [manualDeliveryData, setManualDeliveryData] = useState({
-    delivery_number: '',
-    driver_name: '',
-    items: [
-      {
-        item_name: '',
-        item_code: '',
-        quantity_expected: 0,
-        quantity_received: 0,
-        unit: 'pieces',
-        condition: 'good',
-        notes: ''
-      }
-    ]
-  });
 
   useEffect(() => {
-    loadUserAndData();
+    loadUserData();
   }, []);
 
-  const loadUserAndData = async () => {
+  useEffect(() => {
+    if (user) {
+      fetchDeliveries();
+      fetchSuppliers();
+    }
+  }, [user]);
+
+  const loadUserData = async () => {
     try {
       const userData = await AsyncStorage.getItem('userData');
       if (userData) {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        setNewDelivery(prev => ({ ...prev, receiver_name: parsedUser.name }));
+        setUser(JSON.parse(userData));
       } else {
-        router.replace('/');
-        return;
+        router.push('/');
       }
-      
-      await Promise.all([fetchDeliveries(), fetchSuppliers()]);
     } catch (error) {
       console.error('Error loading user data:', error);
-      router.replace('/');
+      router.push('/');
     }
   };
 
@@ -149,7 +114,6 @@ export default function Deliveries() {
       console.error('Error fetching deliveries:', error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
@@ -179,12 +143,8 @@ export default function Deliveries() {
     }
   };
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchDeliveries();
-  };
-
-  const resetDeliveryForm = () => {
+  // Simplified - manual entry only
+  const resetForm = () => {
     setNewDelivery({
       supplier_id: '',
       supplier_name: '',
@@ -192,39 +152,42 @@ export default function Deliveries() {
       expected_date: '',
       driver_name: '',
       tracking_number: '',
+      notes: '',
+      status: 'pending',
       delivery_note_photo: '',
-      receiver_name: user?.name || '',
-      items: []
-    });
-    setManualDeliveryData({
-      delivery_number: '',
-      driver_name: '',
-      items: [
-        {
-          item_name: '',
-          item_code: '',
-          quantity_expected: 0,
-          quantity_received: 0,
-          unit: 'pieces',
-          condition: 'good',
-          notes: ''
-        }
-      ]
+      receiver_name: '',
+      items: [] as DeliveryItem[]
     });
   };
 
-  // Simplified - manual entry only
-  const resetForm = () => {
-    setNewDelivery({
-      supplier_id: '',
-      supplier_name: '',
-      delivery_number: '',
-      driver_name: '',
-      tracking_number: '',
-      notes: '',
-      status: 'pending',
-      items: []
-    });
+  const addDeliveryItem = () => {
+    setNewDelivery(prev => ({
+      ...prev,
+      items: [...prev.items, {
+        item_name: '',
+        quantity_expected: 1,
+        quantity_received: 1,
+        unit: 'pieces',
+        condition: 'good',
+        notes: ''
+      }]
+    }));
+  };
+
+  const updateDeliveryItem = (index: number, updates: Partial<DeliveryItem>) => {
+    setNewDelivery(prev => ({
+      ...prev,
+      items: prev.items.map((item, i) => 
+        i === index ? { ...item, ...updates } : item
+      )
+    }));
+  };
+
+  const removeDeliveryItem = (index: number) => {
+    setNewDelivery(prev => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index)
+    }));
   };
 
   const createManualDelivery = async () => {
@@ -233,15 +196,18 @@ export default function Deliveries() {
       return;
     }
 
-    const deliveryData = {
-      ...newDelivery,
-      delivery_number: manualDeliveryData.delivery_number || newDelivery.delivery_number,
-      driver_name: manualDeliveryData.driver_name || newDelivery.driver_name,
-      items: manualDeliveryData.items.filter(item => item.item_name.trim() !== ''),
-      created_by: user?.id || 'unknown'
-    };
+    if (!newDelivery.delivery_number.trim()) {
+      Alert.alert('Missing Information', 'Please enter a delivery number.');
+      return;
+    }
 
     try {
+      const deliveryData = {
+        ...newDelivery,
+        created_by: user?.id || 'unknown',
+        receiver_name: user?.name || 'Unknown'
+      };
+
       const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/deliveries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -249,18 +215,15 @@ export default function Deliveries() {
       });
 
       if (response.ok) {
-        Alert.alert(
-          'Success! 📦',
-          'Delivery has been logged successfully.',
-          [{ text: 'OK', onPress: () => {
-            setShowAddDelivery(false);
-            setShowManualEntry(false);
-            resetDeliveryForm();
-            fetchDeliveries();
-          }}]
-        );
+        Alert.alert('Success', 'Delivery logged successfully!');
+        resetForm();
+        setShowManualEntry(false);
+        setShowAddDelivery(false);
+        fetchDeliveries();
       } else {
-        throw new Error('Failed to create delivery');
+        const errorData = await response.text();
+        console.error('Error creating delivery:', errorData);
+        Alert.alert('Error', 'Failed to create delivery. Please try again.');
       }
     } catch (error) {
       console.error('Error creating delivery:', error);
@@ -268,107 +231,10 @@ export default function Deliveries() {
     }
   };
 
-  const addManualItem = () => {
-    setManualDeliveryData(prev => ({
-      ...prev,
-      items: [...prev.items, {
-        item_name: '',
-        item_code: '',
-        quantity_expected: 0,
-        quantity_received: 0,
-        unit: 'pieces',
-        condition: 'good',
-        notes: ''
-      }]
-    }));
-  };
-
-  const removeManualItem = (index: number) => {
-    setManualDeliveryData(prev => ({
-      ...prev,
-      items: prev.items.filter((_, i) => i !== index)
-    }));
-  };
-
-  const updateManualItem = (index: number, field: string, value: any) => {
-    setManualDeliveryData(prev => ({
-      ...prev,
-      items: prev.items.map((item, i) => 
-        i === index ? { ...item, [field]: value } : item
-      )
-    }));
-  };
-
-  const confirmDeliveryItems = async (confirmedItems: DeliveryItem[]) => {
-    if (!selectedDelivery) return;
-
-    try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/deliveries/${selectedDelivery.id}/confirm-and-update-inventory`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          confirmed_items: confirmedItems,
-          user_id: user?.id,
-          user_name: user?.name
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        Alert.alert(
-          '✅ Inventory Updated!',
-          `Successfully updated ${result.materials_updated} materials and ${result.tools_updated} tools.`,
-          [{ text: 'Great!', onPress: () => {
-            setShowDeliveryDetails(false);
-            fetchDeliveries();
-          }}]
-        );
-      }
-    } catch (error) {
-      console.error('Error confirming delivery:', error);
-      Alert.alert('Error', 'Failed to update inventory. Please try again.');
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return '#FF9800';
-      case 'in_transit': return '#2196F3';
-      case 'delivered': return '#4CAF50';
-      case 'completed': return '#009688';
-      case 'damaged': return '#F44336';
-      default: return '#757575';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending': return 'time-outline';
-      case 'in_transit': return 'car-outline'; 
-      case 'delivered': return 'checkmark-circle-outline';
-      case 'completed': return 'checkmark-done-circle';
-      case 'damaged': return 'warning-outline';
-      default: return 'help-circle-outline';
-    }
-  };
-
-  const filteredDeliveries = deliveries.filter(delivery => {
-    const matchesSearch = !searchQuery || 
-      delivery.supplier_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      delivery.delivery_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      delivery.driver_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      delivery.receiver_name?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = filterStatus === 'all' || delivery.status === filterStatus;
-    
-    return matchesSearch && matchesStatus;
-  });
-
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4CAF50" />
           <Text style={styles.loadingText}>Loading deliveries...</Text>
         </View>
       </SafeAreaView>
@@ -379,144 +245,81 @@ export default function Deliveries() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => router.push('/')}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Deliveries</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => router.push('/dashboard')}
-          >
-            <Ionicons name="home" size={24} color="#4CAF50" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setShowAddDelivery(true)}
-          >
-            <Ionicons name="add" size={24} color="#4CAF50" />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => router.push('/')}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="home" size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
 
-      {/* Search and Filters */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={20} color="#aaa" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search deliveries..."
-            placeholderTextColor="#aaa"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+      {/* Main Content */}
+      <ScrollView style={styles.content}>
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <Text style={styles.welcomeTitle}>📦 Delivery Management</Text>
+          <Text style={styles.welcomeText}>
+            Track and manage all deliveries to the shopping centre. Log new deliveries, 
+            view delivery history, and manage inventory updates.
+          </Text>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
-          {['all', 'pending', 'in_transit', 'delivered', 'completed'].map(status => (
-            <TouchableOpacity
-              key={status}
-              style={[
-                styles.filterChip,
-                filterStatus === status && styles.filterChipActive
-              ]}
-              onPress={() => setFilterStatus(status)}
-            >
-              <Text style={[
-                styles.filterChipText,
-                filterStatus === status && styles.filterChipTextActive
-              ]}>
-                {status === 'all' ? 'All' : status.replace('_', ' ').toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
 
-      {/* Deliveries List */}
-      <ScrollView
-        style={styles.deliveriesList}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        showsVerticalScrollIndicator={false}
-      >
-        {filteredDeliveries.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="cube-outline" size={64} color="#666" />
-            <Text style={styles.emptyStateTitle}>No Deliveries Found</Text>
-            <Text style={styles.emptyStateSubtitle}>
-              {searchQuery || filterStatus !== 'all' 
-                ? 'Try adjusting your search or filters'
-                : 'Tap + to log your first delivery'
-              }
-            </Text>
-          </View>
-        ) : (
-          filteredDeliveries.map((delivery) => (
-            <TouchableOpacity
-              key={delivery.id}
-              style={styles.deliveryCard}
-              onPress={() => {
-                setSelectedDelivery(delivery);
-                setShowDeliveryDetails(true);
-              }}
-            >
-              <View style={styles.deliveryCardHeader}>
-                <View style={styles.deliveryInfo}>
-                  <Text style={styles.supplierName}>{delivery.supplier_name}</Text>
-                  {delivery.delivery_number && (
+        {/* Recent Deliveries */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Deliveries</Text>
+          {deliveries.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="cube-outline" size={48} color="#666" />
+              <Text style={styles.emptyStateText}>No deliveries logged yet</Text>
+              <Text style={styles.emptyStateSubtext}>Tap the + button to log your first delivery</Text>
+            </View>
+          ) : (
+            deliveries.slice(0, 5).map((delivery) => (
+              <TouchableOpacity
+                key={delivery.id}
+                style={styles.deliveryCard}
+                onPress={() => {
+                  setSelectedDelivery(delivery);
+                  setShowDeliveryDetails(true);
+                }}
+              >
+                <View style={styles.deliveryHeader}>
+                  <View style={styles.deliveryInfo}>
                     <Text style={styles.deliveryNumber}>#{delivery.delivery_number}</Text>
-                  )}
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(delivery.status) }]}>
-                  <Ionicons name={getStatusIcon(delivery.status)} size={16} color="#fff" />
-                  <Text style={styles.statusText}>{delivery.status.toUpperCase()}</Text>
-                </View>
-              </View>
-
-              <View style={styles.deliveryDetails}>
-                <View style={styles.detailRow}>
-                  <Ionicons name="person" size={16} color="#666" />
-                  <Text style={styles.detailText}>Received by: {delivery.receiver_name || 'Unknown'}</Text>
-                </View>
-                
-                {delivery.driver_name && (
-                  <View style={styles.detailRow}>
-                    <Ionicons name="car" size={16} color="#666" />
-                    <Text style={styles.detailText}>Driver: {delivery.driver_name}</Text>
+                    <Text style={styles.supplierName}>{delivery.supplier_name}</Text>
                   </View>
-                )}
-
-                <View style={styles.detailRow}>
-                  <Ionicons name="cube" size={16} color="#666" />
-                  <Text style={styles.detailText}>
-                    Items: {delivery.total_items_received}/{delivery.total_items_expected}
-                  </Text>
-                </View>
-
-                <View style={styles.detailRow}>
-                  <Ionicons name="calendar" size={16} color="#666" />
-                  <Text style={styles.detailText}>
-                    {new Date(delivery.created_at).toLocaleDateString()}
-                  </Text>
-                </View>
-
-                {delivery.ai_confidence_score && (
-                  <View style={styles.detailRow}>
-                    <Ionicons name="brain" size={16} color="#4CAF50" />
-                    <Text style={styles.detailText}>
-                      AI Processed ({Math.round(delivery.ai_confidence_score * 100)}% confidence)
-                    </Text>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(delivery.status) }]}>
+                    <Text style={styles.statusText}>{delivery.status.toUpperCase()}</Text>
                   </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
+                </View>
+                <Text style={styles.deliveryDate}>
+                  {new Date(delivery.created_at).toLocaleDateString()}
+                </Text>
+                <Text style={styles.itemCount}>
+                  {delivery.items.length} item{delivery.items.length !== 1 ? 's' : ''}
+                </Text>
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
       </ScrollView>
+
+      {/* Floating Add Button */}
+      <TouchableOpacity
+        style={styles.fabButton}
+        onPress={() => setShowAddDelivery(true)}
+      >
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
 
       {/* Add Delivery Modal */}
       <Modal
@@ -531,7 +334,7 @@ export default function Deliveries() {
               <Ionicons name="close" size={24} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Log New Delivery</Text>
-            <View style={styles.headerButton} />
+            <View style={{ width: 24 }} />
           </View>
 
           <ScrollView style={styles.modalContent}>
@@ -584,7 +387,7 @@ export default function Deliveries() {
       <Modal
         visible={showManualEntry}
         animationType="slide"
-        presentationStyle="pageSheet"
+        presentationStyle="fullScreen"
         onRequestClose={() => setShowManualEntry(false)}
       >
         <SafeAreaView style={styles.modalContainer}>
@@ -599,17 +402,17 @@ export default function Deliveries() {
           </View>
 
           <ScrollView style={styles.modalContent}>
+            {/* Basic Info */}
             <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>📋 Delivery Details</Text>
+              <Text style={styles.sectionTitle}>📦 Delivery Information</Text>
               
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Delivery Number</Text>
+                <Text style={styles.inputLabel}>Delivery Number *</Text>
                 <TextInput
                   style={styles.textInput}
                   placeholder="Enter delivery number"
-                  placeholderTextColor="#aaa"
-                  value={manualDeliveryData.delivery_number}
-                  onChangeText={(text) => setManualDeliveryData(prev => ({ ...prev, delivery_number: text }))}
+                  value={newDelivery.delivery_number}
+                  onChangeText={(text) => setNewDelivery(prev => ({ ...prev, delivery_number: text }))}
                 />
               </View>
 
@@ -617,10 +420,31 @@ export default function Deliveries() {
                 <Text style={styles.inputLabel}>Driver Name</Text>
                 <TextInput
                   style={styles.textInput}
-                  placeholder="Enter driver's name"
-                  placeholderTextColor="#aaa"
-                  value={manualDeliveryData.driver_name}
-                  onChangeText={(text) => setManualDeliveryData(prev => ({ ...prev, driver_name: text }))}
+                  placeholder="Enter driver name"
+                  value={newDelivery.driver_name}
+                  onChangeText={(text) => setNewDelivery(prev => ({ ...prev, driver_name: text }))}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Tracking Number</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Enter tracking number"
+                  value={newDelivery.tracking_number}
+                  onChangeText={(text) => setNewDelivery(prev => ({ ...prev, tracking_number: text }))}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Notes</Text>
+                <TextInput
+                  style={[styles.textInput, styles.textArea]}
+                  placeholder="Additional notes about the delivery..."
+                  value={newDelivery.notes}
+                  onChangeText={(text) => setNewDelivery(prev => ({ ...prev, notes: text }))}
+                  multiline
+                  numberOfLines={3}
                 />
               </View>
             </View>
@@ -628,22 +452,20 @@ export default function Deliveries() {
             {/* Items */}
             <View style={styles.formSection}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>📦 Items</Text>
-                <TouchableOpacity style={styles.addButton} onPress={addManualItem}>
+                <Text style={styles.sectionTitle}>📋 Delivered Items</Text>
+                <TouchableOpacity style={styles.addButton} onPress={addDeliveryItem}>
                   <Ionicons name="add" size={20} color="#4CAF50" />
                   <Text style={styles.addButtonText}>Add Item</Text>
                 </TouchableOpacity>
               </View>
 
-              {manualDeliveryData.items.map((item, index) => (
-                <View key={index} style={styles.itemCard}>
+              {newDelivery.items.map((item, index) => (
+                <View key={index} style={styles.itemForm}>
                   <View style={styles.itemHeader}>
                     <Text style={styles.itemNumber}>Item {index + 1}</Text>
-                    {manualDeliveryData.items.length > 1 && (
-                      <TouchableOpacity onPress={() => removeManualItem(index)}>
-                        <Ionicons name="trash" size={20} color="#F44336" />
-                      </TouchableOpacity>
-                    )}
+                    <TouchableOpacity onPress={() => removeDeliveryItem(index)}>
+                      <Ionicons name="trash" size={20} color="#F44336" />
+                    </TouchableOpacity>
                   </View>
 
                   <View style={styles.inputGroup}>
@@ -651,10 +473,31 @@ export default function Deliveries() {
                     <TextInput
                       style={styles.textInput}
                       placeholder="Enter item name"
-                      placeholderTextColor="#aaa"
                       value={item.item_name}
-                      onChangeText={(text) => updateManualItem(index, 'item_name', text)}
+                      onChangeText={(text) => updateDeliveryItem(index, { item_name: text })}
                     />
+                  </View>
+
+                  <View style={styles.inputRow}>
+                    <View style={styles.inputHalf}>
+                      <Text style={styles.inputLabel}>Quantity</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="0"
+                        value={item.quantity_received?.toString() || ''}
+                        onChangeText={(text) => updateDeliveryItem(index, { quantity_received: parseInt(text) || 0 })}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={styles.inputHalf}>
+                      <Text style={styles.inputLabel}>Unit</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="pieces"
+                        value={item.unit}
+                        onChangeText={(text) => updateDeliveryItem(index, { unit: text })}
+                      />
+                    </View>
                   </View>
 
                   <View style={styles.inputGroup}>
@@ -662,193 +505,137 @@ export default function Deliveries() {
                     <TextInput
                       style={styles.textInput}
                       placeholder="Enter item code (optional)"
-                      placeholderTextColor="#aaa"
-                      value={item.item_code}
-                      onChangeText={(text) => updateManualItem(index, 'item_code', text)}
+                      value={item.item_code || ''}
+                      onChangeText={(text) => updateDeliveryItem(index, { item_code: text })}
                     />
-                  </View>
-
-                  <View style={styles.inputRow}>
-                    <View style={styles.inputHalf}>
-                      <Text style={styles.inputLabel}>Expected Qty</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="0"
-                        placeholderTextColor="#aaa"
-                        keyboardType="numeric"
-                        value={item.quantity_expected.toString()}
-                        onChangeText={(text) => updateManualItem(index, 'quantity_expected', parseInt(text) || 0)}
-                      />
-                    </View>
-                    
-                    <View style={styles.inputHalf}>
-                      <Text style={styles.inputLabel}>Received Qty</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="0"
-                        placeholderTextColor="#aaa"
-                        keyboardType="numeric"
-                        value={item.quantity_received.toString()}
-                        onChangeText={(text) => updateManualItem(index, 'quantity_received', parseInt(text) || 0)}
-                      />
-                    </View>
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Unit</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="pieces"
-                      placeholderTextColor="#aaa"
-                      value={item.unit}
-                      onChangeText={(text) => updateManualItem(index, 'unit', text)}
-                    />
+                    <Text style={styles.inputLabel}>Condition</Text>
+                    <View style={styles.conditionButtons}>
+                      {['good', 'damaged', 'defective'].map((conditionOption) => (
+                        <TouchableOpacity
+                          key={conditionOption}
+                          style={[
+                            styles.conditionButton,
+                            item.condition === conditionOption && styles.conditionButtonSelected
+                          ]}
+                          onPress={() => updateDeliveryItem(index, { condition: conditionOption })}
+                        >
+                          <Text style={[
+                            styles.conditionButtonText,
+                            item.condition === conditionOption && styles.conditionButtonTextSelected
+                          ]}>
+                            {conditionOption.charAt(0).toUpperCase() + conditionOption.slice(1)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </View>
 
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Notes</Text>
                     <TextInput
                       style={styles.textInput}
-                      placeholder="Any notes about this item"
-                      placeholderTextColor="#aaa"
-                      value={item.notes}
-                      onChangeText={(text) => updateManualItem(index, 'notes', text)}
-                      multiline
+                      placeholder="Item-specific notes..."
+                      value={item.notes || ''}
+                      onChangeText={(text) => updateDeliveryItem(index, { notes: text })}
                     />
                   </View>
                 </View>
               ))}
+
+              {newDelivery.items.length === 0 && (
+                <View style={styles.emptyItems}>
+                  <Ionicons name="cube-outline" size={32} color="#666" />
+                  <Text style={styles.emptyItemsText}>No items added yet</Text>
+                  <Text style={styles.emptyItemsSubtext}>Tap "Add Item" to start</Text>
+                </View>
+              )}
             </View>
           </ScrollView>
         </SafeAreaView>
       </Modal>
 
-      {/* AI Processing Modal */}
-      <Modal
-        visible={showAIProcessing}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setShowAIProcessing(false)}
-      >
-        <View style={styles.aiModalOverlay}>
-          <View style={styles.aiModalContent}>
-            <Ionicons name="brain" size={48} color="#4CAF50" />
-            <Text style={styles.aiModalTitle}>🤖 AI Processing</Text>
-            <Text style={styles.aiModalSubtitle}>
-              Reading delivery note and extracting item information...
-            </Text>
-            
-            <View style={styles.aiModalButtons}>
-              <TouchableOpacity
-                style={styles.aiModalButton}
-                onPress={() => setShowAIProcessing(false)}
-              >
-                <Text style={styles.aiModalButtonText}>Manual Entry</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.aiModalButton, styles.aiModalButtonPrimary]}
-                onPress={() => setShowAIProcessing(false)}
-              >
-                <Text style={[styles.aiModalButtonText, styles.aiModalButtonTextPrimary]}>
-                  Process with AI
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       {/* Delivery Details Modal */}
-      {selectedDelivery && (
-        <Modal
-          visible={showDeliveryDetails}
-          animationType="slide"
-          presentationStyle="pageSheet"
-          onRequestClose={() => setShowDeliveryDetails(false)}
-        >
-          <SafeAreaView style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setShowDeliveryDetails(false)}>
-                <Ionicons name="close" size={24} color="#fff" />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>Delivery Details</Text>
-              <View style={styles.headerButton} />
-            </View>
+      <Modal
+        visible={showDeliveryDetails}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowDeliveryDetails(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowDeliveryDetails(false)}>
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Delivery Details</Text>
+            <View style={{ width: 24 }} />
+          </View>
 
+          {selectedDelivery && (
             <ScrollView style={styles.modalContent}>
-              <View style={styles.deliveryDetailsContainer}>
-                <Text style={styles.detailsTitle}>{selectedDelivery.supplier_name}</Text>
-                
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsTitle}>#{selectedDelivery.delivery_number}</Text>
+                <Text style={styles.detailsSupplier}>{selectedDelivery.supplier_name}</Text>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedDelivery.status) }]}>
-                  <Ionicons name={getStatusIcon(selectedDelivery.status)} size={16} color="#fff" />
                   <Text style={styles.statusText}>{selectedDelivery.status.toUpperCase()}</Text>
                 </View>
+              </View>
 
-                {selectedDelivery.delivery_number && (
-                  <Text style={styles.detailsSubtitle}>#{selectedDelivery.delivery_number}</Text>
-                )}
+              <View style={styles.detailsInfo}>
+                <Text style={styles.detailsLabel}>Driver:</Text>
+                <Text style={styles.detailsValue}>{selectedDelivery.driver_name || 'Not specified'}</Text>
+              </View>
 
-                <View style={styles.detailsSection}>
-                  <Text style={styles.sectionTitle}>📋 Delivery Information</Text>
-                  <Text style={styles.detailItem}>Received by: {selectedDelivery.receiver_name || 'Unknown'}</Text>
-                  {selectedDelivery.driver_name && (
-                    <Text style={styles.detailItem}>Driver: {selectedDelivery.driver_name}</Text>
-                  )}
-                  <Text style={styles.detailItem}>
-                    Date: {new Date(selectedDelivery.created_at).toLocaleDateString()}
-                  </Text>
-                  <Text style={styles.detailItem}>
-                    Items: {selectedDelivery.total_items_received}/{selectedDelivery.total_items_expected}
-                  </Text>
+              <View style={styles.detailsInfo}>
+                <Text style={styles.detailsLabel}>Tracking:</Text>
+                <Text style={styles.detailsValue}>{selectedDelivery.tracking_number || 'Not provided'}</Text>
+              </View>
+
+              <View style={styles.detailsInfo}>
+                <Text style={styles.detailsLabel}>Date:</Text>
+                <Text style={styles.detailsValue}>{new Date(selectedDelivery.created_at).toLocaleDateString()}</Text>
+              </View>
+
+              {selectedDelivery.notes && (
+                <View style={styles.detailsInfo}>
+                  <Text style={styles.detailsLabel}>Notes:</Text>
+                  <Text style={styles.detailsValue}>{selectedDelivery.notes}</Text>
                 </View>
+              )}
 
-                {selectedDelivery.ai_extracted_data && (
-                  <View style={styles.detailsSection}>
-                    <Text style={styles.sectionTitle}>🤖 AI Extracted Items</Text>
-                    {selectedDelivery.ai_extracted_data.items?.map((item: any, index: number) => (
-                      <View key={index} style={styles.itemCard}>
-                        <Text style={styles.itemName}>{item.item_name}</Text>
-                        <Text style={styles.itemDetails}>
-                          Quantity: {item.quantity} {item.unit}
-                        </Text>
-                        {item.item_code && (
-                          <Text style={styles.itemCode}>Code: {item.item_code}</Text>
-                        )}
-                        {item.notes && (
-                          <Text style={styles.itemNotes}>Notes: {item.notes}</Text>
-                        )}
-                      </View>
-                    ))}
-                    
-                    {!selectedDelivery.user_confirmed && (
-                      <TouchableOpacity
-                        style={styles.confirmButton}
-                        onPress={() => confirmDeliveryItems(selectedDelivery.ai_extracted_data.items || [])}
-                      >
-                        <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                        <Text style={styles.confirmButtonText}>Confirm & Update Inventory</Text>
-                      </TouchableOpacity>
+              <View style={styles.itemsSection}>
+                <Text style={styles.sectionTitle}>Items Delivered</Text>
+                {selectedDelivery.items.map((item, index) => (
+                  <View key={index} style={styles.deliveredItem}>
+                    <Text style={styles.itemName}>{item.item_name}</Text>
+                    <Text style={styles.itemDetails}>
+                      Qty: {item.quantity_received} {item.unit} • Condition: {item.condition}
+                    </Text>
+                    {item.notes && (
+                      <Text style={styles.itemNotes}>{item.notes}</Text>
                     )}
                   </View>
-                )}
-
-                {selectedDelivery.delivery_note_photo && (
-                  <View style={styles.detailsSection}>
-                    <Text style={styles.sectionTitle}>📸 Delivery Note Photo</Text>
-                    <Image
-                      source={{ uri: `data:image/jpeg;base64,${selectedDelivery.delivery_note_photo}` }}
-                      style={styles.deliveryPhoto}
-                    />
-                  </View>
-                )}
+                ))}
               </View>
             </ScrollView>
-          </SafeAreaView>
-        </Modal>
-      )}
+          )}
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'delivered': return '#4CAF50';
+    case 'pending': return '#FF9800';
+    case 'partial': return '#2196F3';
+    case 'cancelled': return '#F44336';
+    default: return '#666';
+  }
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -862,154 +649,140 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     color: '#fff',
-    marginTop: 16,
     fontSize: 16,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#2d2d2d',
     borderBottomWidth: 1,
     borderBottomColor: '#404040',
   },
-  headerLeft: {
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  headerRight: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 10,
-  },
   headerButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
+    padding: 8,
+    borderRadius: 8,
+    minWidth: 40,
+    minHeight: 40,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  welcomeSection: {
+    backgroundColor: '#2d2d2d',
+    padding: 20,
+    borderRadius: 12,
+    marginVertical: 16,
+  },
+  welcomeTitle: {
+    color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
-    textAlign: 'center',
+    marginBottom: 8,
   },
-  searchContainer: {
-    padding: 16,
-    backgroundColor: '#2d2d2d',
-  },
-  searchInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#404040',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 12,
-  },
-  searchInput: {
-    flex: 1,
-    color: '#fff',
+  welcomeText: {
+    color: '#ccc',
     fontSize: 16,
-    marginLeft: 12,
+    lineHeight: 22,
   },
-  filterContainer: {
-    flexDirection: 'row',
+  section: {
+    marginBottom: 24,
   },
-  filterChip: {
-    backgroundColor: '#404040',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-  },
-  filterChipActive: {
-    backgroundColor: '#4CAF50',
-  },
-  filterChipText: {
-    color: '#aaa',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  filterChipTextActive: {
+  sectionTitle: {
     color: '#fff',
-  },
-  deliveriesList: {
-    flex: 1,
-    padding: 16,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
   },
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 64,
+    padding: 40,
+    backgroundColor: '#2d2d2d',
+    borderRadius: 12,
   },
-  emptyStateTitle: {
+  emptyStateText: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     marginTop: 16,
   },
-  emptyStateSubtitle: {
-    color: '#aaa',
-    fontSize: 16,
+  emptyStateSubtext: {
+    color: '#999',
+    fontSize: 14,
     textAlign: 'center',
     marginTop: 8,
   },
   deliveryCard: {
     backgroundColor: '#2d2d2d',
-    borderRadius: 12,
     padding: 16,
+    borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#404040',
   },
-  deliveryCardHeader: {
+  deliveryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   deliveryInfo: {
     flex: 1,
   },
-  supplierName: {
+  deliveryNumber: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
-  deliveryNumber: {
+  supplierName: {
     color: '#4CAF50',
     fontSize: 14,
     marginTop: 2,
   },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    gap: 4,
   },
   statusText: {
     color: '#fff',
     fontSize: 10,
     fontWeight: 'bold',
   },
-  deliveryDetails: {
-    gap: 8,
+  deliveryDate: {
+    color: '#999',
+    fontSize: 12,
+    marginBottom: 4,
   },
-  detailRow: {
-    flexDirection: 'row',
+  itemCount: {
+    color: '#ccc',
+    fontSize: 12,
+  },
+  fabButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#4CAF50',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-  },
-  detailText: {
-    color: '#aaa',
-    fontSize: 14,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   modalContainer: {
     flex: 1,
@@ -1019,7 +792,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#2d2d2d',
     borderBottomWidth: 1,
     borderBottomColor: '#404040',
@@ -1031,72 +805,30 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 16,
   },
   formSection: {
     marginBottom: 24,
-  },
-  sectionTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  addButtonText: {
-    color: '#4CAF50',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    color: '#aaa',
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  textInput: {
-    backgroundColor: '#404040',
-    color: '#fff',
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#404040',
-  },
-  inputRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  inputHalf: {
-    flex: 1,
+    marginTop: 16,
   },
   supplierSelector: {
-    flexDirection: 'row',
+    marginTop: 8,
   },
   supplierChip: {
     backgroundColor: '#404040',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: 20,
     marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#555',
   },
   supplierChipSelected: {
     backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
   },
   supplierChipText: {
-    color: '#aaa',
+    color: '#ccc',
     fontSize: 14,
   },
   supplierChipTextSelected: {
@@ -1120,18 +852,60 @@ const styles = StyleSheet.create({
   optionTitle: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     marginBottom: 4,
   },
   optionDescription: {
-    color: '#aaa',
+    color: '#999',
     fontSize: 14,
   },
-  itemCard: {
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: '#2d2d2d',
+    borderWidth: 1,
+    borderColor: '#404040',
+    borderRadius: 8,
+    padding: 12,
+    color: '#fff',
+    fontSize: 16,
+  },
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#404040',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  addButtonText: {
+    color: '#4CAF50',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  itemForm: {
     backgroundColor: '#2d2d2d',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#404040',
   },
@@ -1139,126 +913,124 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   itemNumber: {
     color: '#4CAF50',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  aiModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  aiModalContent: {
-    backgroundColor: '#2d2d2d',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    maxWidth: 300,
-    width: '80%',
-  },
-  aiModalTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginTop: 16,
-  },
-  aiModalSubtitle: {
-    color: '#aaa',
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 24,
-  },
-  aiLoader: {
-    marginTop: 16,
-  },
-  aiModalButtons: {
+  inputRow: {
     flexDirection: 'row',
     gap: 12,
   },
-  aiModalButton: {
+  inputHalf: {
+    flex: 1,
+  },
+  conditionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  conditionButton: {
+    flex: 1,
     backgroundColor: '#404040',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#555',
   },
-  aiModalButtonPrimary: {
+  conditionButtonSelected: {
     backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
   },
-  aiModalButtonText: {
-    color: '#aaa',
-    fontSize: 16,
+  conditionButtonText: {
+    color: '#ccc',
+    fontSize: 14,
   },
-  aiModalButtonTextPrimary: {
+  conditionButtonTextSelected: {
     color: '#fff',
     fontWeight: 'bold',
   },
-  deliveryDetailsContainer: {
-    padding: 16,
+  emptyItems: {
+    alignItems: 'center',
+    padding: 32,
+    backgroundColor: '#2d2d2d',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#404040',
+  },
+  emptyItemsText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 12,
+  },
+  emptyItemsSubtext: {
+    color: '#999',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  detailsSection: {
+    backgroundColor: '#2d2d2d',
+    padding: 20,
+    borderRadius: 12,
+    marginVertical: 16,
+    alignItems: 'center',
   },
   detailsTitle: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 8,
   },
-  detailsSubtitle: {
+  detailsSupplier: {
     color: '#4CAF50',
     fontSize: 16,
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  detailsSection: {
-    marginBottom: 24,
+  detailsInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#404040',
   },
-  detailItem: {
-    color: '#aaa',
-    fontSize: 16,
-    marginBottom: 8,
+  detailsLabel: {
+    color: '#999',
+    fontSize: 14,
+  },
+  detailsValue: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  itemsSection: {
+    marginTop: 24,
+    marginBottom: 32,
+  },
+  deliveredItem: {
+    backgroundColor: '#2d2d2d',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#404040',
   },
   itemName: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  itemDetails: {
-    color: '#aaa',
-    fontSize: 14,
-    marginTop: 4,
-  },
-  itemCode: {
-    color: '#4CAF50',
-    fontSize: 14,
-    marginTop: 4,
-  },
-  itemNotes: {
-    color: '#aaa',
-    fontSize: 14,
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  confirmButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#4CAF50',
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 16,
-    gap: 8,
-  },
-  confirmButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 4,
   },
-  deliveryPhoto: {
-    width: '100%',
-    height: 300,
-    borderRadius: 12,
-    resizeMode: 'cover',
+  itemDetails: {
+    color: '#ccc',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  itemNotes: {
+    color: '#999',
+    fontSize: 12,
+    fontStyle: 'italic',
   },
 });
