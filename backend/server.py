@@ -1335,7 +1335,7 @@ async def ai_chat(chat_request: ChatMessage):
 IMPORTANT: Always provide clear, step-by-step instructions. Use emojis and formatting to make responses easy to read.
 
 APP CONTEXT:
-- Used by maintenance team: 2 supervisors (Lee Carter, Dan Brooks), 3 engineers
+- Used by maintenance team: 2 supervisors (Lee Carter, Dan Carter), 3 engineers
 - Manages materials and tools with QR codes for check-in/out
 - Key features: Dashboard, QR Scanner, Inventory, Deliveries, Suppliers, Stock-taking
 
