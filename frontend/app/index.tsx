@@ -925,10 +925,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.9,
   },
-  scrollContent: {
-    flex: 1,
-  },
-  scrollContentContainer: {
-    flexGrow: 1,
-  },
 });
