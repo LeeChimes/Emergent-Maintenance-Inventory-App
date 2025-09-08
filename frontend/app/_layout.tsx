@@ -35,6 +35,7 @@ export default function RootLayout() {
         <Stack.Screen name="suppliers" options={{ headerShown: false }} />
         <Stack.Screen name="deliveries" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
+        <Stack.Screen name="contact-supervisors" options={{ headerShown: false }} />
       </Stack>
     </ErrorBoundary>
   );
