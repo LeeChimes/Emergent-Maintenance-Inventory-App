@@ -1343,15 +1343,14 @@ COMMON SOLUTIONS:
 Always be helpful, concise, and provide actionable steps. If you're unsure, suggest contacting supervisors Lee Carter or Dan Brooks."""
 
         # Generate response using the chat
-        response = await chat.generate_response(
-            prompt=f"{system_prompt}\n\nUser Question: {chat_request.message}",
-            model="gpt-4o-mini",
-            temperature=0.7,
-            max_tokens=500
+        user_message = UserMessage(
+            text=f"{system_prompt}\n\nUser Question: {chat_request.message}"
         )
         
+        llm_response = await chat.send_message(user_message)
+        
         return ChatResponse(
-            response=response.content,
+            response=llm_response.strip(),
             success=True
         )
         
