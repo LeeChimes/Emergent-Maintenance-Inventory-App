@@ -661,7 +661,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   logoutButton: {
-    padding: 8,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loginSection: {
     flex: 1,
