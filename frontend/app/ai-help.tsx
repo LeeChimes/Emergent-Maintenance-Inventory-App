@@ -299,6 +299,12 @@ const styles = StyleSheet.create({
   conversationList: {
     paddingVertical: 16,
   },
+  conversationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
   messageContainer: {
     marginBottom: 16,
   },
