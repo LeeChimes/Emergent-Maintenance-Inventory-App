@@ -73,8 +73,15 @@ export default function Help() {
               key={category.id} 
               style={styles.categoryCard}
               onPress={() => {
-                // Will implement detailed views in next steps
-                alert(`Coming in Step 2: ${category.title} help section`);
+                // Navigate to detailed help screens
+                if (category.id === 'dashboard') {
+                  router.push('/dashboard-help');
+                } else if (category.id === 'deliveries') {
+                  router.push('/deliveries-help');
+                } else {
+                  // Other categories coming in next steps
+                  alert(`Coming in Step 3: ${category.title} help section`);
+                }
               }}
             >
               <View style={styles.categoryHeader}>
