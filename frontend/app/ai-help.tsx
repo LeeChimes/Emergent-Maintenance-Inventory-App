@@ -119,7 +119,16 @@ Please try again in a moment, or browse the detailed help sections.`;
         <ScrollView style={styles.conversationContainer}>
           {conversationHistory.length === 0 ? (
             <View style={styles.welcomeSection}>
-              <Text style={styles.welcomeTitle}>🤖 AI Help Assistant</Text>
+              <View style={styles.welcomeHeader}>
+                <Text style={styles.welcomeTitle}>🤖 AI Help Assistant</Text>
+                <TouchableOpacity 
+                  style={styles.clearButton}
+                  onPress={clearConversation}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="refresh" size={20} color="#666" />
+                </TouchableOpacity>
+              </View>
               <Text style={styles.welcomeText}>
                 Ask me anything about using the app! I can help with deliveries, scanning, 
                 inventory, troubleshooting, and more.
