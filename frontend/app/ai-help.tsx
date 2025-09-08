@@ -149,6 +149,17 @@ Please try again in a moment, or browse the detailed help sections.`;
             </View>
           ) : (
             <View style={styles.conversationList}>
+              <View style={styles.conversationHeader}>
+                <TouchableOpacity 
+                  style={styles.clearButton}
+                  onPress={clearConversation}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="refresh" size={16} color="#666" />
+                  <Text style={styles.clearButtonText}>Clear</Text>
+                </TouchableOpacity>
+              </View>
+              
               {conversationHistory.map((message, index) => (
                 <View key={index} style={[
                   styles.messageContainer,
