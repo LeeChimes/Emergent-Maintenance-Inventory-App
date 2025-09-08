@@ -587,54 +587,6 @@ export default function Index() {
             </TouchableOpacity>
           )}
         </View>
-
-        {/* Enhanced Quick Stats */}
-        <View style={styles.quickStats}>
-          <Text style={styles.quickStatsTitle}>📊 Quick Overview</Text>
-          <View style={styles.statsRow}>
-            <TouchableOpacity 
-              style={styles.statCard}
-              onPress={() => navigateToScreen('inventory')}
-            >
-              <Ionicons name="cube" size={20} color="#4CAF50" />
-              <Text style={styles.statNumber}>{stats.materials}</Text>
-              <Text style={styles.statLabel}>Materials</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.statCard}
-              onPress={() => navigateToScreen('inventory')}
-            >
-              <Ionicons name="build" size={20} color="#2196F3" />
-              <Text style={styles.statNumber}>{stats.tools}</Text>
-              <Text style={styles.statLabel}>Tools</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.statCard, stats.lowStock > 0 && styles.alertStatCard]}
-              onPress={() => user.role === 'supervisor' && navigateToScreen('dashboard')}
-            >
-              <Ionicons 
-                name="warning" 
-                size={20} 
-                color={stats.lowStock > 0 ? "#FF9800" : "#666"} 
-              />
-              <Text style={[
-                styles.statNumber,
-                stats.lowStock > 0 && styles.alertStatNumber
-              ]}>
-                {stats.lowStock}
-              </Text>
-              <Text style={styles.statLabel}>Low Stock</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.statCard}>
-              <Ionicons name="today" size={20} color="#9C27B0" />
-              <Text style={styles.statNumber}>{stats.todayTransactions}</Text>
-              <Text style={styles.statLabel}>Today</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
