@@ -1306,7 +1306,11 @@ async def ai_chat(chat_request: ChatMessage):
     """
     try:
         # Initialize the LLM chat
-        chat = LlmChat()
+        chat = LlmChat(
+            api_key=os.getenv("EMERGENT_LLM_KEY", ""),
+            session_id=f"ai_chat_{uuid.uuid4()}",
+            system_message="AI Assistant for Asset Inventory App"
+        )
         
         # Enhanced system prompt with app context
         system_prompt = """You are a helpful AI assistant for the Chimes Shopping Centre Asset Inventory Mobile App. 
