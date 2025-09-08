@@ -1379,7 +1379,7 @@ Always be helpful, concise, and provide actionable steps. If you're unsure, sugg
 🏠 **Navigation**: Use the back arrow (←) or home button to move around
 📱 **QR Issues**: Try the manual entry option if camera won't work  
 🚚 **Deliveries**: Look for the purple "Log Delivery" button on main dashboard
-📞 **Need Help**: Contact your supervisors Lee Carter or Dan Brooks
+📞 **Need Help**: Contact your supervisors Lee Carter or Dan Carter
 
 Try asking your question again in a moment, or check the detailed help sections in the main help menu."""
 
