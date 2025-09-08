@@ -102,11 +102,14 @@ export default function Help() {
         <View style={styles.quickActionsSection}>
           <Text style={styles.sectionTitle}>🚀 Quick Actions</Text>
           
-          <TouchableOpacity style={styles.quickActionButton}>
-            <Ionicons name="search" size={24} color="#4CAF50" />
+          <TouchableOpacity 
+            style={styles.quickActionButton}
+            onPress={() => router.push('/ai-help')}
+          >
+            <Ionicons name="sparkles" size={24} color="#4CAF50" />
             <View style={styles.quickActionContent}>
               <Text style={styles.quickActionTitle}>🤖 AI Help Assistant</Text>
-              <Text style={styles.quickActionDescription}>Coming in Step 3: Ask any question</Text>
+              <Text style={styles.quickActionDescription}>Ask any question about the app</Text>
             </View>
           </TouchableOpacity>
 
