@@ -93,7 +93,8 @@ export default function Dashboard() {
           </Text>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => router.push('/')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
