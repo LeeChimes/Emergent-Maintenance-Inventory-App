@@ -140,7 +140,7 @@ export default function ContactSupervisors() {
             <Text style={styles.introTitle}>📞 Contact Your Supervisors</Text>
             <Text style={styles.introText}>
               Need help that you can't find in the guides? Send a request directly to 
-              Lee Carter and Dan Brooks. They'll get back to you as soon as possible.
+              Lee Carter and Dan Carter. They'll get back to you as soon as possible.
             </Text>
             
             <View style={styles.supervisorInfo}>
@@ -151,7 +151,7 @@ export default function ContactSupervisors() {
               </View>
               <View style={styles.supervisorCard}>
                 <Ionicons name="person-circle" size={32} color="#2196F3" />
-                <Text style={styles.supervisorName}>Dan Brooks</Text>
+                <Text style={styles.supervisorName}>Dan Carter</Text>
                 <Text style={styles.supervisorRole}>Supervisor</Text>
               </View>
             </View>
