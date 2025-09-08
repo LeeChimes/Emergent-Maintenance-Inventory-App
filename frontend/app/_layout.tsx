@@ -19,7 +19,17 @@ export default function RootLayout() {
         <Stack.Screen name="scanner" options={{ headerShown: false }} />
         <Stack.Screen name="inventory" options={{ headerShown: false }} />
         <Stack.Screen name="stock-take" options={{ headerShown: false }} />
-        <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="dashboard" options={{ 
+          headerShown: true,
+          title: "Smart Dashboard",
+          headerStyle: { backgroundColor: '#2d2d2d' },
+          headerTintColor: '#fff',
+          headerRight: () => (
+            <TouchableOpacity onPress={() => router.push('/help')} style={{ marginRight: 16 }}>
+              <Ionicons name="help-circle" size={24} color="#fff" />
+            </TouchableOpacity>
+          )
+        }} />
         <Stack.Screen name="add-item" options={{ headerShown: false }} />
         <Stack.Screen name="bulk-upload" options={{ headerShown: false }} />
         <Stack.Screen name="suppliers" options={{ headerShown: false }} />
