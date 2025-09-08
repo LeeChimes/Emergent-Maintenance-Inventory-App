@@ -198,39 +198,6 @@ export default function Index() {
     setPriorities(priorities.slice(0, 3));
   };
 
-  const generateTeamActivity = (transactions: any[]) => {
-    const activities: TeamActivity[] = transactions.slice(0, 5).map((transaction: any) => {
-      const time = new Date(transaction.timestamp);
-      const minutesAgo = Math.floor((Date.now() - time.getTime()) / 60000);
-      
-      return {
-        id: transaction.id,
-        user: transaction.user_name,
-        action: getActionText(transaction.transaction_type),
-        item: getItemName(transaction.item_id),
-        time: minutesAgo < 60 ? `${minutesAgo}m ago` : `${Math.floor(minutesAgo / 60)}h ago`,
-        type: transaction.transaction_type
-      };
-    });
-
-    setTeamActivity(activities);
-  };
-
-  const getActionText = (type: string) => {
-    switch (type) {
-      case 'take': return 'took';
-      case 'restock': return 'restocked';
-      case 'check_out': return 'checked out';
-      case 'check_in': return 'returned';
-      default: return 'updated';
-    }
-  };
-
-  const getItemName = (itemId: string) => {
-    // In a real app, you'd look up the item name
-    return 'Item'; // Simplified for demo
-  };
-
   const handleUserSelect = (userData: User) => {
     setSelectedUser(userData);
     setShowPinModal(true);
