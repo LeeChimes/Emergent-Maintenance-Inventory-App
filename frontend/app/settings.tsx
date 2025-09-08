@@ -159,17 +159,8 @@ export default function Settings() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => router.push('/')}
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
-        <View style={styles.headerButton} />
-      </View>
+      {/* Universal Header */}
+      <UniversalHeader title="Settings" showBackButton={true} />
 
       <ScrollView style={styles.content}>
         {/* User Info */}
