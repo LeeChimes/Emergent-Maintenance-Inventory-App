@@ -241,7 +241,7 @@ export default function StockTake() {
               onPress: () => {
                 setSelectedType(null);
                 setEntries([]);
-                router.back();
+                router.push('/');
               },
             },
           ]
