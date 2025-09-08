@@ -516,6 +516,17 @@ export default function Index() {
                   <Text style={styles.actionButtonSubtext}>➕ Materials & Tools</Text>
                 </View>
               </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.auditButton]}
+                onPress={() => navigateToScreen('audit-log')}
+              >
+                <Ionicons name="shield-checkmark" size={28} color="#fff" />
+                <View style={styles.actionButtonContent}>
+                  <Text style={styles.actionButtonText}>Audit Log</Text>
+                  <Text style={styles.actionButtonSubtext}>🔍 Team Activity Archive</Text>
+                </View>
+              </TouchableOpacity>
             </>
           )}
 
