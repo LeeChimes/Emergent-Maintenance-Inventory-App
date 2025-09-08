@@ -1453,13 +1453,13 @@ async def get_help_requests(status: str = None):
             filter_query["status"] = status
             
         # Get requests sorted by priority and creation time
-        requests = list(help_requests.find(
+        requests = await help_requests.find(
             filter_query,
             {"_id": 0}  # Exclude MongoDB _id field
         ).sort([
             ("priority_level", 1),  # Priority first (1 = urgent, 3 = low)
             ("created_at", -1)      # Then by newest first
-        ]))
+        ]).to_list(1000)
         
         return {"help_requests": requests, "total": len(requests)}
         
