@@ -1,23 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
-  TextInput,
-  Alert,
-  Modal,
-  RefreshControl,
-} from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import { FlashList } from '@shopify/flash-list';
-import { AppErrorHandler } from '../utils/AppErrorHandler';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import UniversalHeader from '../components/UniversalHeader';
 
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 interface User {
   id: string;
@@ -28,58 +16,43 @@ interface User {
 interface Supplier {
   id: string;
   name: string;
-  type: 'electrical' | 'hardware' | 'safety' | 'cleaning' | 'general';
-  website: string;
+  website_url?: string;
   contact_person?: string;
   phone?: string;
   email?: string;
-  address?: string;
-  account_number?: string;
-  delivery_info?: string;
-  products?: SupplierProduct[];
-  created_at: string;
-  updated_at: string;
+  products?: Product[];
+  created_at?: string;
 }
 
-interface SupplierProduct {
-  id: string;
+interface Product {
   name: string;
-  product_code: string;
+  supplier_product_code: string;
   category: string;
-  price?: number;
+  unit_price: number;
+  currency: string;
   description?: string;
-  availability?: 'in_stock' | 'out_of_stock' | 'discontinued';
-  last_scanned: string;
 }
 
 export default function Suppliers() {
   const [user, setUser] = useState<User | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
-  const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [showAddSupplier, setShowAddSupplier] = useState(false);
-  const [scanningProducts, setScanningProducts] = useState(false);
-  const [creatingSupplier, setCreatingSupplier] = useState(false);
-  const [formKey, setFormKey] = useState(0); // Force form re-render
+  const [showSupplierDetails, setShowSupplierDetails] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [scanningWebsite, setScanningWebsite] = useState(false);
+  const [formKey, setFormKey] = useState(0);
 
-  // Form fields for new supplier
   const [newSupplier, setNewSupplier] = useState({
     name: '',
-    type: 'general' as const,
-    website: '',
+    website_url: '',
     contact_person: '',
     phone: '',
-    email: '',
-    address: '',
-    account_number: '',
-    delivery_info: '',
+    email: ''
   });
 
   useEffect(() => {
-    initializeUser();
+    loadUserData();
   }, []);
 
   useEffect(() => {
@@ -88,17 +61,18 @@ export default function Suppliers() {
     }
   }, [user]);
 
-  const initializeUser = async () => {
+  const loadUserData = async () => {
     try {
       const userData = await AsyncStorage.getItem('userData');
       if (userData) {
-        setUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
       } else {
-        router.replace('/');
+        router.push('/');
       }
     } catch (error) {
       console.error('Error loading user data:', error);
-      router.replace('/');
+      router.push('/');
     }
   };
 
@@ -108,421 +82,107 @@ export default function Suppliers() {
       if (response.ok) {
         const data = await response.json();
         setSuppliers(data);
-      } else {
-        console.error('Failed to fetch suppliers:', response.status);
       }
     } catch (error) {
       console.error('Error fetching suppliers:', error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchSuppliers();
-  };
-
-  const createSupplier = async () => {
-    if (!newSupplier.name.trim()) {
-      Alert.alert('Missing Information', 'Please enter a supplier name.');
-      return;
-    }
-
-    setCreatingSupplier(true);
-    
-    try {
-      const createResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newSupplier),
-      });
-      
-      if (createResponse.ok) {
-        const supplierData = await createResponse.json();
-        
-        // Refresh suppliers list
-        await fetchSuppliers();
-        
-        Alert.alert(
-          'Success! 🎉',
-          `${newSupplier.name} has been added to your supplier database.`,
-          [
-            { text: 'Add Another', onPress: () => {
-              // Clear form by resetting state and forcing re-render
-              setNewSupplier({
-                name: '',
-                type: 'general',
-                website: '',
-                contact_person: '',
-                phone: '',
-                email: '',
-                address: '',
-                account_number: '',
-                delivery_info: '',
-              });
-              setFormKey(prev => prev + 1);
-            }},
-            { text: 'Done', onPress: () => {
-              // Reset form and close modal
-              setNewSupplier({
-                name: '',
-                type: 'general', 
-                website: '',
-                contact_person: '',
-                phone: '',
-                email: '',
-                address: '',
-                account_number: '',
-                delivery_info: '',
-              });
-              setShowAddSupplier(false);
-              setFormKey(prev => prev + 1);
-            }}
-          ]
-        );
-      } else if (createResponse.status === 409) {
-        // Handle duplicate supplier error from backend
-        const errorData = await createResponse.json();
-        Alert.alert(
-          'Duplicate Supplier',
-          errorData.detail || 'A supplier with this name already exists.',
-          [{ text: 'OK' }]
-        );
-      } else {
-        const errorText = await createResponse.text();
-        Alert.alert(
-          'Error Creating Supplier',
-          `Failed to create supplier: ${createResponse.status} - ${errorText}`,
-          [{ text: 'OK' }]
-        );
-      }
-    } catch (error) {
-      Alert.alert(
-        'Network Error',
-        `Failed to connect to server. Please check your connection and try again.`,
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setCreatingSupplier(false);
-    }
-  };
-
-  const scanSupplierProducts = async (supplier: Supplier) => {
-    if (!supplier.website) {
-      Alert.alert('No Website', 'This supplier needs a website URL for AI product scanning.');
-      return;
-    }
-
-    setScanningProducts(true);
-    
-    try {
-      Alert.alert(
-        '🤖 AI Product Scanner',
-        `Starting intelligent scan of ${supplier.name} website for product codes and pricing...`,
-        [{ text: 'Great!' }]
-      );
-
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers/${supplier.id}/scan-products`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ website: supplier.website }),
-      });
-
-      if (response.ok) {
-        const scannedData = await response.json();
-        
-        // Refresh the suppliers list to show updated products
-        await fetchSuppliers();
-        
-        Alert.alert(
-          '🚀 AI Scan Complete!',
-          `Found ${scannedData.products_found || 0} products with codes and prices.\n\nYour inventory items will now show product codes for easy ordering!`,
-          [{ text: 'Awesome!' }]
-        );
-      } else {
-        const errorText = await response.text();
-        Alert.alert(
-          'Scan Error',
-          `Failed to scan website: ${response.status} - ${errorText}`,
-          [{ text: 'OK' }]
-        );
-      }
-    } catch (error) {
-      Alert.alert(
-        '🔧 Scan in Progress',
-        'AI product scanning is processing. Results will appear shortly in your inventory items.',
-        [{ text: 'Got it!' }]
-      );
-    } finally {
-      setScanningProducts(false);
     }
   };
 
   const resetForm = () => {
     setNewSupplier({
       name: '',
-      type: 'general',
-      website: '',
+      website_url: '',
       contact_person: '',
       phone: '',
-      email: '',
-      address: '',
-      account_number: '',
-      delivery_info: '',
+      email: ''
     });
-    setFormKey(prev => prev + 1); // Force form re-render
+    setFormKey(prev => prev + 1);
   };
 
-  const filterSuppliers = () => {
-    if (!searchQuery) return suppliers;
-    return suppliers.filter(supplier =>
-      supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      supplier.type.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  };
+  const handleAddSupplier = async () => {
+    if (!newSupplier.name.trim()) {
+      Alert.alert('Validation Error', 'Supplier name is required');
+      return;
+    }
 
-  const getSupplierIcon = (type: string) => {
-    switch (type) {
-      case 'electrical': return 'flash';
-      case 'hardware': return 'hammer';
-      case 'safety': return 'shield-checkmark';
-      case 'cleaning': return 'water';
-      default: return 'storefront';
+    try {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSupplier),
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', 'Supplier added successfully!');
+        resetForm();
+        setShowAddSupplier(false);
+        fetchSuppliers();
+      } else {
+        const errorData = await response.text();
+        if (response.status === 409) {
+          Alert.alert('Duplicate Supplier', 'A supplier with this name already exists.');
+        } else {
+          console.error('Error adding supplier:', errorData);
+          Alert.alert('Error', 'Failed to add supplier. Please try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Error adding supplier:', error);
+      Alert.alert('Error', 'Failed to add supplier. Please try again.');
     }
   };
 
-  const getSupplierColor = (type: string) => {
-    switch (type) {
-      case 'electrical': return '#FF9800';
-      case 'hardware': return '#795548';
-      case 'safety': return '#F44336';
-      case 'cleaning': return '#2196F3';
-      default: return '#4CAF50';
+  const handleScanWebsite = async (supplierId: string) => {
+    setScanningWebsite(true);
+    
+    try {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers/${supplierId}/scan-website`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        Alert.alert(
+          'AI Scan Complete! 🤖',
+          `Found ${data.products_added} products from the website. Products have been added to this supplier's catalog.`,
+          [{ text: 'Great!', onPress: () => fetchSuppliers() }]
+        );
+      } else {
+        const errorData = await response.json();
+        Alert.alert('Scan Failed', errorData.detail || 'Failed to scan website');
+      }
+    } catch (error) {
+      console.error('Error scanning website:', error);
+      Alert.alert('Error', 'Failed to scan website. Please try again.');
+    } finally {
+      setScanningWebsite(false);
     }
   };
 
-  const renderSupplierItem = ({ item }: { item: Supplier }) => (
-    <TouchableOpacity
-      style={styles.supplierCard}
-      onPress={() => {
-        setSelectedSupplier(item);
-        setShowSupplierModal(true);
-      }}
-    >
-      <View style={styles.supplierHeader}>
-        <View style={[
-          styles.supplierIcon,
-          { backgroundColor: getSupplierColor(item.type) }
-        ]}>
-          <Ionicons 
-            name={getSupplierIcon(item.type) as any} 
-            size={24} 
-            color="#fff" 
-          />
-        </View>
-        <View style={styles.supplierInfo}>
-          <Text style={styles.supplierName}>{item.name}</Text>
-          <Text style={styles.supplierType}>
-            {item.type.charAt(0).toUpperCase() + item.type.slice(1)} Supplier
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.scanButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            scanSupplierProducts(item);
-          }}
-        >
-          <Ionicons name="scan" size={20} color="#4CAF50" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.supplierDetails}>
-        {item.contact_person && (
-          <View style={styles.detailRow}>
-            <Ionicons name="person" size={16} color="#666" />
-            <Text style={styles.detailText}>{item.contact_person}</Text>
-          </View>
-        )}
-        {item.phone && (
-          <TouchableOpacity style={styles.detailRow}>
-            <Ionicons name="call" size={16} color="#4CAF50" />
-            <Text style={[styles.detailText, styles.linkText]}>{item.phone}</Text>
-          </TouchableOpacity>
-        )}
-        {item.products && (
-          <View style={styles.detailRow}>
-            <Ionicons name="cube" size={16} color="#2196F3" />
-            <Text style={styles.detailText}>
-              {item.products.length} products scanned
-            </Text>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-
-  const renderSupplierModal = () => {
-    if (!selectedSupplier) return null;
-
-    return (
-      <Modal
-        visible={showSupplierModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowSupplierModal(false)}>
-              <Ionicons name="close" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>{selectedSupplier.name}</Text>
-            <TouchableOpacity onPress={() => scanSupplierProducts(selectedSupplier)}>
-              <Ionicons name="scan" size={24} color="#4CAF50" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalContent}>
-            {/* Supplier Details */}
-            <View style={styles.detailCard}>
-              <Text style={styles.detailCardTitle}>📞 Contact Information</Text>
-              
-              {selectedSupplier.contact_person && (
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Contact Person:</Text>
-                  <Text style={styles.detailValue}>{selectedSupplier.contact_person}</Text>
-                </View>
-              )}
-              
-              {selectedSupplier.phone && (
-                <TouchableOpacity style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Phone:</Text>
-                  <Text style={[styles.detailValue, styles.linkText]}>
-                    {selectedSupplier.phone}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              
-              {selectedSupplier.email && (
-                <TouchableOpacity style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Email:</Text>
-                  <Text style={[styles.detailValue, styles.linkText]}>
-                    {selectedSupplier.email}
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              {selectedSupplier.website && (
-                <TouchableOpacity style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Website:</Text>
-                  <Text style={[styles.detailValue, styles.linkText]}>
-                    {selectedSupplier.website}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Account Information */}
-            {(selectedSupplier.account_number || selectedSupplier.delivery_info) && (
-              <View style={styles.detailCard}>
-                <Text style={styles.detailCardTitle}>🏪 Account Details</Text>
-                
-                {selectedSupplier.account_number && (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Account Number:</Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.account_number}</Text>
-                  </View>
-                )}
-                
-                {selectedSupplier.delivery_info && (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Delivery Info:</Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.delivery_info}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* AI Scanned Products */}
-            {selectedSupplier.products && selectedSupplier.products.length > 0 && (
-              <View style={styles.detailCard}>
-                <View style={styles.productsHeader}>
-                  <Text style={styles.detailCardTitle}>🤖 AI Scanned Products</Text>
-                  <TouchableOpacity
-                    style={styles.rescanButton}
-                    onPress={() => scanSupplierProducts(selectedSupplier)}
-                  >
-                    <Ionicons name="refresh" size={16} color="#4CAF50" />
-                    <Text style={styles.rescanButtonText}>Re-scan</Text>
-                  </TouchableOpacity>
-                </View>
-                
-                {selectedSupplier.products.slice(0, 10).map((product, index) => (
-                  <View key={index} style={styles.productItem}>
-                    <View style={styles.productInfo}>
-                      <Text style={styles.productName}>{product.name}</Text>
-                      <Text style={styles.productCode}>Code: {product.product_code}</Text>
-                    </View>
-                    {product.price && (
-                      <Text style={styles.productPrice}>£{product.price}</Text>
-                    )}
-                  </View>
-                ))}
-                
-                {selectedSupplier.products.length > 10 && (
-                  <Text style={styles.moreProductsText}>
-                    +{selectedSupplier.products.length - 10} more products available
-                  </Text>
-                )}
-              </View>
-            )}
-
-            {/* Action Buttons */}
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.primaryAction]}
-                onPress={() => scanSupplierProducts(selectedSupplier)}
-                disabled={scanningProducts}
-              >
-                <Ionicons name="scan" size={20} color="#fff" />
-                <Text style={styles.actionButtonText}>
-                  {scanningProducts ? 'Scanning...' : 'AI Product Scan'}
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.actionButton, styles.secondaryAction]}
-                onPress={() => {
-                  Alert.alert(
-                    'Quick Order',
-                    `Ready to order from ${selectedSupplier.name}?\n\nPhone: ${selectedSupplier.phone}\nWebsite: ${selectedSupplier.website}`,
-                    [{ text: 'Got it!' }]
-                  );
-                }}
-              >
-                <Ionicons name="call" size={20} color="#fff" />
-                <Text style={styles.actionButtonText}>Quick Order</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-    );
-  };
-
-  if (!user || user.role !== 'supervisor') {
+  if (!user) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.centerContent}>
-          <Ionicons name="lock-closed" size={48} color="#F44336" />
-          <Text style={styles.accessDeniedText}>Access Denied</Text>
-          <Text style={styles.accessDeniedSubtext}>
-            Supplier management is only available to supervisors
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (user.role !== 'supervisor') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <UniversalHeader title="Suppliers" showBackButton={true} />
+        
+        <View style={styles.accessDenied}>
+          <Ionicons name="lock-closed" size={64} color="#666" />
+          <Text style={styles.accessDeniedTitle}>Access Restricted</Text>
+          <Text style={styles.accessDeniedText}>
+            Only supervisors can manage suppliers. You can view supplier information in the delivery logging section.
           </Text>
+          
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.push('/')}
@@ -537,153 +197,125 @@ export default function Suppliers() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => router.push('/')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
+      {/* Universal Header */}
+      <UniversalHeader title="Suppliers" showBackButton={true} />
+
+      {/* Main Content */}
+      <ScrollView style={styles.content}>
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <Text style={styles.welcomeTitle}>👥 Supplier Management</Text>
+          <Text style={styles.welcomeText}>
+            Manage your suppliers and their product catalogs. Add new suppliers 
+            and use AI to automatically scan their websites for products.
+          </Text>
         </View>
-        <Text style={styles.headerTitle}>Suppliers</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => router.push('/dashboard')}
-          >
-            <Ionicons name="home" size={24} color="#4CAF50" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setShowAddSupplier(true)}
-          >
-            <Ionicons name="add" size={24} color="#4CAF50" />
-          </TouchableOpacity>
+
+        {/* Suppliers List */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Current Suppliers ({suppliers.length})</Text>
+          
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading suppliers...</Text>
+            </View>
+          ) : suppliers.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="people-outline" size={48} color="#666" />
+              <Text style={styles.emptyStateText}>No suppliers added yet</Text>
+              <Text style={styles.emptyStateSubtext}>Tap the + button to add your first supplier</Text>
+            </View>
+          ) : (
+            suppliers.map((supplier) => (
+              <TouchableOpacity
+                key={supplier.id}
+                style={styles.supplierCard}
+                onPress={() => {
+                  setSelectedSupplier(supplier);
+                  setShowSupplierDetails(true);
+                }}
+              >
+                <View style={styles.supplierHeader}>
+                  <View style={styles.supplierInfo}>
+                    <Text style={styles.supplierName}>{supplier.name}</Text>
+                    {supplier.contact_person && (
+                      <Text style={styles.supplierContact}>👤 {supplier.contact_person}</Text>
+                    )}
+                    {supplier.phone && (
+                      <Text style={styles.supplierPhone}>📞 {supplier.phone}</Text>
+                    )}
+                  </View>
+                  
+                  <View style={styles.supplierActions}>
+                    {supplier.website_url && (
+                      <TouchableOpacity
+                        style={styles.scanButton}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleScanWebsite(supplier.id);
+                        }}
+                        disabled={scanningWebsite}
+                      >
+                        <Ionicons name="scan" size={16} color="#4CAF50" />
+                      </TouchableOpacity>
+                    )}
+                    
+                    <View style={styles.productsBadge}>
+                      <Text style={styles.productsCount}>
+                        {supplier.products?.length || 0} products
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {supplier.website_url && (
+                  <Text style={styles.supplierWebsite}>🌐 {supplier.website_url}</Text>
+                )}
+              </TouchableOpacity>
+            ))
+          )}
         </View>
-      </View>
+      </ScrollView>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#666" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search suppliers..."
-          placeholderTextColor="#666"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={20} color="#666" />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* AI Scan All Button */}
-      <View style={styles.quickActions}>
-        <TouchableOpacity
-          style={styles.scanAllButton}
-          onPress={() => {
-            Alert.alert(
-              '🤖 AI Batch Scan',
-              'Scan all supplier websites for product codes and pricing?',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { 
-                  text: 'Scan All', 
-                  onPress: () => {
-                    Alert.alert('🚀 Batch Scan Started', 'AI is scanning all supplier websites. Results will appear shortly!');
-                  }
-                }
-              ]
-            );
-          }}
-        >
-          <Ionicons name="scan" size={20} color="#fff" />
-          <Text style={styles.scanAllButtonText}>AI Scan All Suppliers</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Suppliers List */}
-      <View style={styles.listContainer}>
-        {loading ? (
-          <View style={styles.centerContent}>
-            <Text style={styles.loadingText}>Loading suppliers...</Text>
-          </View>
-        ) : filterSuppliers().length === 0 ? (
-          <View style={styles.centerContent}>
-            <Ionicons name="storefront-outline" size={64} color="#666" />
-            <Text style={styles.emptyText}>
-              {searchQuery ? 'No suppliers match your search' : 'No suppliers added yet'}
-            </Text>
-            <TouchableOpacity 
-              style={styles.addButton}
-              onPress={() => setShowAddSupplier(true)}
-            >
-              <Text style={styles.addButtonText}>Add First Supplier</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <FlashList
-            data={filterSuppliers()}
-            renderItem={renderSupplierItem}
-            estimatedItemSize={120}
-            keyExtractor={(item) => item.id}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor="#4CAF50"
-              />
-            }
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
+      {/* Floating Add Button */}
+      <TouchableOpacity
+        style={styles.fabButton}
+        onPress={() => setShowAddSupplier(true)}
+      >
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
 
       {/* Add Supplier Modal */}
       <Modal
+        key={formKey}
         visible={showAddSupplier}
         animationType="slide"
         presentationStyle="pageSheet"
+        onRequestClose={() => setShowAddSupplier(false)}
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowAddSupplier(false)}>
+            <TouchableOpacity onPress={() => {
+              setShowAddSupplier(false);
+              resetForm();
+            }}>
               <Ionicons name="close" size={24} color="#fff" />
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Add Supplier</Text>
-            <TouchableOpacity 
-              onPress={createSupplier}
-              disabled={creatingSupplier}
-              style={[
-                styles.headerTickButton,
-                creatingSupplier && styles.headerTickButtonDisabled
-              ]}
-            >
-              {creatingSupplier ? (
-                <Text style={styles.loadingText}>...</Text>
-              ) : (
-                <Ionicons name="checkmark" size={24} color="#4CAF50" />
-              )}
+            <Text style={styles.modalTitle}>Add New Supplier</Text>
+            <TouchableOpacity onPress={handleAddSupplier}>
+              <Ionicons name="checkmark" size={24} color="#4CAF50" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView 
-            key={formKey}
-            style={styles.modalContent}>
+          <ScrollView style={styles.modalContent}>
             <View style={styles.formSection}>
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Supplier Name *</Text>
                 <TextInput
                   style={styles.textInput}
+                  placeholder="Enter supplier name"
                   value={newSupplier.name}
-                  onChangeText={(text) => setNewSupplier({...newSupplier, name: text})}
-                  placeholder="e.g., Screwfix, Electric Centre"
-                  placeholderTextColor="#666"
+                  onChangeText={(text) => setNewSupplier(prev => ({ ...prev, name: text }))}
                 />
               </View>
 
@@ -691,11 +323,10 @@ export default function Suppliers() {
                 <Text style={styles.inputLabel}>Website URL</Text>
                 <TextInput
                   style={styles.textInput}
-                  value={newSupplier.website}
-                  onChangeText={(text) => setNewSupplier({...newSupplier, website: text})}
-                  placeholder="https://www.supplier.com"
-                  placeholderTextColor="#666"
-                  autoCapitalize="none"
+                  placeholder="https://example.com"
+                  value={newSupplier.website_url}
+                  onChangeText={(text) => setNewSupplier(prev => ({ ...prev, website_url: text }))}
+                  keyboardType="url"
                 />
               </View>
 
@@ -703,22 +334,31 @@ export default function Suppliers() {
                 <Text style={styles.inputLabel}>Contact Person</Text>
                 <TextInput
                   style={styles.textInput}
+                  placeholder="Contact person name"
                   value={newSupplier.contact_person}
-                  onChangeText={(text) => setNewSupplier({...newSupplier, contact_person: text})}
-                  placeholder="Contact name"
-                  placeholderTextColor="#666"
+                  onChangeText={(text) => setNewSupplier(prev => ({ ...prev, contact_person: text }))}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Phone</Text>
+                <Text style={styles.inputLabel}>Phone Number</Text>
                 <TextInput
                   style={styles.textInput}
-                  value={newSupplier.phone}
-                  onChangeText={(text) => setNewSupplier({...newSupplier, phone: text})}
                   placeholder="Phone number"
-                  placeholderTextColor="#666"
+                  value={newSupplier.phone}
+                  onChangeText={(text) => setNewSupplier(prev => ({ ...prev, phone: text }))}
                   keyboardType="phone-pad"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Email</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Email address"
+                  value={newSupplier.email}
+                  onChangeText={(text) => setNewSupplier(prev => ({ ...prev, email: text }))}
+                  keyboardType="email-address"
                 />
               </View>
             </View>
@@ -726,7 +366,112 @@ export default function Suppliers() {
         </SafeAreaView>
       </Modal>
 
-      {renderSupplierModal()}
+      {/* Supplier Details Modal */}
+      <Modal
+        visible={showSupplierDetails}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowSupplierDetails(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowSupplierDetails(false)}>
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Supplier Details</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          {selectedSupplier && (
+            <ScrollView style={styles.modalContent}>
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsTitle}>{selectedSupplier.name}</Text>
+                
+                {selectedSupplier.contact_person && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Contact:</Text>
+                    <Text style={styles.detailValue}>{selectedSupplier.contact_person}</Text>
+                  </View>
+                )}
+
+                {selectedSupplier.phone && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Phone:</Text>
+                    <Text style={styles.detailValue}>{selectedSupplier.phone}</Text>
+                  </View>
+                )}
+
+                {selectedSupplier.email && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Email:</Text>
+                    <Text style={styles.detailValue}>{selectedSupplier.email}</Text>
+                  </View>
+                )}
+
+                {selectedSupplier.website_url && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Website:</Text>
+                    <Text style={styles.detailValue}>{selectedSupplier.website_url}</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Products Section */}
+              <View style={styles.productsSection}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>
+                    Products ({selectedSupplier.products?.length || 0})
+                  </Text>
+                  {selectedSupplier.website_url && (
+                    <TouchableOpacity
+                      style={styles.aiScanButton}
+                      onPress={() => handleScanWebsite(selectedSupplier.id)}
+                      disabled={scanningWebsite}
+                    >
+                      <Ionicons 
+                        name={scanningWebsite ? "refresh" : "scan"} 
+                        size={16} 
+                        color="#4CAF50" 
+                      />
+                      <Text style={styles.aiScanText}>
+                        {scanningWebsite ? 'Scanning...' : 'AI Scan'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {selectedSupplier.products && selectedSupplier.products.length > 0 ? (
+                  selectedSupplier.products.map((product, index) => (
+                    <View key={index} style={styles.productCard}>
+                      <Text style={styles.productName}>{product.name}</Text>
+                      <Text style={styles.productCode}>Code: {product.supplier_product_code}</Text>
+                      <View style={styles.productDetails}>
+                        <Text style={styles.productPrice}>
+                          {product.currency} {product.unit_price.toFixed(2)}
+                        </Text>
+                        <Text style={styles.productCategory}>{product.category}</Text>
+                      </View>
+                      {product.description && (
+                        <Text style={styles.productDescription}>{product.description}</Text>
+                      )}
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.emptyProducts}>
+                    <Ionicons name="cube-outline" size={32} color="#666" />
+                    <Text style={styles.emptyProductsText}>No products added yet</Text>
+                    {selectedSupplier.website_url && (
+                      <Text style={styles.emptyProductsSubtext}>
+                        Use AI Scan to automatically add products
+                      </Text>
+                    )}
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+          )}
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -736,154 +481,171 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a1a1a',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    backgroundColor: '#2d2d2d',
-    borderBottomWidth: 1,
-    borderBottomColor: '#404040',
-  },
-  headerLeft: {
+  loadingContainer: {
     flex: 1,
-    alignItems: 'flex-start',
-  },
-  headerRight: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 10,
-  },
-  headerButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
     justifyContent: 'center',
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  searchContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2d2d2d',
-    margin: 20,
-    marginBottom: 0,
-    padding: 12,
-    borderRadius: 12,
-    gap: 12,
-  },
-  searchInput: {
-    flex: 1,
-    color: '#fff',
-    fontSize: 16,
-  },
-  quickActions: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  scanAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#4CAF50',
-    padding: 12,
-    borderRadius: 8,
-    gap: 8,
-  },
-  scanAllButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  listContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  centerContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
   },
   loadingText: {
-    color: '#aaa',
+    color: '#fff',
     fontSize: 16,
   },
-  emptyText: {
-    color: '#aaa',
+  accessDenied: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  accessDeniedTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  accessDeniedText: {
+    color: '#ccc',
     fontSize: 16,
     textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 30,
   },
-  addButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 20,
+  backButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
-  addButtonText: {
+  backButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  welcomeSection: {
+    backgroundColor: '#2d2d2d',
+    padding: 20,
+    borderRadius: 12,
+    marginVertical: 16,
+  },
+  welcomeTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  welcomeText: {
+    color: '#ccc',
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: 40,
+    backgroundColor: '#2d2d2d',
+    borderRadius: 12,
+  },
+  emptyStateText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 16,
+  },
+  emptyStateSubtext: {
+    color: '#999',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
   },
   supplierCard: {
     backgroundColor: '#2d2d2d',
-    borderRadius: 12,
     padding: 16,
+    borderRadius: 12,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#404040',
   },
   supplierHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 12,
-  },
-  supplierIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
   },
   supplierInfo: {
     flex: 1,
+    marginRight: 12,
   },
   supplierName: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 4,
   },
-  supplierType: {
-    color: '#aaa',
+  supplierContact: {
+    color: '#ccc',
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  supplierPhone: {
+    color: '#ccc',
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  supplierWebsite: {
+    color: '#4CAF50',
     fontSize: 12,
-    marginTop: 2,
+    marginTop: 8,
   },
-  scanButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#2d4d2d',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  supplierDetails: {
-    gap: 6,
-  },
-  detailRow: {
+  supplierActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  detailText: {
-    color: '#aaa',
-    fontSize: 12,
+  scanButton: {
+    padding: 8,
+    backgroundColor: '#1B5E20',
+    borderRadius: 16,
+    minWidth: 32,
+    alignItems: 'center',
   },
-  linkText: {
-    color: '#4CAF50',
+  productsBadge: {
+    backgroundColor: '#404040',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  productsCount: {
+    color: '#ccc',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  fabButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   modalContainer: {
     flex: 1,
@@ -893,7 +655,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#2d2d2d',
     borderBottomWidth: 1,
     borderBottomColor: '#404040',
@@ -905,164 +668,141 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 16,
   },
-  detailCard: {
-    backgroundColor: '#2d2d2d',
-    borderRadius: 12,
-    padding: 16,
+  formSection: {
+    marginVertical: 20,
+  },
+  inputGroup: {
     marginBottom: 16,
   },
-  detailCardTitle: {
-    color: '#4CAF50',
-    fontSize: 16,
+  inputLabel: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: '#2d2d2d',
+    borderWidth: 1,
+    borderColor: '#404040',
+    borderRadius: 8,
+    padding: 12,
+    color: '#fff',
+    fontSize: 16,
+  },
+  detailsSection: {
+    backgroundColor: '#2d2d2d',
+    padding: 20,
+    borderRadius: 12,
+    marginVertical: 16,
+  },
+  detailsTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#404040',
   },
   detailLabel: {
-    color: '#aaa',
+    color: '#999',
     fontSize: 14,
-    minWidth: 100,
   },
   detailValue: {
     color: '#fff',
     fontSize: 14,
+    fontWeight: 'bold',
     flex: 1,
+    textAlign: 'right',
   },
-  productsHeader: {
+  productsSection: {
+    marginBottom: 32,
+  },
+  sectionHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  rescanButton: {
+  aiScanButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2d4d2d',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
+    backgroundColor: '#1B5E20',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  rescanButtonText: {
+  aiScanText: {
     color: '#4CAF50',
     fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
   },
-  productItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#3d3d3d',
-  },
-  productInfo: {
-    flex: 1,
+  productCard: {
+    backgroundColor: '#2d2d2d',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#404040',
   },
   productName: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
   productCode: {
     color: '#4CAF50',
     fontSize: 12,
-    marginTop: 2,
+    marginBottom: 8,
+  },
+  productDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   productPrice: {
     color: '#FF9800',
     fontSize: 14,
     fontWeight: 'bold',
   },
-  moreProductsText: {
-    color: '#aaa',
+  productCategory: {
+    color: '#ccc',
+    fontSize: 12,
+    backgroundColor: '#404040',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  productDescription: {
+    color: '#999',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  emptyProducts: {
+    alignItems: 'center',
+    padding: 32,
+    backgroundColor: '#2d2d2d',
+    borderRadius: 12,
+  },
+  emptyProductsText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 12,
+  },
+  emptyProductsSubtext: {
+    color: '#999',
     fontSize: 12,
     textAlign: 'center',
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 20,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 14,
-    borderRadius: 8,
-    gap: 8,
-  },
-  primaryAction: {
-    backgroundColor: '#4CAF50',
-  },
-  secondaryAction: {
-    backgroundColor: '#2196F3',
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  formSection: {
-    gap: 16,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  inputLabel: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  textInput: {
-    backgroundColor: '#3d3d3d',
-    borderRadius: 8,
-    padding: 12,
-    color: '#fff',
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#404040',
-  },
-  accessDeniedText: {
-    color: '#F44336',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 16,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  accessDeniedSubtext: {
-    color: '#aaa',
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  backButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  headerTickButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTickButtonDisabled: {
-    opacity: 0.5,
-  },
-  loadingText: {
-    color: '#4CAF50',
-    fontSize: 18,
-    fontWeight: 'bold',
+    marginTop: 4,
   },
 });

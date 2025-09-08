@@ -1,19 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
-  TextInput,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import UniversalHeader from '../components/UniversalHeader';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -25,196 +15,70 @@ interface User {
 
 export default function BulkUpload() {
   const [user, setUser] = useState<User | null>(null);
-  const [itemType, setItemType] = useState<'material' | 'tool' | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [bulkData, setBulkData] = useState('');
-  const [results, setResults] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    initializeUser();
+    loadUserData();
   }, []);
 
-  const initializeUser = async () => {
+  const loadUserData = async () => {
     try {
       const userData = await AsyncStorage.getItem('userData');
       if (userData) {
         setUser(JSON.parse(userData));
       } else {
-        router.replace('/');
+        router.push('/');
       }
     } catch (error) {
       console.error('Error loading user data:', error);
-      router.replace('/');
+      router.push('/');
     }
   };
 
-  const processBulkData = async () => {
-    if (!bulkData.trim()) {
-      Alert.alert('No Data', 'Please enter some items to upload.');
-      return;
-    }
-
-    setLoading(true);
-    const lines = bulkData.split('\n').filter(line => line.trim());
-    const processedItems: any[] = [];
-    const errors: string[] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-
-      try {
-        // Parse CSV-like format: Name, Description, Quantity, Unit, MinStock, Location
-        const parts = line.split(',').map(part => part.trim());
-        
-        if (parts.length < 2) {
-          errors.push(`Line ${i + 1}: Invalid format (need at least name and description)`);
-          continue;
-        }
-
-        const itemData: any = {
-          name: parts[0],
-          description: parts[1] || '',
-          category: parts[2] || 'General',
-          location: parts[5] || 'Storage Room',
-        };
-
-        if (itemType === 'material') {
-          itemData.quantity = parseInt(parts[3]) || 0;
-          itemData.unit = parts[4] || 'pieces';
-          itemData.min_stock = parseInt(parts[5]) || 5;
-        } else {
-          itemData.status = 'available';
-          itemData.condition = 'good';
-        }
-
-        const endpoint = itemType === 'material' ? 'materials' : 'tools';
-        const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/${endpoint}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(itemData),
-        });
-
-        if (response.ok) {
-          const newItem = await response.json();
-          processedItems.push({
-            name: itemData.name,
-            id: newItem.id,
-            qr_code: newItem.qr_code,
-            success: true,
-          });
-        } else {
-          const error = await response.json();
-          errors.push(`${itemData.name}: ${error.detail || 'Failed to create'}`);
-        }
-      } catch (error) {
-        errors.push(`Line ${i + 1}: Processing error - ${error}`);
-      }
-    }
-
-    setResults(processedItems);
-    setLoading(false);
-
-    if (errors.length > 0) {
-      Alert.alert(
-        'Bulk Upload Complete',
-        `Successfully created ${processedItems.length} items.\n${errors.length} errors occurred.`,
-        [{ text: 'View Results' }]
-      );
-    } else {
-      Alert.alert(
-        'Success! 🎉',
-        `Successfully created ${processedItems.length} items with QR codes!`,
-        [{ text: 'Great!' }]
-      );
-    }
-  };
-
-  const generateTemplate = () => {
-    if (!itemType) return;
-
-    const template = itemType === 'material'
-      ? `Safety Helmets,High-visibility safety helmets,Safety Equipment,15,pieces,5,Storage Room A1
-LED Light Bulbs,9W warm white LED bulbs,Electrical,50,pieces,10,Electrical Store
-Cleaning Supplies,All-purpose cleaner,Maintenance,8,bottles,3,Cleaning Store`
-      : `Cordless Drill,18V lithium-ion drill,Power Tools,,,Tool Room C1
-Floor Polisher,Commercial floor polisher,Cleaning Equipment,,,Storage Room D1
-Safety Harness,Fall protection harness,Safety Equipment,,,Safety Equipment Store`;
-
-    setBulkData(template);
+  const handleBulkUpload = () => {
     Alert.alert(
-      'Template Loaded! 📋',
-      'Edit the template data and tap "Process Bulk Upload" to create multiple items quickly.',
-      [{ text: 'Got it!' }]
+      'Feature Coming Soon',
+      'Bulk upload functionality will be available in a future update. For now, please use the Add Item feature to add items individually.',
+      [{ text: 'OK' }]
     );
   };
 
-  if (!user || user.role !== 'supervisor') {
+  const sampleData = [
+    {
+      title: '📄 CSV Template',
+      description: 'Download a CSV template with the correct format for bulk uploads',
+      action: 'Download Template',
+      icon: 'document-text',
+      color: '#4CAF50'
+    },
+    {
+      title: '📊 Excel Template',
+      description: 'Download an Excel template for bulk inventory uploads',
+      action: 'Download Template',
+      icon: 'grid',
+      color: '#FF9800'
+    },
+    {
+      title: '📱 Scan Multiple QR',
+      description: 'Coming soon: Scan multiple QR codes in sequence',
+      action: 'Coming Soon',
+      icon: 'qr-code',
+      color: '#2196F3'
+    },
+    {
+      title: '📂 Import File',
+      description: 'Upload your CSV or Excel file with inventory data',
+      action: 'Select File',
+      icon: 'cloud-upload',
+      color: '#9C27B0'
+    }
+  ];
+
+  if (!user) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.centerContent}>
-          <Ionicons name="lock-closed" size={48} color="#F44336" />
-          <Text style={styles.accessDeniedText}>Access Denied</Text>
-          <Text style={styles.accessDeniedSubtext}>
-            Bulk upload is only available to supervisors
-          </Text>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.push('/')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (!itemType) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => router.push('/')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Bulk Upload</Text>
-          <View style={styles.headerButton} />
-        </View>
-
-        <View style={styles.centerContent}>
-          <View style={styles.welcomeSection}>
-            <Ionicons name="cloud-upload" size={64} color="#4CAF50" />
-            <Text style={styles.welcomeTitle}>Bulk Upload Items</Text>
-            <Text style={styles.welcomeText}>
-              Quickly add hundreds of items at once! Perfect for initial setup.
-            </Text>
-          </View>
-
-          <View style={styles.typeSelection}>
-            <TouchableOpacity
-              style={[styles.typeButton, styles.materialButton]}
-              onPress={() => setItemType('material')}
-            >
-              <Ionicons name="cube" size={32} color="#fff" />
-              <Text style={styles.typeButtonText}>Bulk Materials</Text>
-              <Text style={styles.typeButtonSubtext}>📦 Upload stock items with quantities</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.typeButton, styles.toolButton]}
-              onPress={() => setItemType('tool')}
-            >
-              <Ionicons name="build" size={32} color="#fff" />
-              <Text style={styles.typeButtonText}>Bulk Tools</Text>
-              <Text style={styles.typeButtonSubtext}>🔧 Upload equipment for tracking</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       </SafeAreaView>
     );
@@ -222,113 +86,138 @@ Safety Harness,Fall protection harness,Safety Equipment,,,Safety Equipment Store
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => setItemType(null)}
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          Bulk Upload {itemType === 'material' ? 'Materials' : 'Tools'}
-        </Text>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={generateTemplate}
-        >
-          <Ionicons name="document-text" size={24} color="#4CAF50" />
-        </TouchableOpacity>
-      </View>
+      {/* Universal Header */}
+      <UniversalHeader title="Bulk Upload" showBackButton={true} />
 
-      <KeyboardAvoidingView 
-        style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Instructions */}
-          <View style={styles.instructionsCard}>
-            <Text style={styles.instructionsTitle}>📝 How to Bulk Upload</Text>
-            <Text style={styles.instructionsText}>
-              1. Tap the template button (📄) to load sample data{'\n'}
-              2. Edit the data below - one item per line{'\n'}
-              3. Format: Name, Description, Category, {itemType === 'material' ? 'Quantity, Unit, MinStock, ' : ''}Location{'\n'}
-              4. Tap "Process Bulk Upload" when ready
+      <ScrollView style={styles.content}>
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <Text style={styles.welcomeTitle}>📦 Bulk Upload</Text>
+          <Text style={styles.welcomeText}>
+            Import multiple inventory items at once using CSV or Excel files. 
+            This feature is coming soon - for now, use individual item creation.
+          </Text>
+        </View>
+
+        {/* Current Status */}
+        <View style={styles.statusSection}>
+          <View style={styles.statusCard}>
+            <Ionicons name="information-circle" size={32} color="#FF9800" />
+            <Text style={styles.statusTitle}>Feature In Development</Text>
+            <Text style={styles.statusText}>
+              We're working on bulk upload functionality. In the meantime, 
+              you can add items individually using the Add Item feature.
             </Text>
           </View>
+        </View>
 
-          {/* Bulk Data Input */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>📋 Item Data</Text>
-              <TouchableOpacity
-                style={styles.templateButton}
-                onPress={generateTemplate}
-              >
-                <Ionicons name="document-text" size={16} color="#4CAF50" />
-                <Text style={styles.templateButtonText}>Load Template</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <TextInput
-              style={styles.bulkTextInput}
-              value={bulkData}
-              onChangeText={setBulkData}
-              placeholder={`Enter ${itemType} data here...\n\nExample:\nSafety Helmets,High-vis helmets,Safety,15,pieces,5,Storage A1`}
-              placeholderTextColor="#666"
-              multiline
-              numberOfLines={15}
-              textAlignVertical="top"
-            />
-          </View>
+        {/* Upload Options */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Upload Options (Coming Soon)</Text>
+          
+          {sampleData.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.optionCard}
+              onPress={handleBulkUpload}
+            >
+              <View style={[styles.optionIcon, { backgroundColor: item.color }]}>
+                <Ionicons name={item.icon as any} size={24} color="#fff" />
+              </View>
+              
+              <View style={styles.optionContent}>
+                <Text style={styles.optionTitle}>{item.title}</Text>
+                <Text style={styles.optionDescription}>{item.description}</Text>
+              </View>
+              
+              <View style={styles.optionAction}>
+                <Text style={styles.optionActionText}>{item.action}</Text>
+                <Ionicons name="chevron-forward" size={16} color="#666" />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-          {/* Process Button */}
+        {/* Current Alternatives */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Available Now</Text>
+          
           <TouchableOpacity
-            style={[styles.processButton, loading && styles.processButtonDisabled]}
-            onPress={processBulkData}
-            disabled={loading}
+            style={styles.alternativeCard}
+            onPress={() => router.push('/add-item')}
           >
-            <Ionicons name="cloud-upload" size={24} color="#fff" />
-            <Text style={styles.processButtonText}>
-              {loading ? 'Processing...' : 'Process Bulk Upload'}
-            </Text>
+            <Ionicons name="add-circle" size={32} color="#4CAF50" />
+            <View style={styles.alternativeContent}>
+              <Text style={styles.alternativeTitle}>Add Individual Items</Text>
+              <Text style={styles.alternativeDescription}>
+                Add materials and tools one at a time with full details
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#4CAF50" />
           </TouchableOpacity>
 
-          {/* Results */}
-          {results.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>✅ Upload Results</Text>
-              {results.map((item, index) => (
-                <View key={index} style={styles.resultItem}>
-                  <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                  <View style={styles.resultInfo}>
-                    <Text style={styles.resultName}>{item.name}</Text>
-                    <Text style={styles.resultQR}>QR Code: {item.qr_code}</Text>
-                  </View>
-                </View>
-              ))}
-              
-              <TouchableOpacity
-                style={styles.printAllButton}
-                onPress={() => {
-                  Alert.alert(
-                    'Print QR Codes',
-                    `Ready to print ${results.length} QR code stickers to your Bluetooth printer!`,
-                    [
-                      { text: 'Cancel' },
-                      { text: 'Print All', onPress: () => console.log('Print all QR codes') }
-                    ]
-                  );
-                }}
-              >
-                <Ionicons name="print" size={20} color="#fff" />
-                <Text style={styles.printAllButtonText}>Print All QR Stickers</Text>
-              </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.alternativeCard}
+            onPress={() => router.push('/scanner')}
+          >
+            <Ionicons name="qr-code" size={32} color="#2196F3" />
+            <View style={styles.alternativeContent}>
+              <Text style={styles.alternativeTitle}>QR Code Scanner</Text>
+              <Text style={styles.alternativeDescription}>
+                Scan existing QR codes to manage inventory items
+              </Text>
             </View>
-          )}
+            <Ionicons name="chevron-forward" size={20} color="#2196F3" />
+          </TouchableOpacity>
 
-          <View style={styles.bottomSpacer} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <TouchableOpacity
+            style={styles.alternativeCard}
+            onPress={() => router.push('/inventory')}
+          >
+            <Ionicons name="list" size={32} color="#FF9800" />
+            <View style={styles.alternativeContent}>
+              <Text style={styles.alternativeTitle}>View Inventory</Text>
+              <Text style={styles.alternativeDescription}>
+                Browse and manage your current inventory items
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#FF9800" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Tips Section */}
+        <View style={styles.tipsSection}>
+          <Text style={styles.sectionTitle}>💡 Tips for When Bulk Upload is Available</Text>
+          
+          <View style={styles.tipCard}>
+            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+            <Text style={styles.tipText}>
+              Prepare your data in CSV format with columns: Name, Description, Category, Quantity, Unit, Location
+            </Text>
+          </View>
+
+          <View style={styles.tipCard}>
+            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+            <Text style={styles.tipText}>
+              Use consistent naming conventions for categories and locations
+            </Text>
+          </View>
+
+          <View style={styles.tipCard}>
+            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+            <Text style={styles.tipText}>
+              Include supplier information and cost data when available
+            </Text>
+          </View>
+
+          <View style={styles.tipCard}>
+            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+            <Text style={styles.tipText}>
+              Test with a small batch first to ensure data formatting is correct
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -338,225 +227,148 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a1a1a',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    backgroundColor: '#2d2d2d',
-    borderBottomWidth: 1,
-    borderBottomColor: '#404040',
-  },
-  headerButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  centerContent: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
-    padding: 20,
-  },
-  accessDeniedText: {
-    color: '#F44336',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 16,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  accessDeniedSubtext: {
-    color: '#aaa',
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  backButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignSelf: 'center',
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  welcomeSection: {
     alignItems: 'center',
-    marginBottom: 40,
   },
-  welcomeTitle: {
+  loadingText: {
     color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  welcomeText: {
-    color: '#aaa',
     fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  typeSelection: {
-    gap: 16,
-  },
-  typeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 24,
-    borderRadius: 16,
-    gap: 16,
-  },
-  materialButton: {
-    backgroundColor: '#4CAF50',
-  },
-  toolButton: {
-    backgroundColor: '#2196F3',
-  },
-  typeButtonText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-    flex: 1,
-  },
-  typeButtonSubtext: {
-    color: '#fff',
-    fontSize: 12,
-    opacity: 0.9,
-    position: 'absolute',
-    left: 72,
-    bottom: 16,
-  },
-  keyboardView: {
-    flex: 1,
   },
   content: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 16,
   },
-  instructionsCard: {
+  welcomeSection: {
     backgroundColor: '#2d2d2d',
+    padding: 20,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4CAF50',
+    marginVertical: 16,
   },
-  instructionsTitle: {
-    color: '#4CAF50',
-    fontSize: 16,
+  welcomeTitle: {
+    color: '#fff',
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 8,
   },
-  instructionsText: {
-    color: '#aaa',
+  welcomeText: {
+    color: '#ccc',
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  statusSection: {
+    marginBottom: 24,
+  },
+  statusCard: {
+    backgroundColor: '#2d2d2d',
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FF9800',
+  },
+  statusTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  statusText: {
+    color: '#ccc',
     fontSize: 14,
+    textAlign: 'center',
     lineHeight: 20,
   },
   section: {
     marginBottom: 24,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
   sectionTitle: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
+    marginBottom: 16,
   },
-  templateButton: {
+  optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2d4d2d',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    gap: 6,
-  },
-  templateButtonText: {
-    color: '#4CAF50',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  bulkTextInput: {
     backgroundColor: '#2d2d2d',
-    borderRadius: 8,
-    padding: 12,
-    color: '#fff',
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: '#404040',
-    minHeight: 300,
-    maxHeight: 400,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-  },
-  processButton: {
-    backgroundColor: '#4CAF50',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     padding: 16,
     borderRadius: 12,
-    gap: 8,
-    marginBottom: 20,
+    marginBottom: 12,
+    opacity: 0.6,
   },
-  processButtonDisabled: {
-    backgroundColor: '#666',
+  optionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
   },
-  processButtonText: {
+  optionContent: {
+    flex: 1,
+  },
+  optionTitle: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 4,
   },
-  resultItem: {
+  optionDescription: {
+    color: '#ccc',
+    fontSize: 14,
+  },
+  optionAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  optionActionText: {
+    color: '#666',
+    fontSize: 12,
+    marginRight: 4,
+  },
+  alternativeCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#2d2d2d',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    gap: 12,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#404040',
   },
-  resultInfo: {
+  alternativeContent: {
     flex: 1,
+    marginLeft: 16,
   },
-  resultName: {
+  alternativeTitle: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  resultQR: {
-    color: '#4CAF50',
-    fontSize: 12,
-  },
-  printAllButton: {
-    backgroundColor: '#2196F3',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 12,
-    gap: 8,
-  },
-  printAllButtonText: {
-    color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 4,
   },
-  bottomSpacer: {
-    height: 40,
+  alternativeDescription: {
+    color: '#ccc',
+    fontSize: 14,
+  },
+  tipsSection: {
+    marginBottom: 32,
+  },
+  tipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#2d2d2d',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  tipText: {
+    color: '#ccc',
+    fontSize: 14,
+    marginLeft: 12,
+    flex: 1,
+    lineHeight: 20,
   },
 });
