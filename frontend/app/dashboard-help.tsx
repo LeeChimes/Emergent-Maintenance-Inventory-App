@@ -57,11 +57,19 @@ export default function DashboardHelp() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/help')}>
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={() => router.push('/help')}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Dashboard & Navigation</Text>
-        <TouchableOpacity onPress={() => router.push('/')}>
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={() => router.push('/')}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="home" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
