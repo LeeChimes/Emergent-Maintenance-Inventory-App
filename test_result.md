@@ -323,9 +323,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Universal Navigation Header Implementation"
+    - "Backend API verification after Universal Navigation Header implementation completed"
   stuck_tasks: []
-  test_all: false
+  test_all: true
   test_priority: "high_first"
 
 backend:
