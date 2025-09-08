@@ -74,7 +74,7 @@ export default function UniversalHeader({ title, showBackButton = true }: Univer
           onPress={handleScanPress}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="qr-code-scan" size={22} color="#FF9800" />
+          <Ionicons name="qr-code" size={22} color="#FF9800" />
         </TouchableOpacity>
       </View>
     </View>
