@@ -262,7 +262,6 @@ export default function Index() {
             setUser(null);
             setStats({ materials: 0, tools: 0, lowStock: 0, todayTransactions: 0, healthScore: 85 });
             setPriorities([]);
-            setTeamActivity([]);
             await fetchUsers();
           },
         },
