@@ -1430,7 +1430,7 @@ async def create_help_request(help_request: HelpRequest):
         
         return HelpRequestResponse(
             id=help_request_doc["id"],
-            message=f"Help request submitted successfully. Lee Carter and Dan Brooks will be notified.",
+            message=f"Help request submitted successfully. Lee Carter and Dan Carter will be notified.",
             success=True
         )
         
