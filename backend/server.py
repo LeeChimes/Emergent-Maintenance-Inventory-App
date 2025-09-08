@@ -1357,7 +1357,7 @@ COMMON SOLUTIONS:
 - "QR not working": Use manual entry option available in scanner
 - "Login issues": Check PIN with supervisor, try different user
 
-Always be helpful, concise, and provide actionable steps. If you're unsure, suggest contacting supervisors Lee Carter or Dan Brooks."""
+Always be helpful, concise, and provide actionable steps. If you're unsure, suggest contacting supervisors Lee Carter or Dan Carter."""
 
         # Generate response using the chat
         user_message = UserMessage(
