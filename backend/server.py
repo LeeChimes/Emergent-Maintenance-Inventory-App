@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime
 from enum import Enum
 import base64
-from emergentintegrations import LiteLLM
+from emergentintegrations.llm.chat import LlmChat
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
