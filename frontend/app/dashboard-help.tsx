@@ -108,7 +108,7 @@ export default function DashboardHelp() {
 
           <TouchableOpacity 
             style={styles.actionButton}
-            onPress={() => router.back()}
+            onPress={() => router.push('/help')}
           >
             <Ionicons name="help-circle" size={24} color="#2196F3" />
             <View style={styles.actionContent}>
