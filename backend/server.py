@@ -1298,6 +1298,79 @@ async def confirm_delivery_and_update_inventory(delivery_id: str, confirmation_d
         print(f"❌ Error confirming delivery: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to confirm delivery: {str(e)}")
 
+@api_router.post("/ai-chat", response_model=ChatResponse)
+async def ai_chat(chat_request: ChatMessage):
+    """
+    AI-powered help assistant endpoint.
+    Provides intelligent responses to user questions about the app.
+    """
+    try:
+        # Initialize the LLM chat
+        chat = LlmChat()
+        
+        # Enhanced system prompt with app context
+        system_prompt = """You are a helpful AI assistant for the Chimes Shopping Centre Asset Inventory Mobile App. 
+
+IMPORTANT: Always provide clear, step-by-step instructions. Use emojis and formatting to make responses easy to read.
+
+APP CONTEXT:
+- Used by maintenance team: 2 supervisors (Lee Carter, Dan Brooks), 3 engineers
+- Manages materials and tools with QR codes for check-in/out
+- Key features: Dashboard, QR Scanner, Inventory, Deliveries, Suppliers, Stock-taking
+
+USER ROLES:
+- Engineers: QR scanning, view inventory, log deliveries, stock counts
+- Supervisors: All engineer features + settings, suppliers, advanced reports
+
+MAIN FEATURES HELP:
+1. 🏠 DASHBOARD: Central hub with colored action buttons for each feature
+2. 📱 QR SCANNER: Scan QR codes or use manual entry, check items in/out
+3. 📦 INVENTORY: View/add materials & tools, search items, view details
+4. 🚚 DELIVERIES: ALL users can log deliveries (manual entry only currently)
+5. 👥 SUPPLIERS: Manage supplier info and products (supervisors only)
+6. 📊 STOCK-TAKE: Count inventory items, update quantities
+
+COMMON SOLUTIONS:
+- "Can't see button": Check user role, supervisors see more options
+- "App crashes": Close app completely and reopen, or restart device
+- "QR not working": Use manual entry option available in scanner
+- "Login issues": Check PIN with supervisor, try different user
+
+Always be helpful, concise, and provide actionable steps. If you're unsure, suggest contacting supervisors Lee Carter or Dan Brooks."""
+
+        # Generate response using the chat
+        response = await chat.chat(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": chat_request.message}
+            ],
+            model="gpt-4o-mini",
+            temperature=0.7,
+            max_tokens=500
+        )
+        
+        return ChatResponse(
+            response=response.content,
+            success=True
+        )
+        
+    except Exception as e:
+        print(f"AI Chat Error: {str(e)}")
+        # Return helpful fallback response
+        fallback_response = """I'm having trouble connecting right now, but here are some quick tips:
+
+🏠 **Navigation**: Use the back arrow (←) or home button to move around
+📱 **QR Issues**: Try the manual entry option if camera won't work  
+🚚 **Deliveries**: Look for the purple "Log Delivery" button on main dashboard
+📞 **Need Help**: Contact your supervisors Lee Carter or Dan Brooks
+
+Try asking your question again in a moment, or check the detailed help sections in the main help menu."""
+
+        return ChatResponse(
+            response=fallback_response,
+            success=False
+        )
+
 # Health check route with error detection
 @api_router.get("/health")
 async def health_check():
