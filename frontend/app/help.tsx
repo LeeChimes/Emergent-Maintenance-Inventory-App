@@ -123,11 +123,14 @@ export default function Help() {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quickActionButton}>
+          <TouchableOpacity 
+            style={styles.quickActionButton}
+            onPress={() => router.push('/contact-supervisors')}
+          >
             <Ionicons name="mail" size={24} color="#FF9800" />
             <View style={styles.quickActionContent}>
               <Text style={styles.quickActionTitle}>📨 Contact Supervisors</Text>
-              <Text style={styles.quickActionDescription}>Coming in Step 4: Send help request</Text>
+              <Text style={styles.quickActionDescription}>Send help request to Lee & Dan</Text>
             </View>
           </TouchableOpacity>
         </View>
