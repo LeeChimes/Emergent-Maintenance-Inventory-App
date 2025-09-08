@@ -57,7 +57,6 @@ export default function Index() {
     healthScore: 85
   });
   const [priorities, setPriorities] = useState<PriorityItem[]>([]);
-  const [teamActivity, setTeamActivity] = useState<TeamActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPinModal, setShowPinModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
