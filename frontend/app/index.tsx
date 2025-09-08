@@ -481,30 +481,34 @@ export default function Index() {
         contentContainerStyle={styles.scrollContentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Supervisor Dashboard */}
+        {/* Supervisor Smart Dashboard */}
         {user.role === 'supervisor' && (
           <View style={styles.supervisorDashboard}>
-            {/* Health Score */}
-            <View style={styles.healthScoreCard}>
-              <View style={styles.healthScoreContent}>
-                <View style={styles.healthScoreLeft}>
-                  <Text style={styles.healthScoreTitle}>Inventory Health</Text>
-                  <Text style={[
-                    styles.healthScoreValue,
-                    { color: getHealthScoreColor(stats.healthScore) }
-                  ]}>
-                    {stats.healthScore}%
-                  </Text>
+            {/* Quick Overview */}
+            <View style={styles.quickOverviewCard}>
+              <Text style={styles.quickOverviewTitle}>📊 Quick Overview</Text>
+              <View style={styles.overviewStatsRow}>
+                <View style={styles.overviewStat}>
+                  <Ionicons name="cube" size={20} color="#4CAF50" />
+                  <Text style={styles.overviewStatNumber}>{stats.materials}</Text>
+                  <Text style={styles.overviewStatLabel}>Materials</Text>
                 </View>
-                <View style={[
-                  styles.healthScoreIndicator,
-                  { backgroundColor: getHealthScoreColor(stats.healthScore) }
-                ]}>
-                  <Ionicons 
-                    name={stats.healthScore >= 80 ? 'checkmark' : stats.healthScore >= 60 ? 'warning' : 'alert'} 
-                    size={24} 
-                    color="#fff" 
-                  />
+                <View style={styles.overviewStat}>
+                  <Ionicons name="build" size={20} color="#2196F3" />
+                  <Text style={styles.overviewStatNumber}>{stats.tools}</Text>
+                  <Text style={styles.overviewStatLabel}>Tools</Text>
+                </View>
+                <View style={styles.overviewStat}>
+                  <Ionicons name="warning" size={20} color={stats.lowStock > 0 ? "#FF9800" : "#666"} />
+                  <Text style={[styles.overviewStatNumber, stats.lowStock > 0 && { color: '#FF9800' }]}>
+                    {stats.lowStock}
+                  </Text>
+                  <Text style={styles.overviewStatLabel}>Low Stock</Text>
+                </View>
+                <View style={styles.overviewStat}>
+                  <Ionicons name="today" size={20} color="#9C27B0" />
+                  <Text style={styles.overviewStatNumber}>{stats.todayTransactions}</Text>
+                  <Text style={styles.overviewStatLabel}>Today</Text>
                 </View>
               </View>
             </View>
@@ -513,7 +517,7 @@ export default function Index() {
             {priorities.length > 0 && (
               <View style={styles.prioritiesCard}>
                 <Text style={styles.prioritiesTitle}>🎯 Today's Priorities</Text>
-                {priorities.slice(0, 2).map((priority, index) => (
+                {priorities.slice(0, 3).map((priority, index) => (
                   <View key={priority.id} style={styles.priorityItem}>
                     <View style={[
                       styles.priorityIndicator,
@@ -525,25 +529,6 @@ export default function Index() {
                       <Text style={styles.priorityName}>{priority.name}</Text>
                       <Text style={styles.priorityReason}>{priority.reason}</Text>
                     </View>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Team Activity - Compact */}
-            {teamActivity.length > 0 && (
-              <View style={styles.teamActivityCard}>
-                <Text style={styles.teamActivityTitle}>👥 Team Activity</Text>
-                {teamActivity.slice(0, 2).map((activity) => (
-                  <View key={activity.id} style={styles.activityItem}>
-                    <Text style={styles.activityText}>
-                      <Text style={styles.activityUser}>{activity.user.split(' ')[0]}</Text>
-                      {' '}
-                      <Text style={styles.activityAction}>{activity.action}</Text>
-                      {' '}
-                      <Text style={styles.activityItemText}>{activity.item}</Text>
-                    </Text>
-                    <Text style={styles.activityTime}>{activity.time}</Text>
                   </View>
                 ))}
               </View>
