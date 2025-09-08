@@ -46,15 +46,6 @@ interface PriorityItem {
   icon: string;
 }
 
-interface TeamActivity {
-  id: string;
-  user: string;
-  action: string;
-  item: string;
-  time: string;
-  type: 'take' | 'restock' | 'checkout' | 'checkin' | 'scan';
-}
-
 export default function Index() {
   const [user, setUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
