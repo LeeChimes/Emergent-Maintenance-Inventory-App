@@ -788,34 +788,36 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     gap: 10,
   },
-  healthScoreCard: {
+  quickOverviewCard: {
     backgroundColor: '#2d2d2d',
     borderRadius: 12,
     padding: 16,
   },
-  healthScoreContent: {
+  quickOverviewTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  overviewStatsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 8,
   },
-  healthScoreLeft: {
+  overviewStat: {
+    alignItems: 'center',
     flex: 1,
+    gap: 4,
   },
-  healthScoreTitle: {
-    color: '#aaa',
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  healthScoreValue: {
-    fontSize: 28,
+  overviewStatNumber: {
+    color: '#fff',
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  healthScoreIndicator: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+  overviewStatLabel: {
+    color: '#aaa',
+    fontSize: 11,
+    textAlign: 'center',
   },
   prioritiesCard: {
     backgroundColor: '#2d2d2d',
