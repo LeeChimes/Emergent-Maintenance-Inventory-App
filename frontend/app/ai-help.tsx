@@ -246,11 +246,28 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginVertical: 16,
   },
+  welcomeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   welcomeTitle: {
     color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 8,
+  },
+  clearButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 16,
+    backgroundColor: '#404040',
+  },
+  clearButtonText: {
+    color: '#666',
+    fontSize: 12,
+    marginLeft: 4,
   },
   welcomeText: {
     color: '#ccc',
