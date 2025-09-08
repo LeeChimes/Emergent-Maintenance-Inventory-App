@@ -331,6 +331,23 @@ class ChatResponse(BaseModel):
     response: str
     success: bool = True
 
+# Help Request Models
+class HelpRequest(BaseModel):
+    user_id: str
+    user_name: str
+    user_role: str
+    subject: str
+    description: str
+    urgency_level: str = "normal"
+    timestamp: str
+    status: str = "open"
+    assigned_to: str = "next_available"
+
+class HelpRequestResponse(BaseModel):
+    id: str
+    message: str
+    success: bool = True
+
 # Authentication helper
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[User]:
     if not credentials:
