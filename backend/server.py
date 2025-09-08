@@ -1388,6 +1388,85 @@ Try asking your question again in a moment, or check the detailed help sections 
             success=False
         )
 
+@api_router.post("/help-requests", response_model=HelpRequestResponse)
+async def create_help_request(help_request: HelpRequest):
+    """
+    Create a new help request for supervisors.
+    Stores the request and could notify supervisors via email or other means.
+    """
+    try:
+        # Add unique ID and processing timestamp
+        help_request_doc = help_request.dict()
+        help_request_doc["id"] = str(uuid.uuid4())
+        help_request_doc["created_at"] = datetime.utcnow()
+        help_request_doc["last_updated"] = datetime.utcnow()
+        
+        # Determine supervisor assignment based on urgency
+        if help_request.urgency_level == "urgent":
+            help_request_doc["assigned_to"] = "both_supervisors"
+            help_request_doc["priority_level"] = 1
+        elif help_request.urgency_level == "high":
+            help_request_doc["assigned_to"] = "next_available"
+            help_request_doc["priority_level"] = 2
+        else:
+            help_request_doc["assigned_to"] = "next_available"
+            help_request_doc["priority_level"] = 3
+            
+        # Store in database
+        help_requests = db["help_requests"]
+        result = help_requests.insert_one(help_request_doc)
+        
+        # Log for supervisors to see
+        print(f"📞 NEW HELP REQUEST: {help_request.urgency_level.upper()} priority from {help_request.user_name}")
+        print(f"   Subject: {help_request.subject}")
+        print(f"   Assigned to: {help_request_doc['assigned_to']}")
+        print(f"   Request ID: {help_request_doc['id']}")
+        
+        # In a production environment, this could:
+        # - Send email notifications to supervisors
+        # - Send push notifications to supervisor devices
+        # - Create Slack/Teams messages
+        # - Integration with ticketing systems
+        
+        return HelpRequestResponse(
+            id=help_request_doc["id"],
+            message=f"Help request submitted successfully. Lee Carter and Dan Brooks will be notified.",
+            success=True
+        )
+        
+    except Exception as e:
+        print(f"❌ Error creating help request: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create help request: {str(e)}")
+
+@api_router.get("/help-requests")
+async def get_help_requests(status: str = None):
+    """
+    Get help requests (for supervisors to view).
+    Can filter by status: open, in_progress, resolved
+    """
+    try:
+        help_requests = db["help_requests"]
+        
+        # Build filter query
+        filter_query = {}
+        if status:
+            filter_query["status"] = status
+            
+        # Get requests sorted by priority and creation time
+        requests = list(help_requests.find(
+            filter_query,
+            {"_id": 0}  # Exclude MongoDB _id field
+        ).sort([
+            ("priority_level", 1),  # Priority first (1 = urgent, 3 = low)
+            ("created_at", -1)      # Then by newest first
+        ]))
+        
+        return {"help_requests": requests, "total": len(requests)}
+        
+    except Exception as e:
+        print(f"❌ Error fetching help requests: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch help requests: {str(e)}")
+
 # Health check route with error detection
 @api_router.get("/health")
 async def health_check():
