@@ -22,6 +22,9 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# Initialize LLM
+llm = LiteLLM()
+
 # Create the main app without a prefix
 app = FastAPI(title="Asset Inventory API", version="1.0.0")
 
