@@ -181,7 +181,7 @@ export default function AddItem() {
           </Text>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => router.push('/')}
           >
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
