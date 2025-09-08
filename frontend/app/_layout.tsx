@@ -2,6 +2,9 @@ import { Stack } from 'expo-router';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { AppErrorHandler } from '../utils/AppErrorHandler';
 import { useEffect } from 'react';
+import { TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 export default function RootLayout() {
   useEffect(() => {
