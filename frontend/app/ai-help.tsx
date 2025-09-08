@@ -108,24 +108,8 @@ Please try again in a moment, or browse the detailed help sections.`;
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={() => router.push('/help')}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>AI Help Assistant</Text>
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={clearConversation}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="refresh" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      {/* Universal Header */}
+      <UniversalHeader title="AI Help Assistant" showBackButton={true} />
 
       <KeyboardAvoidingView 
         style={styles.keyboardContainer}
