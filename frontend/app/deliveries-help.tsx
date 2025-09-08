@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import UniversalHeader from '../components/UniversalHeader';
 
 export default function DeliveriesHelp() {
   const helpSections = [
