@@ -325,6 +325,15 @@ class StockTakeCreate(BaseModel):
     item_type: ItemType
     entries: List[StockTakeEntry]
 
+# AI Chat Models
+class ChatMessage(BaseModel):
+    message: str
+    conversation_history: Optional[List[Dict[str, str]]] = []
+
+class ChatResponse(BaseModel):
+    response: str
+    success: bool = True
+
 # Authentication helper
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[User]:
     if not credentials:
