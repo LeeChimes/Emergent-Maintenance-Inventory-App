@@ -855,42 +855,6 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontSize: 12,
   },
-  teamActivityCard: {
-    backgroundColor: '#2d2d2d',
-    borderRadius: 12,
-    padding: 16,
-  },
-  teamActivityTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  activityItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  activityText: {
-    flex: 1,
-    color: '#aaa',
-    fontSize: 13,
-  },
-  activityUser: {
-    color: '#4CAF50',
-    fontWeight: '600',
-  },
-  activityAction: {
-    color: '#fff',
-  },
-  activityItemText: {
-    color: '#fff',
-  },
-  activityTime: {
-    color: '#666',
-    fontSize: 12,
-  },
   mainActions: {
     padding: 20,
     gap: 12,
