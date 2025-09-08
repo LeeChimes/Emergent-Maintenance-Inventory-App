@@ -170,7 +170,6 @@ export default function Index() {
       // Generate priority items for supervisors
       if (user?.role === 'supervisor') {
         generatePriorityItems(safeData.materials, safeData.tools, (lowStockData && lowStockData.materials) || []);
-        generateTeamActivity(safeData.transactions);
       }
     } catch (error) {
       // This shouldn't happen with safe calls, but just in case
