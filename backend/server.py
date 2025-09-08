@@ -1343,11 +1343,8 @@ COMMON SOLUTIONS:
 Always be helpful, concise, and provide actionable steps. If you're unsure, suggest contacting supervisors Lee Carter or Dan Brooks."""
 
         # Generate response using the chat
-        response = await chat.chat(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": chat_request.message}
-            ],
+        response = await chat.generate_response(
+            prompt=f"{system_prompt}\n\nUser Question: {chat_request.message}",
             model="gpt-4o-mini",
             temperature=0.7,
             max_tokens=500
