@@ -911,51 +911,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.9,
   },
-  quickStats: {
-    padding: 20,
-    backgroundColor: '#2d2d2d',
-  },
-  quickStatsTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statCard: {
-    alignItems: 'center',
-    gap: 6,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: '#3d3d3d',
-    flex: 1,
-    marginHorizontal: 2,
-  },
-  alertStatCard: {
-    backgroundColor: '#4d3d2d',
-  },
-  statNumber: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  alertStatNumber: {
-    color: '#FF9800',
-  },
-  statLabel: {
-    color: '#aaa',
-    fontSize: 11,
-  },
   scrollContent: {
     flex: 1,
   },
   scrollContentContainer: {
     flexGrow: 1,
-  },
-  activityItemText: {
-    color: '#fff',
   },
 });
