@@ -893,6 +893,9 @@ const styles = StyleSheet.create({
   addButton: {
     backgroundColor: '#2196F3',
   },
+  auditButton: {
+    backgroundColor: '#795548',
+  },
   scanButton: {
     backgroundColor: '#9C27B0',
   },
