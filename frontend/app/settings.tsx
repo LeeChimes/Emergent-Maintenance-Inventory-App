@@ -283,6 +283,18 @@ export default function Settings() {
             </View>
             <Ionicons name="chevron-forward" size={20} color="#666" />
           </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.actionItem}
+            onPress={handleLogout}
+          >
+            <Ionicons name="log-out" size={24} color="#FF9800" />
+            <View style={styles.actionText}>
+              <Text style={styles.actionTitle}>Logout</Text>
+              <Text style={styles.actionDescription}>Switch to different user</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#666" />
+          </TouchableOpacity>
         </View>
 
         {/* App Info */}
