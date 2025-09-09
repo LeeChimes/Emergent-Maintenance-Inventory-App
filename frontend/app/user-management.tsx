@@ -123,8 +123,9 @@ export default function UserManagement() {
   };
 
   const handleEditUser = async () => {
-    // Clear, simple save function
-    await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${selectedUser.id}`, {
+    console.log('Saving user:', { name: newUserName, role: newUserRole, pin: newUserPin });
+    
+    const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${selectedUser.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -134,13 +135,18 @@ export default function UserManagement() {
       }),
     });
     
-    // Close modal and refresh
+    const result = await response.json();
+    console.log('Server response:', result);
+    
     setShowEditModal(false);
     setSelectedUser(null);
-    setNewUserName('');
-    setNewUserPin('');
-    setNewUserRole('engineer');
-    await fetchUsers();
+    resetForm();
+    
+    // Force refresh users
+    const usersResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users`);
+    const updatedUsers = await usersResponse.json();
+    setUsers(updatedUsers);
+    console.log('Users refreshed:', updatedUsers);
   };
 
   const handleDeleteUser = async (userId: string) => {
