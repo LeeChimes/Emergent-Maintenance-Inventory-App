@@ -267,17 +267,15 @@ export default function Settings() {
           {/* Supervisor-only User Management */}
           {user?.role === 'supervisor' && (
             <TouchableOpacity 
-              style={styles.actionButton}
+              style={styles.actionItem}
               onPress={() => router.push('/user-management')}
             >
-              <View style={styles.actionLeft}>
-                <Ionicons name="people" size={24} color="#4CAF50" />
-                <View style={styles.actionText}>
-                  <Text style={styles.actionTitle}>User Management</Text>
-                  <Text style={styles.actionDescription}>Manage team members and access</Text>
-                </View>
+              <Ionicons name="people" size={24} color="#4CAF50" />
+              <View style={styles.actionText}>
+                <Text style={styles.actionTitle}>User Management</Text>
+                <Text style={styles.actionDescription}>Manage team members and access</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#aaa" />
+              <Ionicons name="chevron-forward" size={20} color="#666" />
             </TouchableOpacity>
           )}
 
