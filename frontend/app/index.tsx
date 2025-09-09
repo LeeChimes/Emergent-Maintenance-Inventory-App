@@ -239,6 +239,13 @@ export default function Index() {
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
         
         setUser(userData);
+        
+        // STEP 1: Redirect engineers to engineer hub, supervisors stay here
+        if (userData.role === 'engineer') {
+          router.push('/engineer-hub');
+        }
+        // Supervisors stay on current dashboard (no redirect needed)
+        
       } else {
         Alert.alert('Error', 'Login failed. Please try again.');
       }
