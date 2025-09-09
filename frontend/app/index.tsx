@@ -435,7 +435,8 @@ export default function Index() {
         <TouchableOpacity 
           onPress={handleLogout} 
           style={styles.logoutButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          activeOpacity={0.7}
         >
           <Ionicons name="log-out-outline" size={24} color="#fff" />
         </TouchableOpacity>
