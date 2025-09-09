@@ -170,9 +170,9 @@ export default function UserManagement() {
 
   const openEditModal = (user: User) => {
     setSelectedUser(user);
-    setNewUserName(user.name);
-    setNewUserRole(user.role);
-    setNewUserPin(user.pin);
+    setNewUserName(user.name || '');
+    setNewUserRole(user.role || 'engineer');
+    setNewUserPin(user.pin || '');
     setShowEditModal(true);
   };
 
