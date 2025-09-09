@@ -112,7 +112,20 @@ export default function EngineerHub() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <UniversalHeader title="Engineering Hub" showBackButton={false} />
+      {/* Custom Header with Logout */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          {/* Empty spacer */}
+        </View>
+        <Text style={styles.headerTitle}>Engineering Hub</Text>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="log-out-outline" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
       
       <View style={styles.content}>
         {/* Welcome Section */}
