@@ -123,20 +123,28 @@ export default function UserManagement() {
   };
 
   const handleEditUser = async () => {
-    if (!selectedUser || !newUserName.trim() || !newUserPin.trim()) {
+    console.log('🔄 Saving user changes...');
+    
+    // Simple validation
+    if (!selectedUser) {
+      console.log('❌ No user selected');
       return;
     }
-
-    if (newUserPin.length !== 4 || !/^\d{4}$/.test(newUserPin)) {
+    
+    if (!newUserName.trim()) {
+      console.log('❌ Name is required');
+      return;
+    }
+    
+    if (!newUserPin || newUserPin.length !== 4) {
+      console.log('❌ 4-digit PIN required');
       return;
     }
 
     try {
       const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${selectedUser.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newUserName.trim(),
           role: newUserRole,
@@ -145,13 +153,15 @@ export default function UserManagement() {
       });
 
       if (response.ok) {
+        console.log('✅ User updated successfully');
+        // Close modal and refresh
+        closeEditModal();
         await fetchUsers();
-        setShowEditModal(false);
-        setSelectedUser(null);
-        resetForm();
+      } else {
+        console.log('❌ Server error:', response.status);
       }
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.log('❌ Network error:', error);
     }
   };
 
