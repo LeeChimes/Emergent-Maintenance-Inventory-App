@@ -265,12 +265,14 @@ export default function Index() {
   };
 
   const handleLogout = async () => {
+    console.log('🚨 LOGOUT BUTTON CLICKED!'); // Debug log
     try {
       await AsyncStorage.multiRemove(['userToken', 'userData']);
       setUser(null);
       setStats({ materials: 0, tools: 0, lowStock: 0, todayTransactions: 0, healthScore: 85 });
       setPriorities([]);
       await fetchUsers();
+      console.log('✅ Logout completed successfully');
     } catch (error) {
       console.error('Logout error:', error);
     }
