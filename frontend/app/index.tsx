@@ -90,7 +90,16 @@ export default function Index() {
       const storedUser = await AsyncStorage.getItem('userData');
       
       if (storedToken && storedUser) {
-        setUser(JSON.parse(storedUser));
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+        
+        // STEP 1: Redirect engineers to engineer hub on app restart
+        if (userData.role === 'engineer') {
+          router.replace('/engineer-hub');
+          return; // Don't continue with dashboard setup
+        }
+        // Supervisors stay on current dashboard
+        
       } else {
         await fetchUsers();
       }
