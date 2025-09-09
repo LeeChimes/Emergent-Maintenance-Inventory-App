@@ -270,7 +270,7 @@ export default function UserManagement() {
                 </View>
                 
                 <View style={styles.userMeta}>
-                  <Text style={styles.userPin}>PIN: {user.pin}</Text>
+                  <Text style={styles.userPin}>PIN: {user.pin || 'Not Set'}</Text>
                   {user.last_login && (
                     <Text style={styles.lastLogin}>
                       Last login: {new Date(user.last_login).toLocaleDateString()}
