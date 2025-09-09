@@ -265,26 +265,15 @@ export default function Index() {
   };
 
   const handleLogout = async () => {
-    console.log('Logout button pressed'); // Debug log
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            console.log('Logout confirmed'); // Debug log
-            await AsyncStorage.multiRemove(['userToken', 'userData']);
-            setUser(null);
-            setStats({ materials: 0, tools: 0, lowStock: 0, todayTransactions: 0, healthScore: 85 });
-            setPriorities([]);
-            await fetchUsers();
-          },
-        },
-      ]
-    );
+    try {
+      await AsyncStorage.multiRemove(['userToken', 'userData']);
+      setUser(null);
+      setStats({ materials: 0, tools: 0, lowStock: 0, todayTransactions: 0, healthScore: 85 });
+      setPriorities([]);
+      await fetchUsers();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const navigateToScreen = (screen: string) => {
