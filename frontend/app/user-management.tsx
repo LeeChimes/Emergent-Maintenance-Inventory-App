@@ -123,46 +123,24 @@ export default function UserManagement() {
   };
 
   const handleEditUser = async () => {
-    console.log('🔄 Saving user changes...');
+    // Clear, simple save function
+    await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${selectedUser.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: newUserName,
+        role: newUserRole,
+        pin: newUserPin,
+      }),
+    });
     
-    // Simple validation
-    if (!selectedUser) {
-      console.log('❌ No user selected');
-      return;
-    }
-    
-    if (!newUserName.trim()) {
-      console.log('❌ Name is required');
-      return;
-    }
-    
-    if (!newUserPin || newUserPin.length !== 4) {
-      console.log('❌ 4-digit PIN required');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${selectedUser.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newUserName.trim(),
-          role: newUserRole,
-          pin: newUserPin,
-        }),
-      });
-
-      if (response.ok) {
-        console.log('✅ User updated successfully');
-        // Close modal and refresh
-        closeEditModal();
-        await fetchUsers();
-      } else {
-        console.log('❌ Server error:', response.status);
-      }
-    } catch (error) {
-      console.log('❌ Network error:', error);
-    }
+    // Close modal and refresh
+    setShowEditModal(false);
+    setSelectedUser(null);
+    setNewUserName('');
+    setNewUserPin('');
+    setNewUserRole('engineer');
+    await fetchUsers();
   };
 
   const handleDeleteUser = async (userId: string) => {
