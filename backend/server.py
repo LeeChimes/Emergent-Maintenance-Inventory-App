@@ -424,7 +424,55 @@ async def login(user_id: str):
     if not user_doc:
         raise HTTPException(status_code=404, detail="User not found")
     user = User(**user_doc)
+    # Update last login
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"last_login": datetime.utcnow().isoformat()}}
+    )
     return {"token": user.id, "user": user}
+
+# User Management endpoints (Supervisor only)
+@api_router.post("/users", response_model=UserResponse)
+async def create_user(user_data: UserCreate):
+    """Create a new user (supervisor only)"""
+    # Check if user with same name already exists
+    existing_user = await db.users.find_one({"name": user_data.name})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User with this name already exists")
+    
+    # Create new user
+    user_dict = user_data.dict()
+    user_dict["id"] = str(uuid.uuid4())
+    user_dict["created_at"] = datetime.utcnow().isoformat()
+    
+    await db.users.insert_one(user_dict)
+    
+    return UserResponse(**user_dict)
+
+@api_router.put("/users/{user_id}", response_model=UserResponse)
+async def update_user(user_id: str, user_data: UserUpdate):
+    """Update a user (supervisor only)"""
+    user_dict = user_data.dict()
+    user_dict["updated_at"] = datetime.utcnow().isoformat()
+    
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": user_dict}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    updated_doc = await db.users.find_one({"id": user_id})
+    return UserResponse(**updated_doc)
+
+@api_router.delete("/users/{user_id}")
+async def delete_user(user_id: str):
+    """Delete a user (supervisor only)"""
+    result = await db.users.delete_one({"id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "User deleted successfully"}
 
 # Material routes
 @api_router.get("/materials", response_model=List[Material])
