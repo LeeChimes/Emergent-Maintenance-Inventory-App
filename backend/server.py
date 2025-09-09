@@ -60,6 +60,28 @@ class TransactionType(str, Enum):
     STOCK_TAKE = "stock_take"
 
 # Models
+# User Management Models
+class UserCreate(BaseModel):
+    name: str
+    role: str  # 'supervisor' or 'engineer'
+    pin: str
+    created_by: Optional[str] = None
+
+class UserUpdate(BaseModel):
+    name: str
+    role: str
+    pin: str
+
+class UserResponse(BaseModel):
+    id: str
+    name: str
+    role: str
+    pin: str
+    created_at: Optional[str] = None
+    last_login: Optional[str] = None
+    created_by: Optional[str] = None
+
+# Existing User model
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
