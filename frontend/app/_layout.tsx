@@ -35,6 +35,7 @@ export default function RootLayout() {
         <Stack.Screen name="suppliers" options={{ headerShown: false }} />
         <Stack.Screen name="deliveries" options={{ headerShown: false }} />
         <Stack.Screen name="engineer-hub" options={{ headerShown: false }} />
+        <Stack.Screen name="maintenance-hub" options={{ headerShown: false }} />
         <Stack.Screen name="user-management" options={{ headerShown: false }} />
         <Stack.Screen name="audit-log" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
