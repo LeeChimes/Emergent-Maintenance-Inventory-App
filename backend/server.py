@@ -452,8 +452,7 @@ async def create_user(user_data: UserCreate):
 @api_router.put("/users/{user_id}")
 async def update_user(user_id: str, user_data: UserUpdate):
     """Update a user (supervisor only)"""
-    # Simple direct update
-    await db.users.update_one(
+    result = await db.users.update_one(
         {"id": user_id},
         {"$set": {
             "name": user_data.name,
@@ -462,9 +461,10 @@ async def update_user(user_id: str, user_data: UserUpdate):
         }}
     )
     
-    # Return updated user
-    updated_doc = await db.users.find_one({"id": user_id})
-    return updated_doc
+    if result.matched_count == 0:
+        return {"error": "User not found"}
+    
+    return {"success": True, "message": "User updated successfully"}
 
 @api_router.delete("/users/{user_id}")
 async def delete_user(user_id: str):
