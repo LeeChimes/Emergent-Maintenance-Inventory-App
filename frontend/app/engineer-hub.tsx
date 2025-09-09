@@ -5,15 +5,11 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  Dimensions,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import UniversalHeader from '../components/UniversalHeader';
-
-const { width } = Dimensions.get('window');
 
 interface User {
   id: string;
@@ -57,7 +53,8 @@ export default function EngineerHub() {
   };
 
   const navigateToMaintenance = () => {
-    router.push('/maintenance-hub');
+    // For now, just show an alert since maintenance-hub doesn't exist yet
+    Alert.alert('Coming Soon', 'Maintenance features will be available soon!');
   };
 
   const handleLogout = async () => {
@@ -83,7 +80,7 @@ export default function EngineerHub() {
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
           <Ionicons name="cube" size={48} color="#4CAF50" />
-          <Text style={styles.loadingText}>Loading your workspace... 🚀</Text>
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       </SafeAreaView>
     );
@@ -93,17 +90,12 @@ export default function EngineerHub() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <Ionicons name="lock-closed" size={48} color="#F44336" />
-          <Text style={styles.accessDeniedText}>Access Denied</Text>
-          <Text style={styles.accessDeniedSubtext}>
-            This area is for engineers only
-          </Text>
+          <Text style={styles.errorText}>Access Denied</Text>
           <TouchableOpacity
-            style={styles.backButton}
+            style={styles.button}
             onPress={() => router.replace('/')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.backButtonText}>Go Back</Text>
+            <Text style={styles.buttonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -112,11 +104,9 @@ export default function EngineerHub() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Custom Header with Logout */}
+      {/* Header with Logout */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          {/* Empty spacer */}
-        </View>
+        <View style={styles.headerLeft} />
         <Text style={styles.headerTitle}>Engineering Hub</Text>
         <TouchableOpacity
           style={styles.logoutButton}
@@ -126,9 +116,9 @@ export default function EngineerHub() {
           <Ionicons name="log-out-outline" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.content}>
-        {/* Welcome Section */}
+        {/* Welcome */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>
             Welcome back, {user.name.split(' ')[0]}! 👋
@@ -138,74 +128,68 @@ export default function EngineerHub() {
           </Text>
         </View>
 
-        {/* Main Section Buttons */}
-        <View style={styles.sectionsContainer}>
+        {/* Main Buttons */}
+        <View style={styles.buttonsContainer}>
           
-          {/* Asset Inventory Section */}
+          {/* Asset Inventory */}
           <TouchableOpacity 
             style={[styles.sectionButton, styles.inventoryButton]}
             onPress={navigateToInventory}
           >
-            <View style={styles.sectionIconContainer}>
+            <View style={styles.iconContainer}>
               <Ionicons name="cube" size={48} color="#fff" />
             </View>
-            <View style={styles.sectionContent}>
+            <View style={styles.textContainer}>
               <Text style={styles.sectionTitle}>ASSET INVENTORY</Text>
               <Text style={styles.sectionDescription}>
-                📦 Manage materials, tools, stock levels{'\n'}
-                🔍 QR scanning, deliveries, suppliers{'\n'}
-                📊 Stock takes and inventory tracking
+                📦 Materials, tools, stock levels{'\n'}
+                🔍 QR scanning & deliveries
               </Text>
             </View>
-            <View style={styles.sectionArrow}>
-              <Ionicons name="chevron-forward" size={32} color="#fff" />
-            </View>
+            <Ionicons name="chevron-forward" size={32} color="#fff" />
           </TouchableOpacity>
 
-          {/* Maintenance Hub Section */}
+          {/* Maintenance Hub */}
           <TouchableOpacity 
             style={[styles.sectionButton, styles.maintenanceButton]}
             onPress={navigateToMaintenance}
           >
-            <View style={styles.sectionIconContainer}>
+            <View style={styles.iconContainer}>
               <Ionicons name="construct" size={48} color="#fff" />
             </View>
-            <View style={styles.sectionContent}>
+            <View style={styles.textContainer}>
               <Text style={styles.sectionTitle}>MAINTENANCE HUB</Text>
               <Text style={styles.sectionDescription}>
-                🔧 Planned preventive maintenance{'\n'}
-                📞 Call outs and reactive jobs{'\n'}
-                📋 Work orders and scheduling
+                🔧 PPMs & reactive jobs{'\n'}
+                📞 Call outs & work orders
               </Text>
               <View style={styles.comingSoonBadge}>
                 <Text style={styles.comingSoonText}>COMING SOON</Text>
               </View>
             </View>
-            <View style={styles.sectionArrow}>
-              <Ionicons name="chevron-forward" size={32} color="#fff" />
-            </View>
+            <Ionicons name="chevron-forward" size={32} color="#fff" />
           </TouchableOpacity>
 
         </View>
 
         {/* Quick Actions */}
-        <View style={styles.quickActionsSection}>
-          <Text style={styles.quickActionsTitle}>🚀 Quick Actions</Text>
-          <View style={styles.quickActionsRow}>
+        <View style={styles.quickActions}>
+          <Text style={styles.quickTitle}>🚀 Quick Actions</Text>
+          <View style={styles.quickRow}>
             <TouchableOpacity 
-              style={styles.quickActionButton}
+              style={styles.quickButton}
               onPress={() => router.push('/scanner')}
             >
               <Ionicons name="qr-code" size={24} color="#9C27B0" />
-              <Text style={styles.quickActionText}>QR Scanner</Text>
+              <Text style={styles.quickText}>QR Scanner</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={styles.quickActionButton}
+              style={styles.quickButton}
               onPress={() => router.push('/help')}
             >
               <Ionicons name="help-circle" size={24} color="#2196F3" />
-              <Text style={styles.quickActionText}>Help</Text>
+              <Text style={styles.quickText}>Help</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -230,13 +214,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#404040',
   },
   headerLeft: {
-    width: 40, // Same width as logout button for balance
+    width: 40,
   },
   headerTitle: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-    textAlign: 'center',
   },
   logoutButton: {
     padding: 12,
@@ -260,28 +243,19 @@ const styles = StyleSheet.create({
   loadingText: {
     color: '#fff',
     fontSize: 18,
-    marginTop: 10,
   },
-  accessDeniedText: {
+  errorText: {
     color: '#F44336',
     fontSize: 24,
     fontWeight: 'bold',
-    marginTop: 16,
-    marginBottom: 8,
   },
-  accessDeniedSubtext: {
-    color: '#aaa',
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  backButton: {
+  button: {
     backgroundColor: '#4CAF50',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
   },
-  backButtonText: {
+  buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
@@ -302,7 +276,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
-  sectionsContainer: {
+  buttonsContainer: {
     flex: 1,
     gap: 20,
     paddingVertical: 20,
@@ -310,15 +284,9 @@ const styles = StyleSheet.create({
   sectionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2d2d2d',
     borderRadius: 20,
     padding: 20,
     minHeight: 140,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
   },
   inventoryButton: {
     backgroundColor: '#4CAF50',
@@ -326,7 +294,7 @@ const styles = StyleSheet.create({
   maintenanceButton: {
     backgroundColor: '#2196F3',
   },
-  sectionIconContainer: {
+  iconContainer: {
     width: 80,
     height: 80,
     borderRadius: 20,
@@ -335,7 +303,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 20,
   },
-  sectionContent: {
+  textContainer: {
     flex: 1,
   },
   sectionTitle: {
@@ -363,24 +331,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
   },
-  sectionArrow: {
-    marginLeft: 10,
-  },
-  quickActionsSection: {
+  quickActions: {
     paddingVertical: 20,
   },
-  quickActionsTitle: {
+  quickTitle: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
     textAlign: 'center',
   },
-  quickActionsRow: {
+  quickRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
   },
-  quickActionButton: {
+  quickButton: {
     alignItems: 'center',
     backgroundColor: '#2d2d2d',
     paddingVertical: 16,
@@ -388,7 +353,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     minWidth: 120,
   },
-  quickActionText: {
+  quickText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
