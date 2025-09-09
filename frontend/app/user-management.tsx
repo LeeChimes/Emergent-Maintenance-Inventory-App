@@ -172,6 +172,11 @@ export default function UserManagement() {
     setNewUserRole('engineer');
   };
 
+  const closeAddModal = () => {
+    setShowAddModal(false);
+    resetForm();
+  };
+
   const closeEditModal = () => {
     setShowEditModal(false);
     setSelectedUser(null);
