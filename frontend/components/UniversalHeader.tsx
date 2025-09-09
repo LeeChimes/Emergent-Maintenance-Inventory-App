@@ -15,9 +15,24 @@ export default function UniversalHeader({ title, showBackButton = true }: Univer
     router.push('/scanner');
   };
 
-  const handleHomePress = () => {
-    // Always go to main dashboard
-    router.push('/');
+  const handleHomePress = async () => {
+    try {
+      // Check user role to determine home destination
+      const userData = await AsyncStorage.getItem('userData');
+      if (userData) {
+        const user = JSON.parse(userData);
+        if (user.role === 'engineer') {
+          router.push('/engineer-hub');
+        } else {
+          router.push('/'); // Supervisors go to main dashboard
+        }
+      } else {
+        router.push('/'); // Fallback to main dashboard
+      }
+    } catch (error) {
+      console.error('Error getting user data:', error);
+      router.push('/'); // Fallback to main dashboard
+    }
   };
 
   const handleHelpPress = () => {
