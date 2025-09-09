@@ -299,7 +299,7 @@ export default function UserManagement() {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => { setShowAddModal(false); resetForm(); }}>
+            <TouchableOpacity onPress={closeAddModal}>
               <Ionicons name="close" size={24} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Add New User</Text>
