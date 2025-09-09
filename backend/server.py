@@ -464,6 +464,15 @@ async def update_user(user_id: str, user_data: UserUpdate):
         raise HTTPException(status_code=404, detail="User not found")
     
     updated_doc = await db.users.find_one({"id": user_id})
+    
+    # Convert datetime objects to ISO strings for the response
+    if updated_doc.get("created_at") and not isinstance(updated_doc["created_at"], str):
+        updated_doc["created_at"] = updated_doc["created_at"].isoformat()
+    if updated_doc.get("last_login") and not isinstance(updated_doc["last_login"], str):
+        updated_doc["last_login"] = updated_doc["last_login"].isoformat()
+    if updated_doc.get("updated_at") and not isinstance(updated_doc["updated_at"], str):
+        updated_doc["updated_at"] = updated_doc["updated_at"].isoformat()
+    
     return UserResponse(**updated_doc)
 
 @api_router.delete("/users/{user_id}")
