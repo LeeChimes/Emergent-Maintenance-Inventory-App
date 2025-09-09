@@ -123,30 +123,20 @@ export default function UserManagement() {
   };
 
   const handleEditUser = async () => {
-    console.log('Saving user:', { name: newUserName, role: newUserRole, pin: newUserPin });
+    const updatedUser = {
+      name: newUserName,
+      role: newUserRole,
+      pin: newUserPin,
+    };
     
-    const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${selectedUser.id}`, {
+    await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${selectedUser.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: newUserName,
-        role: newUserRole,
-        pin: newUserPin,
-      }),
+      body: JSON.stringify(updatedUser),
     });
     
-    const result = await response.json();
-    console.log('Server response:', result);
-    
-    setShowEditModal(false);
-    setSelectedUser(null);
-    resetForm();
-    
-    // Force refresh users
-    const usersResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users`);
-    const updatedUsers = await usersResponse.json();
-    setUsers(updatedUsers);
-    console.log('Users refreshed:', updatedUsers);
+    closeEditModal();
+    await fetchUsers();
   };
 
   const handleDeleteUser = async (userId: string) => {
