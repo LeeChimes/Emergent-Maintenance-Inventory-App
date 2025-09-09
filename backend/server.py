@@ -449,31 +449,22 @@ async def create_user(user_data: UserCreate):
     
     return UserResponse(**user_dict)
 
-@api_router.put("/users/{user_id}", response_model=UserResponse)
+@api_router.put("/users/{user_id}")
 async def update_user(user_id: str, user_data: UserUpdate):
     """Update a user (supervisor only)"""
-    user_dict = user_data.dict()
-    user_dict["updated_at"] = datetime.utcnow().isoformat()
-    
-    result = await db.users.update_one(
+    # Simple direct update
+    await db.users.update_one(
         {"id": user_id},
-        {"$set": user_dict}
+        {"$set": {
+            "name": user_data.name,
+            "role": user_data.role,
+            "pin": user_data.pin
+        }}
     )
     
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="User not found")
-    
+    # Return updated user
     updated_doc = await db.users.find_one({"id": user_id})
-    
-    # Convert datetime objects to ISO strings for the response
-    if updated_doc.get("created_at") and not isinstance(updated_doc["created_at"], str):
-        updated_doc["created_at"] = updated_doc["created_at"].isoformat()
-    if updated_doc.get("last_login") and not isinstance(updated_doc["last_login"], str):
-        updated_doc["last_login"] = updated_doc["last_login"].isoformat()
-    if updated_doc.get("updated_at") and not isinstance(updated_doc["updated_at"], str):
-        updated_doc["updated_at"] = updated_doc["updated_at"].isoformat()
-    
-    return UserResponse(**updated_doc)
+    return updated_doc
 
 @api_router.delete("/users/{user_id}")
 async def delete_user(user_id: str):
