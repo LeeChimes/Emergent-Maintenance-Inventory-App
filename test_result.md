@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Build an asset inventory app for maintenance team at Chimes Shopping Centre in Uxbridge to monitor stock materials and tools using QR codes with stock take feature for 5 team members including supervisors and engineers."
+user_problem_statement: "No Please leave the pin issues at the moment I want to continue with the main build of the maintencae hub and the superviser home page. There is big issues with layout. 1) The buttons look to busy and sqeezed. 2) PPMs, 3) no just keep everything in keeping with what we have built so far"
 
 backend:
   - task: "API Health Check"
