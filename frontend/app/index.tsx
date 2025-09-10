@@ -514,45 +514,9 @@ export default function Index() {
           </View>
         )}
 
-        {/* Main Action Buttons */}
+        {/* Main Action Buttons - Cleaner Layout */}
         <View style={styles.mainActions}>
-          {user.role === 'supervisor' && (
-            <>
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.primaryButton]}
-                onPress={() => navigateToScreen('dashboard')}
-              >
-                <Ionicons name="analytics" size={28} color="#fff" />
-                <View style={styles.actionButtonContent}>
-                  <Text style={styles.actionButtonText}>Smart Dashboard</Text>
-                  <Text style={styles.actionButtonSubtext}>📊 Reports & Analytics</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.addButton]}
-                onPress={() => navigateToScreen('add-item')}
-              >
-                <Ionicons name="add-circle" size={28} color="#fff" />
-                <View style={styles.actionButtonContent}>
-                  <Text style={styles.actionButtonText}>Add New Item</Text>
-                  <Text style={styles.actionButtonSubtext}>➕ Materials & Tools</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.auditButton]}
-                onPress={() => navigateToScreen('audit-log')}
-              >
-                <Ionicons name="shield-checkmark" size={28} color="#fff" />
-                <View style={styles.actionButtonContent}>
-                  <Text style={styles.actionButtonText}>Audit Log</Text>
-                  <Text style={styles.actionButtonSubtext}>🔍 Team Activity Archive</Text>
-                </View>
-              </TouchableOpacity>
-            </>
-          )}
-
+          {/* Core Actions for All Users */}
           <TouchableOpacity 
             style={[styles.actionButton, styles.scanButton]}
             onPress={() => navigateToScreen('scanner')}
@@ -586,6 +550,18 @@ export default function Index() {
             </View>
           </TouchableOpacity>
 
+          {/* Asset Management for All Users */}
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.addButton]}
+            onPress={() => navigateToScreen('add-item')}
+          >
+            <Ionicons name="add-circle" size={28} color="#fff" />
+            <View style={styles.actionButtonContent}>
+              <Text style={styles.actionButtonText}>Add New Item</Text>
+              <Text style={styles.actionButtonSubtext}>➕ Materials & Tools</Text>
+            </View>
+          </TouchableOpacity>
+
           <TouchableOpacity 
             style={[styles.actionButton, styles.deliveryButton]}
             onPress={() => navigateToScreen('deliveries')}
@@ -597,6 +573,68 @@ export default function Index() {
             </View>
           </TouchableOpacity>
 
+          {/* Maintenance Hub for All Users */}
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.maintenanceButton]}
+            onPress={() => navigateToScreen('maintenance-hub')}
+          >
+            <Ionicons name="construct" size={28} color="#fff" />
+            <View style={styles.actionButtonContent}>
+              <Text style={styles.actionButtonText}>Maintenance Hub</Text>
+              <Text style={styles.actionButtonSubtext}>🔧 PPMs & Work Orders</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Supervisor-Only Actions */}
+          {user.role === 'supervisor' && (
+            <>
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.primaryButton]}
+                onPress={() => navigateToScreen('dashboard')}
+              >
+                <Ionicons name="analytics" size={28} color="#fff" />
+                <View style={styles.actionButtonContent}>
+                  <Text style={styles.actionButtonText}>Smart Dashboard</Text>
+                  <Text style={styles.actionButtonSubtext}>📊 Reports & Analytics</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.suppliersButton]}
+                onPress={() => navigateToScreen('suppliers')}
+              >
+                <Ionicons name="business" size={28} color="#fff" />
+                <View style={styles.actionButtonContent}>
+                  <Text style={styles.actionButtonText}>Suppliers</Text>
+                  <Text style={styles.actionButtonSubtext}>🏢 Manage Suppliers</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.auditButton]}
+                onPress={() => navigateToScreen('audit-log')}
+              >
+                <Ionicons name="shield-checkmark" size={28} color="#fff" />
+                <View style={styles.actionButtonContent}>
+                  <Text style={styles.actionButtonText}>Audit Log</Text>
+                  <Text style={styles.actionButtonSubtext}>🔍 Team Activity Archive</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.settingsButton]}
+                onPress={() => navigateToScreen('settings')}
+              >
+                <Ionicons name="settings" size={28} color="#fff" />
+                <View style={styles.actionButtonContent}>
+                  <Text style={styles.actionButtonText}>Settings</Text>
+                  <Text style={styles.actionButtonSubtext}>⚙️ Customize App</Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* Help for All Users */}
           <TouchableOpacity 
             style={[styles.actionButton, styles.helpButton]}
             onPress={() => navigateToScreen('help')}
@@ -607,19 +645,6 @@ export default function Index() {
               <Text style={styles.actionButtonSubtext}>💡 Get Help</Text>
             </View>
           </TouchableOpacity>
-
-          {user.role === 'supervisor' && (
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.settingsButton]}
-              onPress={() => navigateToScreen('settings')}
-            >
-              <Ionicons name="settings" size={28} color="#fff" />
-              <View style={styles.actionButtonContent}>
-                <Text style={styles.actionButtonText}>Settings</Text>
-                <Text style={styles.actionButtonSubtext}>⚙️ Customize App</Text>
-              </View>
-            </TouchableOpacity>
-          )}
         </View>
       </ScrollView>
     </SafeAreaView>
