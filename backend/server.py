@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 # ... [imports and setup stay the same] ...
 
 # User Management Models
