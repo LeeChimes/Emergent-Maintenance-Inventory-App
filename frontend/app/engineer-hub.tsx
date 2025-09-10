@@ -97,18 +97,20 @@ export default function EngineerHub() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Logout */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft} />
-        <Text style={styles.headerTitle}>Engineering Hub</Text>
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="log-out-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <UniversalHeader 
+        title="Engineer Hub" 
+        showBackButton={false}
+        customRightElement={
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogout}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="log-out-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+        }
+      />
 
       <View style={styles.content}>
         {/* Welcome */}
@@ -156,9 +158,6 @@ export default function EngineerHub() {
                 🔧 PPMs & reactive jobs{'\n'}
                 📞 Call outs & work orders
               </Text>
-              <View style={styles.comingSoonBadge}>
-                <Text style={styles.comingSoonText}>COMING SOON</Text>
-              </View>
             </View>
             <Ionicons name="chevron-forward" size={32} color="#fff" />
           </TouchableOpacity>
