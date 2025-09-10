@@ -459,7 +459,7 @@ export default function Index() {
         contentContainerStyle={styles.scrollContentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Supervisor Smart Dashboard */}
+        {/* Enhanced Supervisor Dashboard with All Sections */}
         {user.role === 'supervisor' && (
           <View style={styles.supervisorDashboard}>
             {/* Quick Overview */}
@@ -511,6 +511,140 @@ export default function Index() {
                 ))}
               </View>
             )}
+
+            {/* Asset Inventory Section */}
+            <View style={styles.dashboardSection}>
+              <Text style={styles.sectionTitle}>📦 Asset Inventory Management</Text>
+              <View style={styles.sectionButtons}>
+                <TouchableOpacity 
+                  style={[styles.sectionButton, styles.inventoryButton]}
+                  onPress={() => navigateToScreen('inventory')}
+                >
+                  <Ionicons name="cube" size={24} color="#fff" />
+                  <Text style={styles.sectionButtonText}>View Inventory</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.sectionButton, styles.addButton]}
+                  onPress={() => navigateToScreen('add-item')}
+                >
+                  <Ionicons name="add-circle" size={24} color="#fff" />
+                  <Text style={styles.sectionButtonText}>Add Items</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.sectionButton, styles.scanButton]}
+                  onPress={() => navigateToScreen('scanner')}
+                >
+                  <Ionicons name="qr-code" size={24} color="#fff" />
+                  <Text style={styles.sectionButtonText}>QR Scanner</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.sectionButton, styles.stockButton]}
+                  onPress={() => navigateToScreen('stock-take')}
+                >
+                  <Ionicons name="clipboard" size={24} color="#fff" />
+                  <Text style={styles.sectionButtonText}>Stock Take</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.sectionButton, styles.supplierButton]}
+                  onPress={() => navigateToScreen('suppliers')}
+                >
+                  <Ionicons name="business" size={24} color="#fff" />
+                  <Text style={styles.sectionButtonText}>Suppliers</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.sectionButton, styles.deliveryButton]}
+                  onPress={() => navigateToScreen('deliveries')}
+                >
+                  <Ionicons name="car" size={24} color="#fff" />
+                  <Text style={styles.sectionButtonText}>Deliveries</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Maintenance Hub Section */}
+            <View style={styles.dashboardSection}>
+              <Text style={styles.sectionTitle}>🔧 Maintenance Hub</Text>
+              <View style={styles.sectionButtons}>
+                <TouchableOpacity 
+                  style={[styles.sectionButton, styles.ppmsButton]}
+                  onPress={() => navigateToScreen('maintenance-hub')}
+                >
+                  <Ionicons name="calendar" size={24} color="#fff" />
+                  <Text style={styles.sectionButtonText}>PPMs</Text>
+                  <Text style={styles.comingSoonBadge}>COMING SOON</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.sectionButton, styles.callOutsButton]}
+                  onPress={() => navigateToScreen('maintenance-hub')}
+                >
+                  <Ionicons name="call" size={24} color="#fff" />
+                  <Text style={styles.sectionButtonText}>Call Outs</Text>
+                  <Text style={styles.comingSoonBadge}>COMING SOON</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.sectionButton, styles.reactiveButton]}
+                  onPress={() => navigateToScreen('maintenance-hub')}
+                >
+                  <Ionicons name="flash" size={24} color="#fff" />
+                  <Text style={styles.sectionButtonText}>Reactive Jobs</Text>
+                  <Text style={styles.comingSoonBadge}>COMING SOON</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.sectionButton, styles.workOrdersButton]}
+                  onPress={() => navigateToScreen('maintenance-hub')}
+                >
+                  <Ionicons name="clipboard" size={24} color="#fff" />
+                  <Text style={styles.sectionButtonText}>Work Orders</Text>
+                  <Text style={styles.comingSoonBadge}>COMING SOON</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Supervision Tools Section */}
+            <View style={styles.dashboardSection}>
+              <Text style={styles.sectionTitle}>🛡️ Supervision Tools</Text>
+              <View style={styles.sectionButtons}>
+                <TouchableOpacity 
+                  style={[styles.sectionButton, styles.analyticsButton]}
+                  onPress={() => navigateToScreen('dashboard')}
+                >
+                  <Ionicons name="analytics" size={24} color="#fff" />
+                  <Text style={styles.sectionButtonText}>Smart Dashboard</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.sectionButton, styles.auditButton]}
+                  onPress={() => navigateToScreen('audit-log')}
+                >
+                  <Ionicons name="shield-checkmark" size={24} color="#fff" />
+                  <Text style={styles.sectionButtonText}>Audit Log</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.sectionButton, styles.bulkButton]}
+                  onPress={() => navigateToScreen('bulk-upload')}
+                >
+                  <Ionicons name="cloud-upload" size={24} color="#fff" />
+                  <Text style={styles.sectionButtonText}>Bulk Upload</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.sectionButton, styles.helpButton]}
+                  onPress={() => navigateToScreen('help')}
+                >
+                  <Ionicons name="help-circle" size={24} color="#fff" />
+                  <Text style={styles.sectionButtonText}>Help & Support</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         )}
 
