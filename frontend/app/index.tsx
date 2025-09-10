@@ -207,10 +207,19 @@ export default function Index() {
     setPriorities(priorities.slice(0, 3));
   };
 
-  const handleUserSelect = (userData: User) => {
-    setSelectedUser(userData);
+  const handleUserSelect = async (selectedUser: any) => {
+    // For engineers, skip PIN and login directly
+    if (selectedUser.role === 'engineer') {
+      await AsyncStorage.setItem('userToken', selectedUser.id);
+      await AsyncStorage.setItem('userData', JSON.stringify(selectedUser));
+      setUser(selectedUser);
+      router.push('/engineer-hub');
+      return;
+    }
+    
+    // For supervisors, still require PIN
+    setSelectedUser(selectedUser);
     setShowPinModal(true);
-    setPin('');
   };
 
   const verifyPin = async () => {
