@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 interface UniversalHeaderProps {
   title: string;
   showBackButton?: boolean;
+  customRightElement?: React.ReactNode;
 }
 
 export default function UniversalHeader({ title, showBackButton = true }: UniversalHeaderProps) {
