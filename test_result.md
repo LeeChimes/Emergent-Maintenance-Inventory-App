@@ -552,7 +552,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "All backend tasks completed successfully"
+    - "All priority testing completed successfully"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
