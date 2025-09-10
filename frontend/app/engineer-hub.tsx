@@ -58,21 +58,14 @@ export default function EngineerHub() {
   };
 
   const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await AsyncStorage.multiRemove(['userToken', 'userData']);
-            router.replace('/');
-          },
-        },
-      ]
-    );
+    console.log('🚨 ENGINEER LOGOUT BUTTON CLICKED!'); // Debug log
+    try {
+      await AsyncStorage.multiRemove(['userToken', 'userData']);
+      console.log('✅ Engineer logout completed successfully');
+      router.replace('/');
+    } catch (error) {
+      console.error('Engineer logout error:', error);
+    }
   };
 
   if (loading) {
