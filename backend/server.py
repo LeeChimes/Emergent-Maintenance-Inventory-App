@@ -7,6 +7,24 @@ from enum import Enum
 from motor.motor_asyncio import AsyncIOMotorClient
 import uuid
 import os
+from dotenv import load_dotenv
+
+# -----------------------------------------------------------------------------
+# Environment variable loading from multiple sources
+# -----------------------------------------------------------------------------
+# Load .env files from project root and Render Secret Files location
+load_dotenv()  # Load from project root .env
+load_dotenv("/etc/secrets/.env")  # Load from Render Secret Files
+
+
+def get_first_env_value(keys: List[str]) -> Optional[str]:
+    """Get the first non-empty value from a list of environment variable keys."""
+    for key in keys:
+        value = os.getenv(key)
+        if value:
+            return value
+    return None
+
 
 # -----------------------------------------------------------------------------
 # App and Router setup
@@ -23,14 +41,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # -----------------------------------------------------------------------------
 # Database setup (graceful if env missing/bad)
 # -----------------------------------------------------------------------------
-MONGODB_URI = os.getenv("MONGODB_URI") or os.getenv("MONGO_URI")
-MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "emergent_inventory")
+# Check for MongoDB URI using multiple possible environment variable names
+MONGODB_URI_KEYS = ["MONGODB_URI", "MONGO_URI", "MONGO_URL", "DATABASE_URL"]
+MONGODB_DB_NAME_KEYS = ["MONGODB_DB_NAME", "DB_NAME"]
+
+MONGODB_URI = get_first_env_value(MONGODB_URI_KEYS)
+MONGODB_DB_NAME = get_first_env_value(MONGODB_DB_NAME_KEYS) or "emergent_inventory"
 
 client: Optional[AsyncIOMotorClient] = None
 db = None
+
+
+# Log environment variable detection for debugging
+def log_env_detection():
+    """Log which environment variables were detected for MongoDB connection."""
+    if MONGODB_URI:
+        # Find which key was used
+        used_key = None
+        for key in MONGODB_URI_KEYS:
+            if os.getenv(key) == MONGODB_URI:
+                used_key = key
+                break
+
+        # Find which DB name key was used
+        db_name_key = None
+        for key in MONGODB_DB_NAME_KEYS:
+            if os.getenv(key):
+                db_name_key = key
+                break
+        if not db_name_key:
+            db_name_key = "default"
+
+        print(f"✅ Using Mongo URL from: {used_key}; "
+              f"DB name key: {db_name_key} (value redacted)")
+    else:
+        # Check which keys are present but empty/invalid
+        present_keys = [key for key in MONGODB_URI_KEYS if key in os.environ]
+        print(f"⚠️ Mongo URL not found. Checked keys: "
+              f"{', '.join(MONGODB_URI_KEYS)}. Present keys: {present_keys}")
+
+
+log_env_detection()
 
 try:
     if MONGODB_URI:
@@ -38,7 +93,7 @@ try:
         db = client[MONGODB_DB_NAME]
         print(f"✅ Connected to MongoDB database: {MONGODB_DB_NAME}")
     else:
-        print("⚠️ MONGODB_URI not set; API will start but database operations will fail.")
+        print("⚠️ API will start but database operations will fail.")
 except Exception as e:
     # Do not crash the server; log only
     print(f"❌ Failed to connect to MongoDB: {e}")
@@ -101,7 +156,27 @@ async def root_health():
 
 @api_router.get("/")
 async def api_health():
-    return {"message": "Asset Inventory API (router) is running", "time": datetime.utcnow().isoformat()}
+    return {"message": "Asset Inventory API (router) is running",
+            "time": datetime.utcnow().isoformat()}
+
+
+# -----------------------------------------------------------------------------
+# Diagnostic endpoint (optional, guarded by DIAGNOSTICS_ENABLED)
+# -----------------------------------------------------------------------------
+@api_router.get("/diag/env-keys")
+async def get_env_keys_diagnostic():
+    """Return presence of relevant environment variables (values never returned)."""
+    if not os.getenv("DIAGNOSTICS_ENABLED", "").lower() == "true":
+        raise HTTPException(status_code=404,
+                            detail="Diagnostic endpoint not enabled")
+
+    # Check presence of all relevant environment variables
+    all_keys = MONGODB_URI_KEYS + MONGODB_DB_NAME_KEYS
+    result = {}
+    for key in all_keys:
+        result[key] = key in os.environ and bool(os.getenv(key))
+
+    return result
 
 
 # -----------------------------------------------------------------------------
