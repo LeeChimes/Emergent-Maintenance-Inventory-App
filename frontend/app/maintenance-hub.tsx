@@ -352,6 +352,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 4,
   },
+  activeLabel: {
+    color: '#4CAF50',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
   previewSection: {
     margin: 20,
     padding: 20,
