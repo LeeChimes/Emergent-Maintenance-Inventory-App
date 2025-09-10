@@ -92,7 +92,7 @@ export default function MaintenanceHub() {
           {/* PPMs */}
           <TouchableOpacity 
             style={styles.categoryCard}
-            onPress={() => handleComingSoon('PPMs')}
+            onPress={() => router.push('/ppms')}
           >
             <View style={[styles.categoryIcon, { backgroundColor: '#4CAF50' }]}>
               <Ionicons name="calendar" size={28} color="#fff" />
@@ -105,8 +105,8 @@ export default function MaintenanceHub() {
               </Text>
             </View>
             <View style={styles.categoryStatus}>
-              <Text style={styles.comingSoonLabel}>COMING SOON</Text>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
+              <Text style={styles.activeLabel}>ACTIVE</Text>
+              <Ionicons name="chevron-forward" size={20} color="#4CAF50" />
             </View>
           </TouchableOpacity>
 
