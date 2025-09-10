@@ -54,8 +54,7 @@ export default function EngineerHub() {
   };
 
   const navigateToMaintenance = () => {
-    // For now, just show an alert since maintenance-hub doesn't exist yet
-    Alert.alert('Coming Soon', 'Maintenance features will be available soon!');
+    router.push('/maintenance-hub');
   };
 
   const handleLogout = async () => {
