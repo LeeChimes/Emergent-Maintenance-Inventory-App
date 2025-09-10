@@ -1061,6 +1061,80 @@ const styles = StyleSheet.create({
   auditButton: {
     backgroundColor: '#795548',
   },
+  dashboardSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  sectionButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  sectionButton: {
+    backgroundColor: '#2d2d2d',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 80,
+    flex: 1,
+    maxWidth: '48%',
+  },
+  sectionButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  comingSoonBadge: {
+    color: '#666',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
+  inventoryButton: {
+    backgroundColor: '#4CAF50',
+  },
+  scanButton: {
+    backgroundColor: '#9C27B0',
+  },
+  stockButton: {
+    backgroundColor: '#FF9800',
+  },
+  supplierButton: {
+    backgroundColor: '#3F51B5',
+  },
+  deliveryButton: {
+    backgroundColor: '#00BCD4',
+  },
+  ppmsButton: {
+    backgroundColor: '#4CAF50',
+  },
+  callOutsButton: {
+    backgroundColor: '#F44336',
+  },
+  reactiveButton: {
+    backgroundColor: '#FF9800',
+  },
+  workOrdersButton: {
+    backgroundColor: '#9C27B0',
+  },
+  analyticsButton: {
+    backgroundColor: '#2196F3',
+  },
+  bulkButton: {
+    backgroundColor: '#607D8B',
+  },
+  helpButton: {
+    backgroundColor: '#795548',
+  },
   scanButton: {
     backgroundColor: '#9C27B0',
   },
