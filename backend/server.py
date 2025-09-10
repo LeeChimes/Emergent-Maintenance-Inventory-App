@@ -1,5 +1,10 @@
-from pydantic import BaseModel
-from typing import Optional
+from fastapi import FastAPI, APIRouter, HTTPException
+from pydantic import BaseModel, Field
+from typing import Optional, List, Dict, Any
+from datetime import datetime
+import uuid
+import os
+from motor.motor_asyncio import AsyncIOMotorClient  # If using MongoDB
 # ... [imports and setup stay the same] ...
 
 # User Management Models
