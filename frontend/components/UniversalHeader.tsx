@@ -10,7 +10,7 @@ interface UniversalHeaderProps {
   customRightElement?: React.ReactNode;
 }
 
-export default function UniversalHeader({ title, showBackButton = true }: UniversalHeaderProps) {
+export default function UniversalHeader({ title, showBackButton = true, customRightElement }: UniversalHeaderProps) {
   const handleScanPress = () => {
     // Go directly to scanner screen which will open camera
     router.push('/scanner');
