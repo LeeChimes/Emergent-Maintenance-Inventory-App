@@ -1,3 +1,4 @@
+from pydantic import BaseModel
 # ... [imports and setup stay the same] ...
 
 # User Management Models
