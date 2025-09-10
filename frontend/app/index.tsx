@@ -1038,11 +1038,14 @@ const styles = StyleSheet.create({
   deliveryButton: {
     backgroundColor: '#9C27B0',
   },
-  helpButton: {
-    backgroundColor: '#2196F3',
-  },
   settingsButton: {
     backgroundColor: '#607D8B',
+  },
+  maintenanceButton: {
+    backgroundColor: '#2196F3',
+  },
+  suppliersButton: {
+    backgroundColor: '#3F51B5',
   },
   actionButtonText: {
     color: '#fff',
