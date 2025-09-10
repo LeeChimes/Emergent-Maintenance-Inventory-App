@@ -68,31 +68,37 @@ export default function UniversalHeader({ title, showBackButton = true, customRi
         <Text style={styles.headerTitle}>{title}</Text>
       </View>
 
-      {/* Right side - Help, Home, Scan buttons */}
+      {/* Right side - Custom element or default buttons */}
       <View style={styles.rightSection}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={handleHelpPress}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="help-circle" size={22} color="#2196F3" />
-        </TouchableOpacity>
+        {customRightElement ? (
+          customRightElement
+        ) : (
+          <>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={handleHelpPress}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="help-circle" size={22} color="#2196F3" />
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={handleHomePress}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="home" size={22} color="#4CAF50" />
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={handleHomePress}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="home" size={22} color="#4CAF50" />
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={handleScanPress}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="qr-code" size={22} color="#FF9800" />
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={handleScanPress}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="qr-code" size={22} color="#FF9800" />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </View>
   );
