@@ -13,7 +13,7 @@ import os
 import time
 
 # Get backend URL from environment
-BACKEND_URL = "https://qrscan-inventory.preview.emergentagent.com/api"
+BACKEND_URL = "https://maint-hub.preview.emergentagent.com/api"
 
 class AISupplierTester:
     def __init__(self):
