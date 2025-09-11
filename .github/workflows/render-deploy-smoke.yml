@@ -1,47 +1,51 @@
-name: Render: deploy and smoke
+name: "Render: deploy and smoke"
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   workflow_dispatch:
     inputs:
       base_url:
-        description: Base URL for backend
+        description: "Base URL for backend"
         required: false
-        default: https://chimes-backend.onrender.com
+        default: "https://chimes-backend.onrender.com"
       run_seed:
-        description: Run data seed after deploy (dev only)
+        description: "Run data seed after deploy (dev only)"
         required: false
         default: "false"
       wait_timeout_seconds:
-        description: Max seconds to wait for service to be healthy
+        description: "Max seconds to wait for service to be healthy"
         required: false
         default: "600"
 
 jobs:
   verify:
-    name: Deploy (manual only) and smoke test
+    name: "Deploy (manual only) and smoke test"
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set BASE_URL (manual)
+      - name: "Set BASE_URL (manual dispatch)"
         if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          echo "BASE_URL=${{ github.event.inputs.base_url || 'https://chimes-backend.onrender.com' }}" >> "$GITHUB_ENV"
-          echo "WAIT_TIMEOUT_SECONDS=${{ github.event.inputs.wait_timeout_seconds || '600' }}" >> "$GITHUB_ENV"
+          echo "BASE_URL=${{ github.event.inputs.base_url }}" >> "$GITHUB_ENV"
+          echo "WAIT_TIMEOUT_SECONDS=${{ github.event.inputs.wait_timeout_seconds }}" >> "$GITHUB_ENV"
 
-      - name: Set BASE_URL (push to main)
+      - name: "Set BASE_URL (push to main)"
         if: ${{ github.event_name != 'workflow_dispatch' }}
         run: |
           echo "BASE_URL=https://chimes-backend.onrender.com" >> "$GITHUB_ENV"
           echo "WAIT_TIMEOUT_SECONDS=600" >> "$GITHUB_ENV"
 
-      - name: Trigger Render deploy (manual runs only)
-        if: ${{ github.event_name == 'workflow_dispatch' && secrets.RENDER_DEPLOY_HOOK_URL != '' }}
+      - name: "Maybe trigger Render deploy (no secrets in if)"
         run: |
-          curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "Triggering Render deploy…"
+            curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          else
+            echo "Skipping deploy trigger (not workflow_dispatch or hook not set)."
+          fi
 
-      - name: Wait for service to be healthy
+      - name: "Wait for service to be healthy"
         run: |
           echo "Waiting for $BASE_URL for up to ${WAIT_TIMEOUT_SECONDS}s..."
           end=$((SECONDS + WAIT_TIMEOUT_SECONDS))
@@ -53,16 +57,16 @@ jobs:
             sleep 5
           done
 
-      - name: Seed dev data (manual + opted-in)
+      - name: "Seed dev data (manual + opted-in)"
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_seed == 'true' }}
         run: |
           curl -fsS "$BASE_URL/api/dev/seed-basic" || true
 
-      - name: Smoke: GET /
+      - name: "Smoke: GET /"
         run: curl -fsS "$BASE_URL/" | head -c 200
 
-      - name: Smoke: GET /api/tools
+      - name: "Smoke: GET /api/tools"
         run: curl -fsS "$BASE_URL/api/tools" | head -c 200
 
-      - name: Smoke: GET /api/materials
+      - name: "Smoke: GET /api/materials"
         run: curl -fsS "$BASE_URL/api/materials" | head -c 200
