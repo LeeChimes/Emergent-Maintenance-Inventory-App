@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
 from enum import Enum
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -92,6 +92,92 @@ class User(BaseModel):
 
 
 # -----------------------------------------------------------------------------
+# Inventory Models
+# -----------------------------------------------------------------------------
+class ToolCondition(str, Enum):
+    good = "good"
+    fair = "fair"
+    poor = "poor"
+
+
+class TransactionType(str, Enum):
+    in_ = "in"
+    out = "out"
+    adjust = "adjust"
+
+
+class Material(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    sku: Optional[str] = None
+    quantity: int
+    min_stock: int
+    location: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class MaterialCreate(BaseModel):
+    name: str
+    sku: Optional[str] = None
+    quantity: int
+    min_stock: int
+    location: Optional[str] = None
+
+
+class MaterialUpdate(BaseModel):
+    name: Optional[str] = None
+    sku: Optional[str] = None
+    quantity: Optional[int] = None
+    min_stock: Optional[int] = None
+    location: Optional[str] = None
+
+
+class Tool(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    condition: ToolCondition
+    serial: Optional[str] = None
+    location: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ToolCreate(BaseModel):
+    name: str
+    condition: ToolCondition
+    serial: Optional[str] = None
+    location: Optional[str] = None
+
+
+class ToolUpdate(BaseModel):
+    name: Optional[str] = None
+    condition: Optional[ToolCondition] = None
+    serial: Optional[str] = None
+    location: Optional[str] = None
+
+
+class Transaction(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: TransactionType
+    item_type: Literal["material", "tool"]
+    item_id: str
+    quantity: Optional[int] = None
+    note: Optional[str] = None
+    user_id: Optional[str] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+class TransactionCreate(BaseModel):
+    type: TransactionType
+    item_type: Literal["material", "tool"]
+    item_id: str
+    quantity: Optional[int] = None
+    note: Optional[str] = None
+    user_id: Optional[str] = None
+
+
+# -----------------------------------------------------------------------------
 # Health checks
 # -----------------------------------------------------------------------------
 @app.get("/")
@@ -108,10 +194,21 @@ async def api_health():
 # Startup tasks (safe/no-crash)
 # -----------------------------------------------------------------------------
 @app.on_event("startup")
-async def create_default_users():
+async def create_indexes_and_users():
     if db is None:
-        print("ℹ️ Skipping default user creation; database not connected.")
+        print("ℹ️ Skipping indexes and default user creation; database not connected.")
         return
+    
+    try:
+        # Create helpful indexes
+        await db.users.create_index("id", unique=True)
+        await db.materials.create_index("id", unique=True)
+        await db.tools.create_index("id", unique=True)
+        await db.transactions.create_index([("timestamp", -1)])  # Descending for recent first
+        print("✅ Database indexes created")
+    except Exception as e:
+        print(f"⚠️ Error creating indexes (may already exist): {e}")
+    
     try:
         user_count = await db.users.count_documents({})
         if user_count == 0:
@@ -208,27 +305,266 @@ async def delete_user(user_id: str):
 
 
 # -----------------------------------------------------------------------------
-# Inventory + Alerts + Transactions (temporary stubs so UI runs cleanly)
+# Materials routes
 # -----------------------------------------------------------------------------
-@api_router.get("/materials")
+@api_router.get("/materials", response_model=List[Material])
 async def list_materials():
-    # TODO: replace with DB-backed results
-    return []
+    ensure_db()
+    materials = await db.materials.find().to_list(1000)
+    return [Material(**material) for material in materials]
 
-@api_router.get("/tools")
+
+@api_router.get("/materials/{material_id}", response_model=Material)
+async def get_material(material_id: str):
+    ensure_db()
+    material_doc = await db.materials.find_one({"id": material_id})
+    if not material_doc:
+        raise HTTPException(status_code=404, detail="Material not found")
+    return Material(**material_doc)
+
+
+@api_router.post("/materials", response_model=Material)
+async def create_material(material_data: MaterialCreate):
+    ensure_db()
+    material_dict = material_data.model_dump()
+    material = Material(**material_dict)
+    await db.materials.insert_one(material.model_dump())
+    return material
+
+
+@api_router.put("/materials/{material_id}", response_model=Material)
+async def update_material(material_id: str, material_data: MaterialUpdate):
+    ensure_db()
+    update_data = {k: v for k, v in material_data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
+    
+    update_data["updated_at"] = datetime.utcnow()
+    result = await db.materials.update_one(
+        {"id": material_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Material not found")
+    
+    updated_material = await db.materials.find_one({"id": material_id})
+    return Material(**updated_material)
+
+
+# -----------------------------------------------------------------------------
+# Tools routes
+# -----------------------------------------------------------------------------
+@api_router.get("/tools", response_model=List[Tool])
 async def list_tools():
-    # TODO: replace with DB-backed results
-    return []
+    ensure_db()
+    tools = await db.tools.find().to_list(1000)
+    return [Tool(**tool) for tool in tools]
 
+
+@api_router.get("/tools/{tool_id}", response_model=Tool)
+async def get_tool(tool_id: str):
+    ensure_db()
+    tool_doc = await db.tools.find_one({"id": tool_id})
+    if not tool_doc:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    return Tool(**tool_doc)
+
+
+@api_router.post("/tools", response_model=Tool)
+async def create_tool(tool_data: ToolCreate):
+    ensure_db()
+    tool_dict = tool_data.model_dump()
+    tool = Tool(**tool_dict)
+    await db.tools.insert_one(tool.model_dump())
+    return tool
+
+
+@api_router.put("/tools/{tool_id}", response_model=Tool)
+async def update_tool(tool_id: str, tool_data: ToolUpdate):
+    ensure_db()
+    update_data = {k: v for k, v in tool_data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
+    
+    update_data["updated_at"] = datetime.utcnow()
+    result = await db.tools.update_one(
+        {"id": tool_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    updated_tool = await db.tools.find_one({"id": tool_id})
+    return Tool(**updated_tool)
+
+
+# -----------------------------------------------------------------------------
+# Alerts routes
+# -----------------------------------------------------------------------------
 @api_router.get("/alerts/low-stock")
 async def low_stock():
-    # TODO: compute from materials once DB is wired
-    return {"count": 0, "materials": []}
+    ensure_db()
+    # Find materials where quantity <= min_stock
+    low_stock_materials = await db.materials.find({
+        "$expr": {"$lte": ["$quantity", "$min_stock"]}
+    }).to_list(1000)
+    
+    materials = [Material(**material) for material in low_stock_materials]
+    return {"count": len(materials), "materials": materials}
 
-@api_router.get("/transactions")
+
+# -----------------------------------------------------------------------------
+# Transactions routes
+# -----------------------------------------------------------------------------
+@api_router.get("/transactions", response_model=List[Transaction])
 async def list_transactions(limit: int = 20):
-    # TODO: replace with DB-backed results
-    return []
+    ensure_db()
+    transactions = await db.transactions.find().sort("timestamp", -1).limit(limit).to_list(limit)
+    return [Transaction(**transaction) for transaction in transactions]
+
+
+@api_router.post("/transactions", response_model=Transaction)
+async def create_transaction(transaction_data: TransactionCreate):
+    ensure_db()
+    transaction_dict = transaction_data.model_dump()
+    transaction = Transaction(**transaction_dict)
+    await db.transactions.insert_one(transaction.model_dump())
+    return transaction
+
+
+# -----------------------------------------------------------------------------
+# Development seed endpoints
+# -----------------------------------------------------------------------------
+@api_router.post("/dev/seed-basic")
+async def seed_basic_data():
+    ensure_db()
+    
+    # Clear existing data
+    await db.materials.delete_many({})
+    await db.tools.delete_many({})
+    await db.transactions.delete_many({})
+    
+    # Seed materials
+    sample_materials = [
+        {
+            "name": "Safety Helmets",
+            "sku": "SAF-HEL-001",
+            "quantity": 15,
+            "min_stock": 10,
+            "location": "Safety Storage"
+        },
+        {
+            "name": "Steel Bolts M8",
+            "sku": "BOL-STL-M8",
+            "quantity": 5,
+            "min_stock": 20,
+            "location": "Hardware Bin A"
+        },
+        {
+            "name": "LED Work Lights",
+            "sku": "LED-WRK-002",
+            "quantity": 8,
+            "min_stock": 5,
+            "location": "Electrical Storage"
+        },
+        {
+            "name": "Heavy Duty Gloves",
+            "sku": "GLV-HD-001",
+            "quantity": 25,
+            "min_stock": 15,
+            "location": "Safety Storage"
+        }
+    ]
+    
+    created_materials = []
+    for mat_data in sample_materials:
+        material = Material(**mat_data)
+        await db.materials.insert_one(material.model_dump())
+        created_materials.append(material)
+    
+    # Seed tools
+    sample_tools = [
+        {
+            "name": "Impact Drill",
+            "condition": "good",
+            "serial": "DRL-001-2023",
+            "location": "Tool Room A"
+        },
+        {
+            "name": "Digital Multimeter",
+            "condition": "excellent",
+            "serial": "DMM-005-2024",
+            "location": "Electronics Bay"
+        },
+        {
+            "name": "Torque Wrench",
+            "condition": "fair",
+            "serial": "TW-003-2022",
+            "location": "Tool Room B"
+        },
+        {
+            "name": "Angle Grinder",
+            "condition": "poor",
+            "serial": "AG-007-2021",
+            "location": "Repair Shop"
+        }
+    ]
+    
+    created_tools = []
+    for tool_data in sample_tools:
+        tool = Tool(**tool_data)
+        await db.tools.insert_one(tool.model_dump())
+        created_tools.append(tool)
+    
+    # Seed some transactions
+    sample_transactions = [
+        {
+            "type": "out",
+            "item_type": "material",
+            "item_id": created_materials[0].id,
+            "quantity": 3,
+            "note": "Used for maintenance job #123",
+            "user_id": "lee_carter"
+        },
+        {
+            "type": "in",
+            "item_type": "material", 
+            "item_id": created_materials[1].id,
+            "quantity": 50,
+            "note": "New shipment received",
+            "user_id": "dan_carter"
+        },
+        {
+            "type": "out",
+            "item_type": "tool",
+            "item_id": created_tools[0].id,
+            "note": "Checked out for equipment repair",
+            "user_id": "lee_paull"
+        }
+    ]
+    
+    created_transactions = []
+    for trans_data in sample_transactions:
+        transaction = Transaction(**trans_data)
+        await db.transactions.insert_one(transaction.model_dump())
+        created_transactions.append(transaction)
+    
+    print(f"✅ Seeded {len(created_materials)} materials, {len(created_tools)} tools, {len(created_transactions)} transactions")
+    
+    return {
+        "message": "Basic seed data created successfully",
+        "materials_count": len(created_materials),
+        "tools_count": len(created_tools), 
+        "transactions_count": len(created_transactions)
+    }
+
+
+@api_router.get("/dev/seed-basic")
+async def seed_basic_data_browser_friendly():
+    """Browser-friendly GET version of seed endpoint"""
+    return await seed_basic_data()
 
 
 # -----------------------------------------------------------------------------
