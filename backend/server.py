@@ -464,11 +464,12 @@ async def seed_basic_data():
     transaction_count = await db.transactions.count_documents({})
     
     if material_count > 0 or tool_count > 0 or transaction_count > 0:
-        print(f"ℹ️ Seed data already exists: {material_count} materials, {tool_count} tools, {transaction_count} transactions")
+        print(f"ℹ️ Seed data already exists: {material_count} materials, "
+              f"{tool_count} tools, {transaction_count} transactions")
         return {
             "message": "Seed data already exists",
             "materials_count": material_count,
-            "tools_count": tool_count, 
+            "tools_count": tool_count,
             "transactions_count": transaction_count
         }
     
@@ -579,12 +580,13 @@ async def seed_basic_data():
         await db.transactions.insert_one(transaction.model_dump())
         created_transactions.append(transaction)
     
-    print(f"✅ Seeded {len(created_materials)} materials, {len(created_tools)} tools, {len(created_transactions)} transactions")
+    print(f"✅ Seeded {len(created_materials)} materials, {len(created_tools)} tools, "
+          f"{len(created_transactions)} transactions")
     
     return {
         "message": "Basic seed data created successfully",
         "materials_count": len(created_materials),
-        "tools_count": len(created_tools), 
+        "tools_count": len(created_tools),
         "transactions_count": len(created_transactions)
     }
 
