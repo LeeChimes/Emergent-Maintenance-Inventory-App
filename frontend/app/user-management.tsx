@@ -9,6 +9,7 @@ import {
   TextInput,
   Modal,
   Switch,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -89,10 +90,12 @@ export default function UserManagement() {
 
   const handleAddUser = async () => {
     if (!newUserName.trim() || !newUserPin.trim()) {
+      Alert.alert('Missing Information', 'Please enter both name and PIN.');
       return;
     }
 
     if (newUserPin.length !== 4 || !/^\d{4}$/.test(newUserPin)) {
+      Alert.alert('Invalid PIN', 'PIN must be exactly 4 digits (0-9).');
       return;
     }
 
@@ -116,27 +119,53 @@ export default function UserManagement() {
         setNewUserName('');
         setNewUserPin('');
         setNewUserRole('engineer');
+        Alert.alert('Success', `User ${newUserName} created successfully.`);
+      } else {
+        const errorData = await response.json();
+        Alert.alert('Error', errorData.detail || 'Failed to create user. Please try again.');
       }
     } catch (error) {
       console.error('Error adding user:', error);
+      Alert.alert('Error', 'Unable to connect to server. Please check your connection.');
     }
   };
 
   const handleEditUser = async () => {
-    const updatedUser = {
-      name: newUserName,
-      role: newUserRole,
-      pin: newUserPin,
-    };
-    
-    await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${selectedUser.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedUser),
-    });
-    
-    closeEditModal();
-    await fetchUsers();
+    if (!newUserName.trim() || !newUserPin.trim()) {
+      Alert.alert('Missing Information', 'Please enter both name and PIN.');
+      return;
+    }
+
+    if (newUserPin.length !== 4 || !/^\d{4}$/.test(newUserPin)) {
+      Alert.alert('Invalid PIN', 'PIN must be exactly 4 digits (0-9).');
+      return;
+    }
+
+    try {
+      const updatedUser = {
+        name: newUserName,
+        role: newUserRole,
+        pin: newUserPin,
+      };
+      
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedUser),
+      });
+      
+      if (response.ok) {
+        closeEditModal();
+        await fetchUsers();
+        Alert.alert('Success', `User ${newUserName} updated successfully.`);
+      } else {
+        const errorData = await response.json();
+        Alert.alert('Error', errorData.detail || 'Failed to update user. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+      Alert.alert('Error', 'Unable to connect to server. Please check your connection.');
+    }
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -260,7 +289,7 @@ export default function UserManagement() {
                 </View>
                 
                 <View style={styles.userMeta}>
-                  <Text style={styles.userPin}>PIN: {user.pin}</Text>
+                  <Text style={styles.userPin}>PIN: {user.pin ? '****' : 'Not Set'}</Text>
                   {user.created_at && (
                     <Text style={styles.lastLogin}>
                       Created: {new Date(user.created_at).toLocaleDateString()}

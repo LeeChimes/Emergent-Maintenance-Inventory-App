@@ -71,6 +71,11 @@ class UserUpdate(BaseModel):
     pin: str
 
 
+class LoginRequest(BaseModel):
+    user_id: str
+    pin: str
+
+
 class UserResponse(BaseModel):
     id: str
     name: str
@@ -89,6 +94,36 @@ class User(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_login: Optional[str] = None
     created_by: Optional[str] = None
+
+
+# -----------------------------------------------------------------------------
+# AI Chat and Error Reporting Models
+# -----------------------------------------------------------------------------
+class AIChatRequest(BaseModel):
+    message: str
+    conversation_history: Optional[List] = None
+
+
+class AIChatResponse(BaseModel):
+    response: str
+
+
+class ErrorReport(BaseModel):
+    id: Optional[str] = None
+    error: Optional[dict] = None
+    errorInfo: Optional[dict] = None
+    timestamp: Optional[str] = None
+    userAction: Optional[str] = None
+    screen: Optional[str] = None
+    additionalData: Optional[dict] = None
+    userId: Optional[str] = None
+    deviceInfo: Optional[dict] = None
+
+
+class ErrorReportResponse(BaseModel):
+    status: str
+    estimated_fix_time: str
+    support_message: str
 
 
 # -----------------------------------------------------------------------------
@@ -251,17 +286,29 @@ async def get_user(user_id: str):
 
 
 @api_router.post("/auth/login")
-async def login(user_id: str):
+async def login(login_request: LoginRequest):
     ensure_db()
-    user_doc = await db.users.find_one({"id": user_id})
+    user_doc = await db.users.find_one({"id": login_request.user_id})
     if not user_doc:
         raise HTTPException(status_code=404, detail="User not found")
+    
     user = User(**user_doc)
+    
+    # Validate PIN
+    if user.pin != login_request.pin:
+        raise HTTPException(status_code=401, detail="Invalid PIN")
+    
+    # Update last login
     await db.users.update_one(
-        {"id": user_id},
+        {"id": login_request.user_id},
         {"$set": {"last_login": datetime.utcnow().isoformat()}},
     )
-    return {"token": user.id, "user": user}
+    
+    # Return user data without PIN for security
+    user_data = user.model_dump()
+    user_data.pop('pin', None)  # Remove PIN from response
+    
+    return {"token": user.id, "user": user_data}
 
 
 @api_router.post("/users", response_model=UserResponse)
@@ -280,18 +327,34 @@ async def create_user(user_data: UserCreate):
 @api_router.put("/users/{user_id}")
 async def update_user(user_id: str, user_data: UserUpdate):
     ensure_db()
+    
+    # Validate PIN format - must be 4-digit string
+    if user_data.pin and (len(str(user_data.pin)) != 4 or not str(user_data.pin).isdigit()):
+        raise HTTPException(status_code=400, detail="PIN must be a 4-digit string")
+    
+    # Ensure PIN is stored as string
+    pin_str = str(user_data.pin).zfill(4) if user_data.pin else None
+    
+    # Check if user exists first
+    existing_user = await db.users.find_one({"id": user_id})
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Update user
     result = await db.users.update_one(
         {"id": user_id},
         {
             "$set": {
                 "name": user_data.name,
                 "role": user_data.role,
-                "pin": user_data.pin,
+                "pin": pin_str,
             }
         },
     )
+    
     if result.matched_count == 0:
-        return {"error": "User not found"}
+        raise HTTPException(status_code=404, detail="User not found")
+    
     return {"success": True, "message": "User updated successfully"}
 
 
@@ -568,9 +631,160 @@ async def seed_basic_data_browser_friendly():
 
 
 # -----------------------------------------------------------------------------
+# AI Chat endpoint
+# -----------------------------------------------------------------------------
+@api_router.post("/ai-chat", response_model=AIChatResponse)
+async def ai_chat(request: AIChatRequest):
+    """AI Chat endpoint with helpful stub responses based on app context"""
+    
+    message = request.message.lower()
+    
+    # Provide context-aware responses
+    if any(word in message for word in ['delivery', 'deliveries', 'log delivery']):
+        response = """📦 **Delivery Logging Help:**
+
+**Step-by-Step Instructions:**
+1. 🏠 Go to the main dashboard
+2. 🟣 Tap the purple "Log Delivery" button
+3. 📝 Fill in supplier and delivery details
+4. 📋 Add items received with quantities
+5. ✅ Submit to update inventory
+
+**Tips:**
+- All users (engineers & supervisors) can log deliveries
+- No camera required - all manual entry
+- Check supplier list if supplier not found"""
+        
+    elif any(word in message for word in ['qr', 'scanner', 'scan']):
+        response = """📱 **QR Scanner Help:**
+
+**Step-by-Step Instructions:**
+1. 🏠 Tap "QR Scanner" from main dashboard  
+2. 📷 Point camera at QR code on item
+3. 📝 Or use "Manual Entry" if camera issues
+4. ✅ Select action: Check In/Out, Stock Take
+
+**Troubleshooting:**
+- If camera not working → Use "Manual Entry" button
+- Grant camera permissions in device settings
+- Ensure QR codes are clean and well-lit"""
+        
+    elif any(word in message for word in ['inventory', 'stock', 'materials', 'tools']):
+        response = """📦 **Inventory Management Help:**
+
+**Step-by-Step Instructions:**
+1. 🏠 Tap "Inventory" from main dashboard
+2. 📋 View all materials and tools
+3. ➕ Add new items with the "+" button
+4. ✏️ Edit existing items by tapping them
+5. 🔍 Use search to find specific items
+
+**Features:**
+- Color-coded by stock levels
+- QR codes auto-generated for new items
+- Low stock alerts on dashboard"""
+        
+    elif any(word in message for word in ['user', 'management', 'add user', 'pin']):
+        response = """👥 **User Management Help (Supervisors Only):**
+
+**Step-by-Step Instructions:**
+1. 🏠 Go to main dashboard → "Settings"
+2. 👥 Tap "User Management"  
+3. ➕ Use "Add User" button
+4. 📝 Enter name, role (Engineer/Supervisor)
+5. 🔢 Set 4-digit PIN (e.g., 1234)
+6. ✅ Save user
+
+**PIN Requirements:**
+- Must be exactly 4 digits
+- Numbers only (0-9)
+- Default users have PIN: 1234"""
+        
+    elif any(word in message for word in ['crash', 'error', 'broken', 'not working']):
+        response = """🔧 **App Troubleshooting:**
+
+**Quick Fixes:**
+1. 🔄 Close app completely and reopen
+2. 📱 Restart your device
+3. ✅ Check internet connection
+4. 🔄 Try again in a few seconds
+
+**Still Having Issues?**
+- Contact supervisors via "Help & Support"
+- Error reports are automatically sent to developers
+- Most issues resolve within 5-15 minutes
+
+**Emergency:** If urgent, contact Lee Carter or Dan Carter directly."""
+        
+    elif any(word in message for word in ['help', 'support', 'contact']):
+        response = """📞 **Getting Help:**
+
+**Available Support:**
+1. 💬 AI Help (this feature) - instant answers
+2. 📋 Help & Support menu - detailed guides  
+3. 👥 Contact Supervisors - Lee Carter, Dan Carter
+4. 🚨 Automatic error reporting to developers
+
+**Response Times:**
+- AI Help: Instant
+- Supervisor contact: Within hours
+- Developer fixes: 5-15 minutes for critical issues
+
+**Pro Tip:** Try asking more specific questions like "How do I log a delivery?" """
+        
+    else:
+        # Generic helpful response
+        response = """🤖 **Chimes Asset Inventory Assistant**
+
+I'm here to help with:
+- 📦 Delivery logging and management
+- 📱 QR scanner and manual entry
+- 📋 Inventory management (materials & tools)  
+- 👥 User management (supervisors only)
+- 🔧 Troubleshooting app issues
+
+**Try asking:**
+- "How do I log a delivery?"
+- "QR scanner not working"
+- "How to add new inventory items?"
+- "App crashed - what to do?"
+
+**Need immediate help?** Use "Contact Supervisors" from the Help & Support menu."""
+    
+    return AIChatResponse(response=response)
+
+
+# -----------------------------------------------------------------------------
+# Error Reporting endpoint
+# -----------------------------------------------------------------------------
+@api_router.post("/error-reports", response_model=ErrorReportResponse)
+async def create_error_report(error_report: ErrorReport):
+    """Store error reports in MongoDB and return acknowledgment"""
+    ensure_db()
+    
+    # Add server-side fields
+    error_dict = error_report.model_dump(exclude_none=True)
+    error_dict["id"] = str(uuid.uuid4())
+    error_dict["server_timestamp"] = datetime.utcnow().isoformat()
+    error_dict["status"] = "received"
+    
+    # Store in database
+    await db.error_reports.insert_one(error_dict)
+    
+    return ErrorReportResponse(
+        status="received",
+        estimated_fix_time="24-72 hours",
+        support_message="Thanks—our team will investigate and update you."
+    )
+
+
+# -----------------------------------------------------------------------------
 # Include router
 # -----------------------------------------------------------------------------
 app.include_router(api_router)
+
+# Note: Delivery routes are defined in delivery_routes.py and should be working
+# if that file is imported elsewhere. Skipping import here to avoid circular dependencies.
 
 # Optional: local dev entrypoint (Render ignores this)
 if __name__ == "__main__":

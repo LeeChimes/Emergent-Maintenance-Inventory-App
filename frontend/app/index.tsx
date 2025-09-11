@@ -63,15 +63,6 @@ export default function Index() {
   const [pin, setPin] = useState('');
   const [shakeAnimation] = useState(new Animated.Value(0));
 
-  // Default PINs for each user (in production, these would be stored securely)
-  const userPins: { [key: string]: string } = {
-    'lee_carter': '1234',
-    'dan_carter': '1234',
-    'lee_paull': '2468',
-    'dean_turnill': '1357',
-    'luis': '9876'
-  };
-
   useEffect(() => {
     initializeApp();
   }, []);
@@ -208,16 +199,7 @@ export default function Index() {
   };
 
   const handleUserSelect = async (selectedUser: any) => {
-    // For engineers, skip PIN and login directly
-    if (selectedUser.role === 'engineer') {
-      await AsyncStorage.setItem('userToken', selectedUser.id);
-      await AsyncStorage.setItem('userData', JSON.stringify(selectedUser));
-      setUser(selectedUser);
-      router.push('/engineer-hub');
-      return;
-    }
-    
-    // For supervisors, still require PIN
+    // All users now require PIN authentication
     setSelectedUser(selectedUser);
     setShowPinModal(true);
   };
@@ -225,51 +207,50 @@ export default function Index() {
   const verifyPin = async () => {
     if (!selectedUser) return;
 
-    const correctPin = userPins[selectedUser.id];
-    if (pin === correctPin) {
-      await handleLogin(selectedUser.id);
-      setShowPinModal(false);
-      setPin('');
-    } else {
-      // Shake animation for wrong PIN
-      Animated.sequence([
-        Animated.timing(shakeAnimation, { toValue: 10, duration: 100, useNativeDriver: true }),
-        Animated.timing(shakeAnimation, { toValue: -10, duration: 100, useNativeDriver: true }),
-        Animated.timing(shakeAnimation, { toValue: 10, duration: 100, useNativeDriver: true }),
-        Animated.timing(shakeAnimation, { toValue: 0, duration: 100, useNativeDriver: true }),
-      ]).start();
-      
-      Alert.alert('Wrong PIN', 'Please enter the correct PIN to continue.');
-      setPin('');
-    }
-  };
-
-  const handleLogin = async (userId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login?user_id=${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: selectedUser.id,
+          pin: pin,
+        }),
       });
-      
+
       if (response.ok) {
         const { token, user: userData } = await response.json();
         
+        // Store token and user data
         await AsyncStorage.setItem('userToken', token);
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
         
         setUser(userData);
         
-        // STEP 1: Redirect engineers to engineer hub, supervisors stay here
+        // Route engineers to engineer hub, supervisors stay on dashboard
         if (userData.role === 'engineer') {
           router.push('/engineer-hub');
         }
-        // Supervisors stay on current dashboard (no redirect needed)
         
+        setShowPinModal(false);
+        setPin('');
       } else {
-        Alert.alert('Error', 'Login failed. Please try again.');
+        // Wrong PIN or error - show shake animation
+        Animated.sequence([
+          Animated.timing(shakeAnimation, { toValue: 10, duration: 100, useNativeDriver: true }),
+          Animated.timing(shakeAnimation, { toValue: -10, duration: 100, useNativeDriver: true }),
+          Animated.timing(shakeAnimation, { toValue: 10, duration: 100, useNativeDriver: true }),
+          Animated.timing(shakeAnimation, { toValue: 0, duration: 100, useNativeDriver: true }),
+        ]).start();
+        
+        Alert.alert('Wrong PIN', 'Please enter the correct PIN to continue.');
+        setPin('');
       }
     } catch (error) {
-      console.error('Error logging in:', error);
-      Alert.alert('Error', 'Could not connect to server. Please check your connection.');
+      console.error('Login error:', error);
+      Alert.alert('Connection Error', 'Unable to verify PIN. Please check your internet connection and try again.');
+      setPin('');
     }
   };
 

@@ -4,7 +4,30 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 import json
 
-# Import necessary models and dependencies (these should be imported from server.py)
+# Import necessary models and dependencies from server.py
+from server import db, api_router, ensure_db
+
+# Import delivery models if they exist in server.py or create minimal ones here
+try:
+    from server import Delivery
+except ImportError:
+    # Create minimal Delivery model if it doesn't exist
+    from pydantic import BaseModel, Field
+    import uuid
+    
+    class Delivery(BaseModel):
+        id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+        supplier_id: Optional[str] = None
+        status: str = "pending"
+        items: List[Dict[str, Any]] = []
+        created_at: datetime = Field(default_factory=datetime.utcnow)
+        updated_at: Optional[datetime] = None
+        audit_log: List[Dict[str, Any]] = []
+    
+    class DeliveryCreate(BaseModel):
+        supplier_id: Optional[str] = None
+        status: str = "pending"
+        items: List[Dict[str, Any]] = []
 
 async def add_audit_entry(delivery_id: str, user_id: str, user_name: str, action: str, details: Dict[str, Any], screen: str = "Deliveries"):
     """Add audit entry to delivery"""
