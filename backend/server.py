@@ -494,7 +494,7 @@ async def seed_basic_data():
         },
         {
             "name": "Digital Multimeter",
-            "condition": "excellent",
+            "condition": "good",
             "serial": "DMM-005-2024",
             "location": "Electronics Bay"
         },
@@ -511,13 +511,28 @@ async def seed_basic_data():
             "location": "Repair Shop"
         }
     ]
-    
+
     created_tools = []
     for tool_data in sample_tools:
+        # Defensive normalization of tool condition before model validation
+        if 'condition' in tool_data:
+            original_condition = tool_data['condition']
+            # Normalize: lowercase and strip whitespace
+            normalized_condition = str(original_condition).lower().strip()
+
+            # Coerce invalid conditions to 'good'
+            valid_conditions = {'good', 'fair', 'poor'}
+            if normalized_condition not in valid_conditions:
+                tool_name = tool_data.get('name', 'Unknown')
+                print(f"⚠️ Tool '{tool_name}': Invalid condition '{original_condition}' coerced to 'good'")
+                tool_data['condition'] = 'good'
+            else:
+                tool_data['condition'] = normalized_condition
+
         tool = Tool(**tool_data)
         await db.tools.insert_one(tool.model_dump())
         created_tools.append(tool)
-    
+
     # Seed some transactions
     sample_transactions = [
         {
