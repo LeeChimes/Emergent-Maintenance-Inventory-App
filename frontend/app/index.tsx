@@ -18,8 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { AppErrorHandler } from '../utils/AppErrorHandler';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { API_BASE_URL } from '../utils/config';
 
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width } = Dimensions.get('window');
 
 interface User {
@@ -112,7 +112,7 @@ export default function Index() {
 
   const fetchUsers = async () => {
     const users = await AppErrorHandler.safeNetworkCall(
-      `${EXPO_PUBLIC_BACKEND_URL}/api/users`,
+      `${API_BASE_URL}/api/users`,
       {},
       'Fetch Users'
     );
@@ -133,10 +133,10 @@ export default function Index() {
     try {
       // Use safe network calls with auto error handling
       const [materials, tools, lowStockData, transactions] = await Promise.all([
-        AppErrorHandler.safeNetworkCall(`${EXPO_PUBLIC_BACKEND_URL}/api/materials`, {}, 'Fetch Materials'),
-        AppErrorHandler.safeNetworkCall(`${EXPO_PUBLIC_BACKEND_URL}/api/tools`, {}, 'Fetch Tools'),
-        AppErrorHandler.safeNetworkCall(`${EXPO_PUBLIC_BACKEND_URL}/api/alerts/low-stock`, {}, 'Fetch Low Stock'),
-        AppErrorHandler.safeNetworkCall(`${EXPO_PUBLIC_BACKEND_URL}/api/transactions?limit=20`, {}, 'Fetch Transactions')
+        AppErrorHandler.safeNetworkCall(`${API_BASE_URL}/api/materials`, {}, 'Fetch Materials'),
+        AppErrorHandler.safeNetworkCall(`${API_BASE_URL}/api/tools`, {}, 'Fetch Tools'),
+        AppErrorHandler.safeNetworkCall(`${API_BASE_URL}/api/alerts/low-stock`, {}, 'Fetch Low Stock'),
+        AppErrorHandler.safeNetworkCall(`${API_BASE_URL}/api/transactions?limit=20`, {}, 'Fetch Transactions')
       ]);
 
       // Handle potential null responses gracefully
@@ -246,7 +246,7 @@ export default function Index() {
 
   const handleLogin = async (userId: string) => {
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/auth/login?user_id=${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login?user_id=${userId}`, {
         method: 'POST',
       });
       
