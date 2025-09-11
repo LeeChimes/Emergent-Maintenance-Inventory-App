@@ -178,6 +178,23 @@ class TransactionCreate(BaseModel):
 
 
 # -----------------------------------------------------------------------------
+# Utility functions
+# -----------------------------------------------------------------------------
+def normalize_tool_condition(condition: str) -> str:
+    """
+    Normalize tool condition values to ensure they match the allowed enum values.
+    Returns 'good' as fallback for invalid values and logs a warning.
+    """
+    valid_conditions = {'good', 'fair', 'poor'}
+    
+    if condition in valid_conditions:
+        return condition
+    
+    print(f"⚠️ Invalid tool condition '{condition}' normalized to 'good'")
+    return 'good'
+
+
+# -----------------------------------------------------------------------------
 # Health checks
 # -----------------------------------------------------------------------------
 @app.get("/")
@@ -441,10 +458,19 @@ async def create_transaction(transaction_data: TransactionCreate):
 async def seed_basic_data():
     ensure_db()
     
-    # Clear existing data
-    await db.materials.delete_many({})
-    await db.tools.delete_many({})
-    await db.transactions.delete_many({})
+    # Check if data already exists (idempotent behavior)
+    material_count = await db.materials.count_documents({})
+    tool_count = await db.tools.count_documents({})
+    transaction_count = await db.transactions.count_documents({})
+    
+    if material_count > 0 or tool_count > 0 or transaction_count > 0:
+        print(f"ℹ️ Seed data already exists: {material_count} materials, {tool_count} tools, {transaction_count} transactions")
+        return {
+            "message": "Seed data already exists",
+            "materials_count": material_count,
+            "tools_count": tool_count, 
+            "transactions_count": transaction_count
+        }
     
     # Seed materials
     sample_materials = [
@@ -494,7 +520,7 @@ async def seed_basic_data():
         },
         {
             "name": "Digital Multimeter",
-            "condition": "excellent",
+            "condition": "good",
             "serial": "DMM-005-2024",
             "location": "Electronics Bay"
         },
@@ -514,6 +540,8 @@ async def seed_basic_data():
     
     created_tools = []
     for tool_data in sample_tools:
+        # Normalize condition before creating Tool object
+        tool_data['condition'] = normalize_tool_condition(tool_data['condition'])
         tool = Tool(**tool_data)
         await db.tools.insert_one(tool.model_dump())
         created_tools.append(tool)
