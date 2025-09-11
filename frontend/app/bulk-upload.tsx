@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import Screen from './components/Screen';
+import Container from './components/Container';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UniversalHeader from '../components/UniversalHeader';
 
@@ -76,18 +78,21 @@ export default function BulkUpload() {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
-      </SafeAreaView>
+      <Screen scroll>
+        <Container>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
+        </Container>
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Universal Header */}
-      <UniversalHeader title="Bulk Upload" showBackButton={true} />
+    <Screen scroll>
+      <Container>
+        {/* Universal Header */}
+        <UniversalHeader title="Bulk Upload" showBackButton={true} />
 
       <ScrollView style={styles.content}>
         {/* Welcome Section */}
@@ -218,7 +223,8 @@ export default function BulkUpload() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </Container>
+    </Screen>
   );
 }
 

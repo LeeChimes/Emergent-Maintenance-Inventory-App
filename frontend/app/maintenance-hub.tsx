@@ -3,13 +3,15 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
-  ScrollView,
+  
+  
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import Screen from './components/Screen';
+import Container from './components/Container';
 import UniversalHeader from '../components/UniversalHeader';
 
 interface User {
@@ -50,18 +52,21 @@ export default function MaintenanceHub() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <Screen scroll>
+      <Container>
         <UniversalHeader title="Maintenance Hub" showBackButton={true} />
         <View style={styles.centerContent}>
           <Ionicons name="construct" size={48} color="#2196F3" />
           <Text style={styles.loadingText}>Loading maintenance tools...</Text>
         </View>
-      </SafeAreaView>
+      </Container>
+    </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Screen scroll>
+      <Container>
       <UniversalHeader title="Maintenance Hub" showBackButton={true} />
       
       <ScrollView style={styles.content}>
@@ -231,7 +236,8 @@ export default function MaintenanceHub() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </Container>
+    </Screen>
   );
 }
 

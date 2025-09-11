@@ -4,8 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
   Alert,
   Switch,
 } from 'react-native';
@@ -13,6 +11,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import UniversalHeader from '../components/UniversalHeader';
+import Screen from './components/Screen';
+import Container from './components/Container';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -125,31 +125,34 @@ export default function Settings() {
 
   if (!user || user.role !== 'supervisor') {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centerContent}>
-          <Ionicons name="lock-closed" size={48} color="#F44336" />
-          <Text style={styles.accessDeniedText}>Access Denied</Text>
-          <Text style={styles.accessDeniedSubtext}>
-            Settings are only accessible to supervisors
-          </Text>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.push('/')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <Screen>
+        <Container>
+          <View style={styles.centerContent}>
+            <Ionicons name="lock-closed" size={48} color="#F44336" />
+            <Text style={styles.accessDeniedText}>Access Denied</Text>
+            <Text style={styles.accessDeniedSubtext}>
+              Settings are only accessible to supervisors
+            </Text>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.push('/')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.backButtonText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        </Container>
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Universal Header */}
-      <UniversalHeader title="Settings" showBackButton={true} />
+    <Screen scroll>
+      <Container>
+        {/* Universal Header */}
+        <UniversalHeader title="Settings" showBackButton={true} />
 
-      <ScrollView style={styles.content}>
+        {/* Content - handled by Screen scroll */}
         {/* User Info */}
         <View style={styles.section}>
           <View style={styles.userCard}>
@@ -334,8 +337,9 @@ export default function Settings() {
         </View>
 
         <View style={styles.bottomSpacer} />
-      </ScrollView>
-    </SafeAreaView>
+        {/* ScrollView content ends here */}
+      </Container>
+    </Screen>
   );
 }
 

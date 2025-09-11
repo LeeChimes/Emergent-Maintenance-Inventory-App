@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import UniversalHeader from '../components/UniversalHeader';
+import Screen from './components/Screen';
+import Container from './components/Container';
 
 export default function Help() {
   const helpCategories = [
@@ -45,11 +47,12 @@ export default function Help() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Universal Header */}
-      <UniversalHeader title="Help & Support" showBackButton={true} />
+    <Screen scroll>
+      <Container>
+        {/* Universal Header */}
+        <UniversalHeader title="Help & Support" showBackButton={true} />
 
-      <ScrollView style={styles.content}>
+        {/* Content handled by Screen scroll */}
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>Welcome to Help & Support! 👋</Text>
@@ -119,8 +122,9 @@ export default function Help() {
             </View>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+        {/* ScrollView content ends here */}
+      </Container>
+    </Screen>
   );
 }
 
