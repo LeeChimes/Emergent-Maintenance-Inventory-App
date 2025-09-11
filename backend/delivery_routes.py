@@ -5,10 +5,11 @@ from datetime import datetime
 import json
 
 # Import necessary models and dependencies from server.py
-try:
-    from .server import api_router, db, Delivery, DeliveryCreate, Material, Tool
-except ImportError:
-    from server import api_router, db, Delivery, DeliveryCreate, Material, Tool
+# NOTE: Circular import issue with Delivery models - needs to be resolved
+# try:
+#     from .server import api_router, db, Delivery, DeliveryCreate, Material, Tool
+# except ImportError:
+#     from server import api_router, db, Delivery, DeliveryCreate, Material, Tool
 
 async def add_audit_entry(delivery_id: str, user_id: str, user_name: str, action: str, details: Dict[str, Any], screen: str = "Deliveries"):
     """Add audit entry to delivery"""
