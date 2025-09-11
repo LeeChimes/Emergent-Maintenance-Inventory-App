@@ -4,13 +4,12 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
-  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import Screen from './components/Screen';
+import Container from './components/Container';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -36,7 +35,6 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [lowStockItems, setLowStockItems] = useState<LowStockAlert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     initializeUser();
@@ -73,72 +71,67 @@ export default function Dashboard() {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
   const handleRefresh = () => {
-    setRefreshing(true);
     fetchDashboardData();
   };
 
   if (!user || user.role !== 'supervisor') {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centerContent}>
-          <Ionicons name="lock-closed" size={48} color="#F44336" />
-          <Text style={styles.accessDeniedText}>Access Denied</Text>
-          <Text style={styles.accessDeniedSubtext}>
-            This dashboard is only available to supervisors
-          </Text>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.push('/')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <Screen backgroundColor="#1a1a1a">
+        <Container>
+          <View style={styles.centerContent}>
+            <Ionicons name="lock-closed" size={48} color="#F44336" />
+            <Text style={styles.accessDeniedText}>Access Denied</Text>
+            <Text style={styles.accessDeniedSubtext}>
+              This dashboard is only available to supervisors
+            </Text>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.push('/')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.backButtonText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        </Container>
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => router.push('/')}
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Supervisor Dashboard</Text>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={handleRefresh}
-        >
-          <Ionicons name="refresh" size={24} color="#4CAF50" />
-        </TouchableOpacity>
-      </View>
+    <Screen 
+      scroll 
+      backgroundColor="#1a1a1a" 
+      keyboardOffset={60}
+    >
+      <Container>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => router.push('/')}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Supervisor Dashboard</Text>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={handleRefresh}
+          >
+            <Ionicons name="refresh" size={24} color="#4CAF50" />
+          </TouchableOpacity>
+        </View>
 
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#4CAF50"
-          />
-        }
-      >
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>
             Welcome back, {user.name.split(' ')[0]}! 👋
           </Text>
           <Text style={styles.welcomeSubtext}>
-            Here's your inventory oversight dashboard
+            Here&apos;s your inventory oversight dashboard
           </Text>
         </View>
 
@@ -266,16 +259,12 @@ export default function Dashboard() {
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </Container>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -295,9 +284,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  content: {
-    flex: 1,
   },
   centerContent: {
     flex: 1,
