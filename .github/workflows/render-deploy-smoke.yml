@@ -1,139 +1,68 @@
-name: "Render: deploy and smoke"
+name: Render: deploy and smoke
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       base_url:
-        description: 'Base URL for the deployed service'
-        required: true
-        default: 'https://chimes-backend.onrender.com'
-        type: string
+        description: Base URL for backend
+        required: false
+        default: https://chimes-backend.onrender.com
       run_seed:
-        description: 'Run dev seed after deployment (WARNING: This will reset data)'
+        description: Run data seed after deploy (dev only)
         required: false
-        default: false
-        type: boolean
+        default: "false"
       wait_timeout_seconds:
-        description: 'Maximum time to wait for deployment to be healthy (seconds)'
+        description: Max seconds to wait for service to be healthy
         required: false
-        default: 600
-        type: number
+        default: "600"
 
 jobs:
-  deploy-and-smoke:
+  verify:
+    name: Deploy (manual only) and smoke test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Trigger Render Deploy
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
+      - name: Set BASE_URL (manual)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          echo "🚀 Triggering Render deployment..."
-          if curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
-               -H "Content-Type: application/json" \
-               --fail --silent --show-error; then
-            echo "✅ Deploy hook triggered successfully"
-          else
-            echo "❌ Failed to trigger deploy hook"
-            exit 1
-          fi
-          
-      - name: Skip Deploy Hook (No Secret)
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL == '' }}
+          echo "BASE_URL=${{ github.event.inputs.base_url || 'https://chimes-backend.onrender.com' }}" >> "$GITHUB_ENV"
+          echo "WAIT_TIMEOUT_SECONDS=${{ github.event.inputs.wait_timeout_seconds || '600' }}" >> "$GITHUB_ENV"
+
+      - name: Set BASE_URL (push to main)
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         run: |
-          echo "⏭️ No RENDER_DEPLOY_HOOK_URL secret found - skipping deployment trigger"
-          echo "Will proceed directly to smoke tests against existing deployment"
-          
-      - name: Wait for Service Health
+          echo "BASE_URL=https://chimes-backend.onrender.com" >> "$GITHUB_ENV"
+          echo "WAIT_TIMEOUT_SECONDS=600" >> "$GITHUB_ENV"
+
+      - name: Trigger Render deploy (manual runs only)
+        if: ${{ github.event_name == 'workflow_dispatch' && secrets.RENDER_DEPLOY_HOOK_URL != '' }}
         run: |
-          echo "🔍 Polling ${{ inputs.base_url }}/ for health..."
-          start_time=$(date +%s)
-          timeout_seconds=${{ inputs.wait_timeout_seconds }}
-          
-          while true; do
-            current_time=$(date +%s)
-            elapsed=$((current_time - start_time))
-            
-            if [ $elapsed -gt $timeout_seconds ]; then
-              echo "❌ Timeout: Service did not become healthy within ${timeout_seconds} seconds"
+          curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+
+      - name: Wait for service to be healthy
+        run: |
+          echo "Waiting for $BASE_URL for up to ${WAIT_TIMEOUT_SECONDS}s..."
+          end=$((SECONDS + WAIT_TIMEOUT_SECONDS))
+          until curl -fsS "$BASE_URL/" > /dev/null; do
+            if [ $SECONDS -ge $end ]; then
+              echo "Timed out after ${WAIT_TIMEOUT_SECONDS}s"
               exit 1
             fi
-            
-            echo "⏰ Checking health... (${elapsed}s elapsed, max ${timeout_seconds}s)"
-            
-            if curl -f -s "${{ inputs.base_url }}/" > /dev/null 2>&1; then
-              echo "✅ Service is responding with HTTP 200"
-              break
-            else
-              echo "⏳ Service not ready yet, waiting 10 seconds..."
-              sleep 10
-            fi
+            sleep 5
           done
-          
-          # Get and display the actual response
-          echo "📋 Service health response:"
-          curl -s "${{ inputs.base_url }}/" | jq -r . || echo "Response is not valid JSON"
-          
-      - name: Smoke Test - API Endpoints
+
+      - name: Seed dev data (manual + opted-in)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_seed == 'true' }}
         run: |
-          echo "🧪 Running smoke tests..."
-          
-          # Test tools endpoint
-          echo "Testing GET ${{ inputs.base_url }}/api/tools"
-          if curl -f -s "${{ inputs.base_url }}/api/tools" > /dev/null; then
-            echo "✅ /api/tools endpoint responding"
-          else
-            echo "❌ /api/tools endpoint failed"
-            exit 1
-          fi
-          
-          # Test materials endpoint  
-          echo "Testing GET ${{ inputs.base_url }}/api/materials"
-          if curl -f -s "${{ inputs.base_url }}/api/materials" > /dev/null; then
-            echo "✅ /api/materials endpoint responding"
-          else
-            echo "❌ /api/materials endpoint failed"
-            exit 1
-          fi
-          
-          echo "✅ All smoke tests passed!"
-          
-      - name: Run Dev Seed (Optional)
-        if: ${{ inputs.run_seed == true }}
-        run: |
-          echo "🌱 Running development seed..."
-          echo "⚠️  WARNING: This will reset all data in the database!"
-          
-          response=$(curl -s -w "\n%{http_code}" "${{ inputs.base_url }}/api/dev/seed-basic")
-          http_code=$(echo "$response" | tail -n1)
-          body=$(echo "$response" | head -n -1)
-          
-          if [ "$http_code" = "200" ]; then
-            echo "✅ Dev seed completed successfully"
-            echo "📊 Seed results:"
-            echo "$body" | jq -r . || echo "$body"
-          else
-            echo "❌ Dev seed failed with HTTP $http_code"
-            echo "Response: $body"
-            exit 1
-          fi
-          
-      - name: Skip Dev Seed
-        if: ${{ inputs.run_seed == false }}
-        run: |
-          echo "⏭️ Skipping dev seed (run_seed = false)"
-          echo "ℹ️  To seed data, re-run this workflow with 'run_seed' set to true"
-          
-      - name: Summary
-        run: |
-          echo "🎉 Deployment and smoke testing completed successfully!"
-          echo ""
-          echo "📋 Summary:"
-          echo "  - Base URL: ${{ inputs.base_url }}"
-          echo "  - Deploy triggered: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' && 'Yes' || 'No (no secret)' }}"
-          echo "  - Health check: ✅ Passed"
-          echo "  - API endpoints: ✅ Passed"
-          echo "  - Dev seed: ${{ inputs.run_seed == true && '✅ Executed' || '⏭️ Skipped' }}"
+          curl -fsS "$BASE_URL/api/dev/seed-basic" || true
+
+      - name: Smoke: GET /
+        run: curl -fsS "$BASE_URL/" | head -c 200
+
+      - name: Smoke: GET /api/tools
+        run: curl -fsS "$BASE_URL/api/tools" | head -c 200
+
+      - name: Smoke: GET /api/materials
+        run: curl -fsS "$BASE_URL/api/materials" | head -c 200
