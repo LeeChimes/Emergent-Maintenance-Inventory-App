@@ -79,20 +79,20 @@ export default function BulkUpload() {
   if (!user) {
     return (
       <Screen scroll>
-      <Container>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
-      </Container>
-    </Screen>
+        <Container>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
+        </Container>
+      </Screen>
     );
   }
 
   return (
     <Screen scroll>
       <Container>
-      {/* Universal Header */}
-      <UniversalHeader title="Bulk Upload" showBackButton={true} />
+        {/* Universal Header */}
+        <UniversalHeader title="Bulk Upload" showBackButton={true} />
 
       <ScrollView style={styles.content}>
         {/* Welcome Section */}
