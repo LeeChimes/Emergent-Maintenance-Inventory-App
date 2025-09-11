@@ -9,6 +9,7 @@ import {
   TextInput,
   Modal,
   Switch,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -33,6 +34,19 @@ interface CurrentUser {
   role: 'supervisor' | 'engineer';
 }
 
+// PIN validation function
+const validatePin = (pin: string): boolean => {
+  return /^\d{4}$/.test(pin);
+};
+
+// PIN validation error message
+const getPinErrorMessage = (pin: string): string => {
+  if (!pin) return 'PIN is required';
+  if (pin.length !== 4) return 'PIN must be exactly 4 digits';
+  if (!/^\d+$/.test(pin)) return 'PIN must contain only numbers';
+  return '';
+};
+
 export default function UserManagement() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -45,6 +59,9 @@ export default function UserManagement() {
   const [newUserName, setNewUserName] = useState('');
   const [newUserRole, setNewUserRole] = useState<'supervisor' | 'engineer'>('engineer');
   const [newUserPin, setNewUserPin] = useState('');
+  
+  // Form validation states
+  const [pinError, setPinError] = useState('');
 
   useEffect(() => {
     initializeScreen();
@@ -88,13 +105,22 @@ export default function UserManagement() {
   };
 
   const handleAddUser = async () => {
-    if (!newUserName.trim() || !newUserPin.trim()) {
+    // Validate form
+    const nameError = !newUserName.trim();
+    const currentPinError = getPinErrorMessage(newUserPin);
+    
+    if (nameError) {
+      Alert.alert('Validation Error', 'Name is required');
       return;
     }
-
-    if (newUserPin.length !== 4 || !/^\d{4}$/.test(newUserPin)) {
+    
+    if (currentPinError) {
+      setPinError(currentPinError);
+      Alert.alert('Validation Error', currentPinError);
       return;
     }
+    
+    setPinError('');
 
     try {
       const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users`, {
@@ -112,31 +138,72 @@ export default function UserManagement() {
 
       if (response.ok) {
         await fetchUsers();
+        resetForm();
         setShowAddModal(false);
-        setNewUserName('');
-        setNewUserPin('');
-        setNewUserRole('engineer');
+        Alert.alert('Success', 'User created successfully');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.detail || 'Failed to create user';
+        Alert.alert('Error', errorMessage);
       }
     } catch (error) {
+      console.error('Error adding user:', error);
+      Alert.alert('Error', 'Failed to create user. Please check your connection.');
+    }
+  }; {
       console.error('Error adding user:', error);
     }
   };
 
   const handleEditUser = async () => {
-    const updatedUser = {
-      name: newUserName,
+    // Validate form
+    const nameError = !newUserName.trim();
+    const currentPinError = newUserPin ? getPinErrorMessage(newUserPin) : '';
+    
+    if (nameError) {
+      Alert.alert('Validation Error', 'Name is required');
+      return;
+    }
+    
+    if (currentPinError) {
+      setPinError(currentPinError);
+      Alert.alert('Validation Error', currentPinError);
+      return;
+    }
+    
+    setPinError('');
+
+    // Build update object with only provided fields
+    const updatedUser: any = {
+      name: newUserName.trim(),
       role: newUserRole,
-      pin: newUserPin,
     };
     
-    await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${selectedUser.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedUser),
-    });
+    // Only include PIN if provided
+    if (newUserPin) {
+      updatedUser.pin = newUserPin;
+    }
     
-    closeEditModal();
-    await fetchUsers();
+    try {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${selectedUser?.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedUser),
+      });
+      
+      if (response.ok) {
+        closeEditModal();
+        await fetchUsers();
+        Alert.alert('Success', 'User updated successfully');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.detail || 'Failed to update user';
+        Alert.alert('Error', errorMessage);
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+      Alert.alert('Error', 'Failed to update user. Please check your connection.');
+    }
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -170,6 +237,7 @@ export default function UserManagement() {
     setNewUserName('');
     setNewUserPin('');
     setNewUserRole('engineer');
+    setPinError('');
   };
 
   const closeAddModal = () => {
@@ -260,7 +328,7 @@ export default function UserManagement() {
                 </View>
                 
                 <View style={styles.userMeta}>
-                  <Text style={styles.userPin}>PIN: {user.pin}</Text>
+                  <Text style={styles.userPin}>PIN: ••••</Text>
                   {user.created_at && (
                     <Text style={styles.lastLogin}>
                       Created: {new Date(user.created_at).toLocaleDateString()}
@@ -356,15 +424,23 @@ export default function UserManagement() {
             <View style={styles.formSection}>
               <Text style={styles.formLabel}>4-Digit PIN</Text>
               <TextInput
-                style={styles.formInput}
+                style={[styles.formInput, pinError ? styles.formInputError : null]}
                 value={newUserPin}
-                onChangeText={setNewUserPin}
+                onChangeText={(text) => {
+                  setNewUserPin(text);
+                  const error = getPinErrorMessage(text);
+                  setPinError(error);
+                }}
                 placeholder="1234"
                 placeholderTextColor="#666"
                 keyboardType="numeric"
                 maxLength={4}
               />
-              <Text style={styles.formHint}>Create a 4-digit PIN for this user</Text>
+              {pinError ? (
+                <Text style={styles.formError}>{pinError}</Text>
+              ) : (
+                <Text style={styles.formHint}>Create a 4-digit PIN for this user</Text>
+              )}
             </View>
           </ScrollView>
         </SafeAreaView>
@@ -435,15 +511,23 @@ export default function UserManagement() {
             <View style={styles.formSection}>
               <Text style={styles.formLabel}>4-Digit PIN</Text>
               <TextInput
-                style={styles.formInput}
+                style={[styles.formInput, pinError ? styles.formInputError : null]}
                 value={newUserPin}
-                onChangeText={setNewUserPin}
-                placeholder="1234"
+                onChangeText={(text) => {
+                  setNewUserPin(text);
+                  const error = text ? getPinErrorMessage(text) : '';
+                  setPinError(error);
+                }}
+                placeholder="1234 (leave blank to keep current)"
                 placeholderTextColor="#666"
                 keyboardType="numeric"
                 maxLength={4}
               />
-              <Text style={styles.formHint}>Update the 4-digit PIN for this user</Text>
+              {pinError ? (
+                <Text style={styles.formError}>{pinError}</Text>
+              ) : (
+                <Text style={styles.formHint}>Update the 4-digit PIN for this user (or leave blank to keep current)</Text>
+              )}
             </View>
           </ScrollView>
         </SafeAreaView>
@@ -631,10 +715,20 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
   },
+  formInputError: {
+    borderColor: '#f44336',
+    borderWidth: 2,
+  },
   formHint: {
     color: '#666',
     fontSize: 12,
     marginTop: 4,
+  },
+  formError: {
+    color: '#f44336',
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '500',
   },
   roleSelector: {
     flexDirection: 'row',

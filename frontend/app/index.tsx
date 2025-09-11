@@ -63,15 +63,6 @@ export default function Index() {
   const [pin, setPin] = useState('');
   const [shakeAnimation] = useState(new Animated.Value(0));
 
-  // Default PINs for each user (in production, these would be stored securely)
-  const userPins: { [key: string]: string } = {
-    'lee_carter': '1234',
-    'dan_carter': '1234',
-    'lee_paull': '2468',
-    'dean_turnill': '1357',
-    'luis': '9876'
-  };
-
   useEffect(() => {
     initializeApp();
   }, []);
@@ -208,16 +199,7 @@ export default function Index() {
   };
 
   const handleUserSelect = async (selectedUser: any) => {
-    // For engineers, skip PIN and login directly
-    if (selectedUser.role === 'engineer') {
-      await AsyncStorage.setItem('userToken', selectedUser.id);
-      await AsyncStorage.setItem('userData', JSON.stringify(selectedUser));
-      setUser(selectedUser);
-      router.push('/engineer-hub');
-      return;
-    }
-    
-    // For supervisors, still require PIN
+    // All users must enter PIN - no role-based bypass
     setSelectedUser(selectedUser);
     setShowPinModal(true);
   };
@@ -225,23 +207,58 @@ export default function Index() {
   const verifyPin = async () => {
     if (!selectedUser) return;
 
-    const correctPin = userPins[selectedUser.id];
-    if (pin === correctPin) {
-      await handleLogin(selectedUser.id);
-      setShowPinModal(false);
-      setPin('');
-    } else {
-      // Shake animation for wrong PIN
-      Animated.sequence([
-        Animated.timing(shakeAnimation, { toValue: 10, duration: 100, useNativeDriver: true }),
-        Animated.timing(shakeAnimation, { toValue: -10, duration: 100, useNativeDriver: true }),
-        Animated.timing(shakeAnimation, { toValue: 10, duration: 100, useNativeDriver: true }),
-        Animated.timing(shakeAnimation, { toValue: 0, duration: 100, useNativeDriver: true }),
-      ]).start();
-      
-      Alert.alert('Wrong PIN', 'Please enter the correct PIN to continue.');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: selectedUser.id,
+          pin: pin
+        }),
+      });
+
+      if (response.status === 200) {
+        const { token, user: userData } = await response.json();
+        
+        await AsyncStorage.setItem('userToken', token);
+        await AsyncStorage.setItem('userData', JSON.stringify(userData));
+        
+        setUser(userData);
+        setShowPinModal(false);
+        setPin('');
+        
+        // Redirect engineers to engineer hub, supervisors stay on dashboard
+        if (userData.role === 'engineer') {
+          router.push('/engineer-hub');
+        }
+      } else if (response.status === 401) {
+        // Wrong PIN
+        triggerShakeAnimation();
+        Alert.alert('Wrong PIN', 'Please enter the correct PIN to continue.');
+        setPin('');
+      } else {
+        // Other error (400, 500, etc.)
+        const errorData = await response.json().catch(() => ({}));
+        Alert.alert('Login Error', errorData.detail || 'Login failed. Please try again.');
+        setPin('');
+      }
+    } catch (error) {
+      console.error('Error verifying PIN:', error);
+      Alert.alert('Connection Error', 'Could not connect to server. Please check your connection.');
       setPin('');
     }
+  };
+
+  const triggerShakeAnimation = () => {
+    // Shake animation for wrong PIN
+    Animated.sequence([
+      Animated.timing(shakeAnimation, { toValue: 10, duration: 100, useNativeDriver: true }),
+      Animated.timing(shakeAnimation, { toValue: -10, duration: 100, useNativeDriver: true }),
+      Animated.timing(shakeAnimation, { toValue: 10, duration: 100, useNativeDriver: true }),
+      Animated.timing(shakeAnimation, { toValue: 0, duration: 100, useNativeDriver: true }),
+    ]).start();
   };
 
   const handleLogin = async (userId: string) => {
@@ -271,8 +288,6 @@ export default function Index() {
       console.error('Error logging in:', error);
       Alert.alert('Error', 'Could not connect to server. Please check your connection.');
     }
-  };
-
   const handleLogout = async () => {
     console.log('🚨 LOGOUT BUTTON CLICKED!'); // Debug log
     try {
