@@ -1,4 +1,7 @@
+import React from 'react';
 import { Stack } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { AppErrorHandler } from '../utils/AppErrorHandler';
 import { useEffect } from 'react';
@@ -13,8 +16,14 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <ErrorBoundary>
-      <Stack>
+    <SafeAreaProvider>
+      <StatusBar style="auto" />
+      <ErrorBoundary>
+        <Stack
+          screenOptions={{
+            headerShown: true,
+            contentStyle: { backgroundColor: '#FFFFFF' },
+          }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="scanner" options={{ headerShown: false }} />
         <Stack.Screen name="inventory" options={{ headerShown: false }} />
@@ -42,5 +51,6 @@ export default function RootLayout() {
         <Stack.Screen name="contact-supervisors" options={{ headerShown: false }} />
       </Stack>
     </ErrorBoundary>
+  </SafeAreaProvider>
   );
 }
