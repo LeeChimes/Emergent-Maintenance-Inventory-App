@@ -14,46 +14,39 @@ export default function Screen({
   scroll = false,
   children,
   keyboardOffset = 0,
-  backgroundColor = '#fff',
+  backgroundColor = '#1a1a1a',    // Match app's dark theme
   style,
   contentContainerStyle,
   ...rest
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
 
-  const KAV = (
-    <KeyboardAvoidingView
-      behavior={Platform.select({ ios: 'padding', android: undefined })}
-      keyboardVerticalOffset={keyboardOffset + (Platform.OS === 'android' ? 0 : insets.top)}
-      style={{ flex: 1 }}
+  const content = scroll ? (
+    <ScrollView
+      contentContainerStyle={[
+        { flexGrow: 1, paddingBottom: insets.bottom + 16 },
+        contentContainerStyle,
+      ]}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
-      {scroll ? (
-        <ScrollView
-          contentContainerStyle={[
-            { flexGrow: 1, paddingBottom: insets.bottom + 16 },
-            contentContainerStyle,
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator
-          // If you ever embed scrollables inside, enable nested:
-          // nestedScrollEnabled
-        >
-          {children}
-        </ScrollView>
-      ) : (
-        <View style={[{ flex: 1, paddingBottom: insets.bottom + 16 }, style]} {...rest}>
-          {children}
-        </View>
-      )}
-    </KeyboardAvoidingView>
+      {children}
+    </ScrollView>
+  ) : (
+    <View style={[{ flex: 1, paddingBottom: insets.bottom + 16 }, style]} {...rest}>
+      {children}
+    </View>
   );
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor, paddingTop: Platform.OS === 'android' ? insets.top : 0 }}
-      edges={['top', 'right', 'left']}
-    >
-      {KAV}
+    <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['top', 'right', 'left']}>
+      <KeyboardAvoidingView
+        behavior={Platform.select({ ios: 'padding', android: undefined })}
+        keyboardVerticalOffset={keyboardOffset + (Platform.OS === 'ios' ? insets.top : 0)}
+        style={{ flex: 1 }}
+      >
+        {content}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

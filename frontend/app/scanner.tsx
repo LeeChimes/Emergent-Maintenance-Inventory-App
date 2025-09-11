@@ -4,19 +4,21 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   Modal,
   ScrollView,
   TextInput,
   Vibration,
   Dimensions,
+  SafeAreaView,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import UniversalHeader from '../components/UniversalHeader';
+import Screen from '../components/Screen';
+import Container from '../components/Container';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -497,56 +499,61 @@ export default function Scanner() {
 
   if (!permission) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.message}>Requesting camera permission...</Text>
-      </SafeAreaView>
+      <Screen>
+        <Container>
+          <Text style={styles.message}>Requesting camera permission...</Text>
+        </Container>
+      </Screen>
     );
   }
 
   if (!permission.granted) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.permissionContainer}>
-          <Ionicons name="camera-off" size={64} color="#666" />
-          <Text style={styles.permissionTitle}>Camera Permission Required</Text>
-          <Text style={styles.permissionText}>
-            We need camera access to scan QR codes for inventory management.
-          </Text>
-          <TouchableOpacity
-            style={styles.permissionButton}
-            onPress={requestPermission}
-          >
-            <Ionicons name="camera" size={24} color="#fff" />
-            <Text style={styles.permissionButtonText}>Grant Camera Permission</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.push('/')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <Screen>
+        <Container>
+          <View style={styles.permissionContainer}>
+            <Ionicons name="videocam-off" size={64} color="#666" />
+            <Text style={styles.permissionTitle}>Camera Permission Required</Text>
+            <Text style={styles.permissionText}>
+              We need camera access to scan QR codes for inventory management.
+            </Text>
+            <TouchableOpacity
+              style={styles.permissionButton}
+              onPress={requestPermission}
+            >
+              <Ionicons name="camera" size={24} color="#fff" />
+              <Text style={styles.permissionButtonText}>Grant Camera Permission</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.push('/')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="arrow-back" size={24} color="#fff" />
+              <Text style={styles.backButtonText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        </Container>
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Screen>
       {/* Universal Header */}
       <UniversalHeader title="QR Scanner" showBackButton={true} />
 
-      {/* Camera Scanner */}
-      <View style={styles.scannerContainer}>
-        <CameraView
-          style={styles.scanner}
-          facing={'back'}
-          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-          barcodeScannerSettings={{
-            barcodeTypes: ['qr', 'pdf417'],
-          }}
-        />
+      <Container style={{ flex: 1 }}>
+        {/* Camera Scanner */}
+        <View style={styles.scannerContainer}>
+          <CameraView
+            style={styles.scanner}
+            facing={'back'}
+            onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+            barcodeScannerSettings={{
+              barcodeTypes: ['qr', 'pdf417'],
+            }}
+          />
         
         <View style={styles.scannerOverlay}>
           <View style={styles.scannerFrame} />
@@ -782,7 +789,8 @@ export default function Scanner() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+      </Container>
+    </Screen>
   );
 }
 

@@ -4,18 +4,20 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   Modal,
   ScrollView,
   TextInput,
   RefreshControl,
+  SafeAreaView,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import UniversalHeader from '../components/UniversalHeader';
+import Screen from '../components/Screen';
+import Container from '../components/Container';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -434,19 +436,20 @@ export default function Inventory() {
   const filteredItems = filterItems(currentItems);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Screen>
       {/* Universal Header */}
       <UniversalHeader title="Inventory" showBackButton={true} />
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#666" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search items..."
-          placeholderTextColor="#666"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
+      <Container style={{ flex: 1 }}>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#666" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search items..."
+            placeholderTextColor="#666"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -539,7 +542,8 @@ export default function Inventory() {
       </View>
 
       {renderItemModal()}
-    </SafeAreaView>
+      </Container>
+    </Screen>
   );
 }
 
