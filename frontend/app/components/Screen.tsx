@@ -6,6 +6,7 @@ import {
   StyleProp,
   View,
   ViewStyle,
+  RefreshControlProps,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,6 +16,7 @@ type ScreenProps = PropsWithChildren<{
   contentContainerStyle?: StyleProp<ViewStyle>;
   keyboardOffset?: number; // extra offset to add to the iOS keyboardVerticalOffset
   style?: StyleProp<ViewStyle>;
+  refreshControl?: React.ReactElement<RefreshControlProps>;
 }>;
 
 export function Screen({
@@ -24,6 +26,7 @@ export function Screen({
   contentContainerStyle,
   keyboardOffset = 0,
   style,
+  refreshControl,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
 
@@ -39,6 +42,7 @@ export function Screen({
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator
+          refreshControl={refreshControl}
         >
           {children}
         </ScrollView>

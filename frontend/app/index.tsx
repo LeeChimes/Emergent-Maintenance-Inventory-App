@@ -4,13 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   Modal,
   TextInput,
   Dimensions,
   Animated,
-  ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
@@ -19,6 +17,8 @@ import { router } from 'expo-router';
 import { AppErrorHandler } from '../utils/AppErrorHandler';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { API_BASE_URL } from '../utils/config';
+import Screen from './components/Screen';
+import Container from './components/Container';
 
 const { width } = Dimensions.get('window');
 
@@ -429,8 +429,9 @@ export default function Index() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Screen scroll>
       <StatusBar style="light" />
+      <Container>
       
       {/* Header */}
       <View style={styles.header}>
@@ -453,12 +454,7 @@ export default function Index() {
         </TouchableOpacity>
       </View>
 
-      {/* Scrollable Content */}
-      <ScrollView 
-        style={styles.scrollContent}
-        contentContainerStyle={styles.scrollContentContainer}
-        showsVerticalScrollIndicator={false}
-      >
+      {/* Scrollable Content - now handled by Screen */}
         {/* Enhanced Supervisor Dashboard */}
         {user.role === 'supervisor' && (
           <View style={styles.supervisorDashboard}>
@@ -646,8 +642,8 @@ export default function Index() {
             </View>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </Container>
+    </Screen>
   );
 }
 
