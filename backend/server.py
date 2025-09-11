@@ -208,6 +208,30 @@ async def delete_user(user_id: str):
 
 
 # -----------------------------------------------------------------------------
+# Inventory + Alerts + Transactions (temporary stubs so UI runs cleanly)
+# -----------------------------------------------------------------------------
+@api_router.get("/materials")
+async def list_materials():
+    # TODO: replace with DB-backed results
+    return []
+
+@api_router.get("/tools")
+async def list_tools():
+    # TODO: replace with DB-backed results
+    return []
+
+@api_router.get("/alerts/low-stock")
+async def low_stock():
+    # TODO: compute from materials once DB is wired
+    return {"count": 0, "materials": []}
+
+@api_router.get("/transactions")
+async def list_transactions(limit: int = 20):
+    # TODO: replace with DB-backed results
+    return []
+
+
+# -----------------------------------------------------------------------------
 # Include router
 # -----------------------------------------------------------------------------
 app.include_router(api_router)
