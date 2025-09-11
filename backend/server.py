@@ -326,14 +326,14 @@ async def create_user(user_data: UserCreate):
 
 @api_router.put("/users/{user_id}")
 async def update_user(user_id: str, user_data: UserUpdate):
-    ensure_db()
-    
-    # Validate PIN format - must be 4-digit string
-    if user_data.pin and (len(str(user_data.pin)) != 4 or not str(user_data.pin).isdigit()):
+    # Validate PIN format FIRST - must be 4-digit string
+    if not user_data.pin or len(str(user_data.pin)) != 4 or not str(user_data.pin).isdigit():
         raise HTTPException(status_code=400, detail="PIN must be a 4-digit string")
     
     # Ensure PIN is stored as string
-    pin_str = str(user_data.pin).zfill(4) if user_data.pin else None
+    pin_str = str(user_data.pin).zfill(4)
+    
+    ensure_db()
     
     # Check if user exists first
     existing_user = await db.users.find_one({"id": user_id})
