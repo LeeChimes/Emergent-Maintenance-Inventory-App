@@ -20,7 +20,7 @@ on:
 
 jobs:
   verify:
-    name: "Deploy (manual only) and smoke test"
+    name: "Auto-deploy (push) and smoke test"
     runs-on: ubuntu-latest
 
     steps:
@@ -31,18 +31,37 @@ jobs:
           echo "WAIT_TIMEOUT_SECONDS=${{ github.event.inputs.wait_timeout_seconds }}" >> "$GITHUB_ENV"
 
       - name: "Set BASE_URL (push to main)"
-        if: ${{ github.event_name != 'workflow_dispatch' }}
+        if: ${{ github.event_name == 'push' }}
         run: |
           echo "BASE_URL=https://chimes-backend.onrender.com" >> "$GITHUB_ENV"
           echo "WAIT_TIMEOUT_SECONDS=600" >> "$GITHUB_ENV"
 
       - name: "Maybe trigger Render deploy (no secrets in if)"
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
-            echo "Triggering Render deploy…"
-            curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          EVENT="${{ github.event_name }}"
+
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+              echo "Manual run; triggering Render deploy…"
+              curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+            else
+              echo "No deploy hook configured; skipping deploy trigger."
+            fi
+          elif [ "$EVENT" = "push" ]; then
+            # On push, auto-deploy unless commit message contains [skip deploy] (case-insensitive)
+            MSG="${{ github.event.head_commit.message }}"
+            if echo "$MSG" | grep -qi '\[skip deploy\]'; then
+              echo "Skip flag [skip deploy] found in commit message; not triggering deploy."
+            else
+              if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+                echo "Push to main without skip flag; triggering Render deploy…"
+                curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+              else
+                echo "No deploy hook configured; skipping deploy trigger."
+              fi
+            fi
           else
-            echo "Skipping deploy trigger (not workflow_dispatch or hook not set)."
+            echo "Unsupported event '$EVENT'; skipping deploy trigger."
           fi
 
       - name: "Wait for service to be healthy"
