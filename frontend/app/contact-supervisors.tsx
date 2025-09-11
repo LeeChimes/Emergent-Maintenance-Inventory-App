@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UniversalHeader from '../components/UniversalHeader';
+import Screen from './components/Screen';
+import Container from './components/Container';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
+interface User {
+  id: string;
+  name: string;
+  role: string;
+}
+
 export default function ContactSupervisors() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [urgency, setUrgency] = useState('normal');
@@ -22,11 +30,11 @@ export default function ContactSupervisors() {
   ];
 
   const commonIssues = [
-    "Can't log deliveries",
+    "Cannot log deliveries",
     "QR scanner not working", 
     "App keeps crashing",
     "Missing inventory items",
-    "Can't access certain features",
+    "Cannot access certain features",
     "Need training on new feature"
   ];
 
@@ -111,123 +119,118 @@ export default function ContactSupervisors() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Screen scroll backgroundColor="#1a1a1a" keyboardOffset={60}>
       {/* Universal Header */}
       <UniversalHeader title="Contact Supervisors" showBackButton={true} />
-
-      <KeyboardAvoidingView 
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <ScrollView style={styles.content}>
-          {/* Introduction */}
-          <View style={styles.introSection}>
-            <Text style={styles.introTitle}>📞 Contact Your Supervisors</Text>
-            <Text style={styles.introText}>
-              Need help that you can't find in the guides? Send a request directly to 
-              Lee Carter and Dan Carter. They'll get back to you as soon as possible.
-            </Text>
-            
-            <View style={styles.supervisorInfo}>
-              <View style={styles.supervisorCard}>
-                <Ionicons name="person-circle" size={32} color="#4CAF50" />
-                <Text style={styles.supervisorName}>Lee Carter</Text>
-                <Text style={styles.supervisorRole}>Supervisor</Text>
-              </View>
-              <View style={styles.supervisorCard}>
-                <Ionicons name="person-circle" size={32} color="#2196F3" />
-                <Text style={styles.supervisorName}>Dan Carter</Text>
-                <Text style={styles.supervisorRole}>Supervisor</Text>
-              </View>
+      
+      <Container>
+        {/* Introduction */}
+        <View style={styles.introSection}>
+          <Text style={styles.introTitle}>📞 Contact Your Supervisors</Text>
+          <Text style={styles.introText}>
+            Need help that you can't find in the guides? Send a request directly to 
+            Lee Carter and Dan Carter. They'll get back to you as soon as possible.
+          </Text>
+          
+          <View style={styles.supervisorInfo}>
+            <View style={styles.supervisorCard}>
+              <Ionicons name="person-circle" size={32} color="#4CAF50" />
+              <Text style={styles.supervisorName}>Lee Carter</Text>
+              <Text style={styles.supervisorRole}>Supervisor</Text>
+            </View>
+            <View style={styles.supervisorCard}>
+              <Ionicons name="person-circle" size={32} color="#2196F3" />
+              <Text style={styles.supervisorName}>Dan Carter</Text>
+              <Text style={styles.supervisorRole}>Supervisor</Text>
             </View>
           </View>
+        </View>
 
-          {/* Quick Issues */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>💡 Common Issues (Tap to Use)</Text>
-            <View style={styles.commonIssues}>
-              {commonIssues.map((issue, index) => (
-                <TouchableOpacity 
-                  key={index}
-                  style={styles.issueChip}
-                  onPress={() => setSubject(issue)}
-                >
-                  <Text style={styles.issueChipText}>{issue}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+        {/* Quick Issues */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>💡 Common Issues (Tap to Use)</Text>
+          <View style={styles.commonIssues}>
+            {commonIssues.map((issue, index) => (
+              <TouchableOpacity 
+                key={index}
+                style={styles.issueChip}
+                onPress={() => setSubject(issue)}
+              >
+                <Text style={styles.issueChipText}>{issue}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
+        </View>
 
-          {/* Urgency Level */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>⚡ How Urgent Is This?</Text>
-            <View style={styles.urgencyOptions}>
-              {urgencyLevels.map((level) => (
-                <TouchableOpacity 
-                  key={level.id}
-                  style={[
-                    styles.urgencyOption,
-                    urgency === level.id && styles.urgencyOptionSelected
-                  ]}
-                  onPress={() => setUrgency(level.id)}
-                >
-                  <Text style={[
-                    styles.urgencyLabel,
-                    urgency === level.id && styles.urgencyLabelSelected
-                  ]}>
-                    {level.label}
-                  </Text>
-                  <Text style={[
-                    styles.urgencyDescription,
-                    urgency === level.id && styles.urgencyDescriptionSelected
-                  ]}>
-                    {level.description}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+        {/* Urgency Level */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>⚡ How Urgent Is This?</Text>
+          <View style={styles.urgencyOptions}>
+            {urgencyLevels.map((level) => (
+              <TouchableOpacity 
+                key={level.id}
+                style={[
+                  styles.urgencyOption,
+                  urgency === level.id && styles.urgencyOptionSelected
+                ]}
+                onPress={() => setUrgency(level.id)}
+              >
+                <Text style={[
+                  styles.urgencyLabel,
+                  urgency === level.id && styles.urgencyLabelSelected
+                ]}>
+                  {level.label}
+                </Text>
+                <Text style={[
+                  styles.urgencyDescription,
+                  urgency === level.id && styles.urgencyDescriptionSelected
+                ]}>
+                  {level.description}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
+        </View>
 
-          {/* Subject */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📝 What's the Issue? *</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Brief summary of your problem..."
-              placeholderTextColor="#999"
-              value={subject}
-              onChangeText={setSubject}
-              maxLength={100}
-            />
-            <Text style={styles.characterCount}>{subject.length}/100</Text>
-          </View>
+        {/* Subject */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📝 What's the Issue? *</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Brief summary of your problem..."
+            placeholderTextColor="#999"
+            value={subject}
+            onChangeText={setSubject}
+            maxLength={100}
+          />
+          <Text style={styles.characterCount}>{subject.length}/100</Text>
+        </View>
 
-          {/* Description */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📋 Please Describe in Detail *</Text>
-            <TextInput
-              style={[styles.textInput, styles.textAreaInput]}
-              placeholder="What exactly is happening? What have you tried? When did it start?"
-              placeholderTextColor="#999"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={6}
-              maxLength={500}
-            />
-            <Text style={styles.characterCount}>{description.length}/500</Text>
-          </View>
+        {/* Description */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📋 Please Describe in Detail *</Text>
+          <TextInput
+            style={[styles.textInput, styles.textAreaInput]}
+            placeholder="What exactly is happening? What have you tried? When did it start?"
+            placeholderTextColor="#999"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            numberOfLines={6}
+            maxLength={500}
+          />
+          <Text style={styles.characterCount}>{description.length}/500</Text>
+        </View>
 
-          {/* User Info Display */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>👤 Your Information</Text>
-            <View style={styles.userInfo}>
-              <Text style={styles.userInfoText}>Name: {user?.name || 'Unknown'}</Text>
-              <Text style={styles.userInfoText}>Role: {user?.role || 'Unknown'}</Text>
-              <Text style={styles.userInfoText}>Request Time: {new Date().toLocaleString()}</Text>
-            </View>
+        {/* User Info Display */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>👤 Your Information</Text>
+          <View style={styles.userInfo}>
+            <Text style={styles.userInfoText}>Name: {user?.name || 'Unknown'}</Text>
+            <Text style={styles.userInfoText}>Role: {user?.role || 'Unknown'}</Text>
+            <Text style={styles.userInfoText}>Request Time: {new Date().toLocaleString()}</Text>
           </View>
-        </ScrollView>
+        </View>
 
         {/* Send Button */}
         <View style={styles.sendButtonContainer}>
@@ -243,23 +246,12 @@ export default function ContactSupervisors() {
             )}
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      </Container>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
-  keyboardContainer: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
   introSection: {
     backgroundColor: '#2d2d2d',
     padding: 20,

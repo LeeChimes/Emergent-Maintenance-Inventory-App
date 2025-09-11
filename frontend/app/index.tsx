@@ -4,20 +4,19 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   Modal,
   TextInput,
   Dimensions,
   Animated,
-  ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { AppErrorHandler } from '../utils/AppErrorHandler';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import Screen from './components/Screen';
+import Container from './components/Container';
 import { API_BASE_URL } from '../utils/config';
 
 const { width } = Dimensions.get('window');
@@ -367,98 +366,97 @@ export default function Index() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centerContent}>
-          <Ionicons name="cube" size={48} color="#4CAF50" />
-          <Text style={styles.loadingText}>Loading your workspace... 🚀</Text>
-        </View>
-      </SafeAreaView>
+      <Screen backgroundColor="#1a1a1a">
+        <Container>
+          <View style={styles.centerContent}>
+            <Ionicons name="cube" size={48} color="#4CAF50" />
+            <Text style={styles.loadingText}>Loading your workspace... 🚀</Text>
+          </View>
+        </Container>
+      </Screen>
     );
   }
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar style="light" />
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Ionicons name="cube" size={48} color="#4CAF50" />
-            <View style={styles.headerText}>
-              <Text style={styles.headerTitle}>Asset Inventory</Text>
-              <Text style={styles.headerSubtitle}>Chimes Shopping Centre ✨</Text>
+      <Screen backgroundColor="#1a1a1a">
+        <Container>
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <Ionicons name="cube" size={48} color="#4CAF50" />
+              <View style={styles.headerText}>
+                <Text style={styles.headerTitle}>Asset Inventory</Text>
+                <Text style={styles.headerSubtitle}>Chimes Shopping Centre ✨</Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        <View style={styles.loginSection}>
-          <Text style={styles.loginTitle}>Welcome to Your Digital Toolkit! 🛠️</Text>
-          <Text style={styles.loginSubtext}>Tap your name to get started</Text>
-          
-          {users.map((userData) => (
-            <TouchableOpacity
-              key={userData.id}
-              style={[
-                styles.userButton,
-                userData.role === 'supervisor' ? styles.supervisorButton : styles.engineerButton
-              ]}
-              onPress={() => handleUserSelect(userData)}
-            >
-              <View style={styles.userButtonContent}>
-                <View style={styles.userIconContainer}>
-                  <Ionicons
-                    name={userData.role === 'supervisor' ? 'star' : 'person'}
-                    size={24}
-                    color="#fff"
-                  />
+          <View style={styles.loginSection}>
+            <Text style={styles.loginTitle}>Welcome to Your Digital Toolkit! 🛠️</Text>
+            <Text style={styles.loginSubtext}>Tap your name to get started</Text>
+            
+            {users.map((userData) => (
+              <TouchableOpacity
+                key={userData.id}
+                style={[
+                  styles.userButton,
+                  userData.role === 'supervisor' ? styles.supervisorButton : styles.engineerButton
+                ]}
+                onPress={() => handleUserSelect(userData)}
+              >
+                <View style={styles.userButtonContent}>
+                  <View style={styles.userIconContainer}>
+                    <Ionicons
+                      name={userData.role === 'supervisor' ? 'star' : 'person'}
+                      size={24}
+                      color="#fff"
+                    />
+                  </View>
+                  <View style={styles.userInfo}>
+                    <Text style={styles.userName}>{userData.name}</Text>
+                    <Text style={styles.userRole}>
+                      {userData.role === 'supervisor' ? '⭐ Supervisor' : '🔧 Engineer'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#fff" />
                 </View>
-                <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{userData.name}</Text>
-                  <Text style={styles.userRole}>
-                    {userData.role === 'supervisor' ? '⭐ Supervisor' : '🔧 Engineer'}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#fff" />
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-        {renderPinModal()}
-      </SafeAreaView>
+          {renderPinModal()}
+        </Container>
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
-      
+    <Screen scroll backgroundColor="#1a1a1a">
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Ionicons name="cube" size={32} color="#4CAF50" />
-          <View>
-            <Text style={styles.headerTitle}>Asset Inventory</Text>
-            <Text style={styles.welcomeText}>
-              Hey {user.name.split(' ')[0]}! 👋 Ready to rock?
-            </Text>
+      <Container>
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Ionicons name="cube" size={32} color="#4CAF50" />
+            <View>
+              <Text style={styles.headerTitle}>Asset Inventory</Text>
+              <Text style={styles.welcomeText}>
+                Hey {user.name.split(' ')[0]}! 👋 Ready to rock?
+              </Text>
+            </View>
           </View>
+          <TouchableOpacity 
+            onPress={handleLogout} 
+            style={styles.logoutButton}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="log-out-outline" size={24} color="#fff" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity 
-          onPress={handleLogout} 
-          style={styles.logoutButton}
-          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="log-out-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      </Container>
 
       {/* Scrollable Content */}
-      <ScrollView 
-        style={styles.scrollContent}
-        contentContainerStyle={styles.scrollContentContainer}
-        showsVerticalScrollIndicator={false}
-      >
+      <Container>
         {/* Enhanced Supervisor Dashboard */}
         {user.role === 'supervisor' && (
           <View style={styles.supervisorDashboard}>
@@ -646,16 +644,12 @@ export default function Index() {
             </View>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </Container>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
   centerContent: {
     flex: 1,
     justifyContent: 'center',
@@ -843,15 +837,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
   },
-  scrollContent: {
-    flex: 1,
-  },
-  scrollContentContainer: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
   supervisorDashboard: {
-    paddingHorizontal: 20,
     paddingTop: 10,
     gap: 10,
   },
