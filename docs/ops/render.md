@@ -5,10 +5,17 @@ This document explains how to set up and use the automated Render deployment and
 ## Overview
 
 The `render-deploy-smoke.yml` GitHub Actions workflow automates:
-- Triggering a Render deployment via Deploy Hook
+- Triggering a Render deployment via Deploy Hook (automatic on push to main)
 - Waiting for the service to become healthy
 - Running smoke tests against key API endpoints
 - Optionally seeding development data
+
+### Automatic Deployment Control
+
+- **Default behavior**: Every push to `main` triggers a new deployment
+- **Skip deployments**: Include `[skip deploy]` anywhere in your commit message (case-insensitive)
+- **Manual runs**: Always trigger deployment if the secret is configured
+- **Safety**: Smoke tests run on every execution regardless of deployment
 
 ## Setup Instructions
 
@@ -84,19 +91,29 @@ The `render-deploy-smoke.yml` GitHub Actions workflow automates:
 
 ## Workflow Scenarios
 
-### Scenario 1: Deploy and Test (Recommended)
+### Scenario 1: Automatic Deploy on Push (New Default)
 - Configure `RENDER_DEPLOY_HOOK_URL` secret
-- Run workflow with default parameters
+- Push commits to main branch with normal commit messages
+- Result: New deployment triggered automatically, health checked, smoke tested
+
+### Scenario 2: Skip Deploy on Push
+- Configure `RENDER_DEPLOY_HOOK_URL` secret
+- Push commits to main branch with `[skip deploy]` in commit message (case-insensitive)
+- Result: Deployment skipped, but smoke tests still run against existing deployment
+
+### Scenario 3: Manual Deploy and Test
+- Configure `RENDER_DEPLOY_HOOK_URL` secret
+- Run workflow manually with default parameters
 - Result: New deployment triggered, health checked, smoke tested
 
-### Scenario 2: Test Only
+### Scenario 4: Test Only
 - No `RENDER_DEPLOY_HOOK_URL` secret configured
-- Run workflow with default parameters  
+- Push to main or run workflow manually
 - Result: Tests existing deployment without triggering new deploy
 
-### Scenario 3: Deploy, Test, and Seed
+### Scenario 5: Manual Deploy, Test, and Seed
 - Configure `RENDER_DEPLOY_HOOK_URL` secret
-- Run workflow with `run_seed: true`
+- Run workflow manually with `run_seed: true`
 - Result: New deployment, health check, smoke tests, and fresh seed data
 - ⚠️ **Use with caution** - this resets all data!
 
@@ -122,10 +139,19 @@ The `render-deploy-smoke.yml` GitHub Actions workflow automates:
 - Check service logs for database connection issues
 - Verify the database is connected and accessible
 
+### Unexpected Deployments
+- If deployments are triggering when you don't want them, add `[skip deploy]` to your commit message
+- The flag works with any capitalization: `[skip deploy]`, `[SKIP DEPLOY]`, `[Skip Deploy]`
+- Check workflow logs to see which condition triggered the deployment
+
+### Skip Deploy Flag Not Working
+- Ensure the flag is exactly `[skip deploy]` with square brackets
+- The flag can appear anywhere in the commit message
+- Check the workflow logs to see the commit message that was parsed
+
 ## Future Enhancements
 
 This workflow can be extended with:
-- Automatic deployment on push to main branch
 - Integration tests beyond basic smoke tests
 - Slack/email notifications on success/failure
 - Database backup before seeding
