@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import UniversalHeader from '../components/UniversalHeader';
+import Screen from './components/Screen';
+import Container from './components/Container';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
+interface ConversationMessage {
+  type: 'user' | 'ai';
+  text: string;
+}
+
 export default function AIHelp() {
   const [question, setQuestion] = useState('');
-  const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
-  const [conversationHistory, setConversationHistory] = useState([]);
+  const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
 
   const commonQuestions = [
     "How do I log a delivery?",
@@ -21,7 +26,7 @@ export default function AIHelp() {
     "App won't load or crashes"
   ];
 
-  const askAI = async (userQuestion) => {
+  const askAI = async (userQuestion: string) => {
     if (!userQuestion.trim()) return;
     
     setLoading(true);
@@ -103,20 +108,16 @@ Please try again in a moment, or browse the detailed help sections.`;
 
   const clearConversation = () => {
     setConversationHistory([]);
-    setResponse('');
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Screen scroll backgroundColor="#1a1a1a" keyboardOffset={60}>
       {/* Universal Header */}
       <UniversalHeader title="AI Help Assistant" showBackButton={true} />
-
-      <KeyboardAvoidingView 
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      
+      <Container>
         {/* Conversation */}
-        <ScrollView style={styles.conversationContainer}>
+        <View style={styles.conversationContainer}>
           {conversationHistory.length === 0 ? (
             <View style={styles.welcomeSection}>
               <View style={styles.welcomeHeader}>
@@ -201,7 +202,7 @@ Please try again in a moment, or browse the detailed help sections.`;
               )}
             </View>
           )}
-        </ScrollView>
+        </View>
 
         {/* Input */}
         <View style={styles.inputContainer}>
@@ -223,22 +224,14 @@ Please try again in a moment, or browse the detailed help sections.`;
             <Ionicons name="send" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      </Container>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
-  keyboardContainer: {
-    flex: 1,
-  },
   conversationContainer: {
     flex: 1,
-    paddingHorizontal: 16,
   },
   welcomeSection: {
     backgroundColor: '#2d2d2d',
