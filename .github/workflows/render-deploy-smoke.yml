@@ -20,7 +20,7 @@ on:
 
 jobs:
   verify:
-    name: "Deploy (manual only) and smoke test"
+    name: "Deploy and smoke test"
     runs-on: ubuntu-latest
 
     steps:
@@ -38,12 +38,34 @@ jobs:
 
       - name: "Maybe trigger Render deploy (no secrets in if)"
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
-            echo "Triggering Render deploy…"
-            curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-          else
-            echo "Skipping deploy trigger (not workflow_dispatch or hook not set)."
+          # Check if hook URL is configured
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "No RENDER_DEPLOY_HOOK_URL secret configured; skipping deploy."
+            exit 0
           fi
+          
+          # Always deploy on workflow_dispatch
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual workflow dispatch; triggering Render deploy…"
+            curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+            exit 0
+          fi
+          
+          # For push events, check for [skip deploy] flag
+          if [ "${{ github.event_name }}" = "push" ]; then
+            commit_msg="${{ github.event.head_commit.message }}"
+            # Case-insensitive check for [skip deploy]
+            if echo "$commit_msg" | grep -qi '\[skip deploy\]'; then
+              echo "Skip flag [skip deploy] found in commit message; not triggering deploy."
+              exit 0
+            else
+              echo "Push to main without skip flag; triggering Render deploy…"
+              curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+              exit 0
+            fi
+          fi
+          
+          echo "Unknown event type; skipping deploy."
 
       - name: "Wait for service to be healthy"
         run: |
