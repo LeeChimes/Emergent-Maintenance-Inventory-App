@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, TextInput, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UniversalHeader from '../components/UniversalHeader';
+import Screen from '../components/Screen';
+import Container from '../components/Container';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -234,21 +236,23 @@ export default function Deliveries() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading deliveries...</Text>
-        </View>
-      </SafeAreaView>
+      <Screen>
+        <Container>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading deliveries...</Text>
+          </View>
+        </Container>
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Screen scroll>
       {/* Universal Header */}
       <UniversalHeader title="Deliveries" showBackButton={true} />
 
-      {/* Main Content */}
-      <ScrollView style={styles.content}>
+      <Container>
+        {/* Main Content */}
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>📦 Delivery Management</Text>
@@ -296,7 +300,7 @@ export default function Deliveries() {
             ))
           )}
         </View>
-      </ScrollView>
+      </Container>
 
       {/* Floating Add Button */}
       <TouchableOpacity
@@ -608,7 +612,7 @@ export default function Deliveries() {
           )}
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </Screen>
   );
 }
 

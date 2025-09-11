@@ -4,13 +4,14 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import Screen from '../components/Screen';
+import Container from '../components/Container';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -84,14 +85,15 @@ export default function Dashboard() {
 
   if (!user || user.role !== 'supervisor') {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centerContent}>
-          <Ionicons name="lock-closed" size={48} color="#F44336" />
-          <Text style={styles.accessDeniedText}>Access Denied</Text>
-          <Text style={styles.accessDeniedSubtext}>
-            This dashboard is only available to supervisors
-          </Text>
-          <TouchableOpacity
+      <Screen>
+        <Container>
+          <View style={styles.centerContent}>
+            <Ionicons name="lock-closed" size={48} color="#F44336" />
+            <Text style={styles.accessDeniedText}>Access Denied</Text>
+            <Text style={styles.accessDeniedSubtext}>
+              This dashboard is only available to supervisors
+            </Text>
+            <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.push('/')}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -99,13 +101,15 @@ export default function Dashboard() {
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+        </Container>
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
+    <Screen scroll>
+      <Container>
+        {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerButton}
@@ -122,16 +126,6 @@ export default function Dashboard() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#4CAF50"
-          />
-        }
-      >
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>
@@ -266,8 +260,8 @@ export default function Dashboard() {
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </Container>
+    </Screen>
   );
 }
 
