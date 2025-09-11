@@ -38,7 +38,9 @@ try:
         db = client[MONGODB_DB_NAME]
         print(f"✅ Connected to MongoDB database: {MONGODB_DB_NAME}")
     else:
-        print("⚠️ MONGODB_URI not set; API will start but database operations will fail.")
+        print(
+            "⚠️ MONGODB_URI not set; API will start but database operations will fail."
+        )
 except Exception as e:
     # Do not crash the server; log only
     print(f"❌ Failed to connect to MongoDB: {e}")
@@ -182,12 +184,18 @@ class TransactionCreate(BaseModel):
 # -----------------------------------------------------------------------------
 @app.get("/")
 async def root_health():
-    return {"message": "Asset Inventory API is running", "time": datetime.utcnow().isoformat()}
+    return {
+        "message": "Asset Inventory API is running",
+        "time": datetime.utcnow().isoformat(),
+    }
 
 
 @api_router.get("/")
 async def api_health():
-    return {"message": "Asset Inventory API (router) is running", "time": datetime.utcnow().isoformat()}
+    return {
+        "message": "Asset Inventory API (router) is running",
+        "time": datetime.utcnow().isoformat(),
+    }
 
 
 # -----------------------------------------------------------------------------
@@ -198,25 +206,47 @@ async def create_indexes_and_users():
     if db is None:
         print("ℹ️ Skipping indexes and default user creation; database not connected.")
         return
-    
+
     try:
         # Create helpful indexes
         await db.users.create_index("id", unique=True)
         await db.materials.create_index("id", unique=True)
         await db.tools.create_index("id", unique=True)
-        await db.transactions.create_index([("timestamp", -1)])  # Descending for recent first
+        await db.transactions.create_index(
+            [("timestamp", -1)]
+        )  # Descending for recent first
         print("✅ Database indexes created")
     except Exception as e:
         print(f"⚠️ Error creating indexes (may already exist): {e}")
-    
+
     try:
         user_count = await db.users.count_documents({})
         if user_count == 0:
             default_users = [
-                {"id": "lee_carter", "name": "Lee Carter", "role": "supervisor", "pin": "1234"},
-                {"id": "dan_carter", "name": "Dan Carter", "role": "supervisor", "pin": "1234"},
-                {"id": "lee_paull", "name": "Lee Paull", "role": "engineer", "pin": "1234"},
-                {"id": "dean_turnill", "name": "Dean Turnill", "role": "engineer", "pin": "1234"},
+                {
+                    "id": "lee_carter",
+                    "name": "Lee Carter",
+                    "role": "supervisor",
+                    "pin": "1234",
+                },
+                {
+                    "id": "dan_carter",
+                    "name": "Dan Carter",
+                    "role": "supervisor",
+                    "pin": "1234",
+                },
+                {
+                    "id": "lee_paull",
+                    "name": "Lee Paull",
+                    "role": "engineer",
+                    "pin": "1234",
+                },
+                {
+                    "id": "dean_turnill",
+                    "name": "Dean Turnill",
+                    "role": "engineer",
+                    "pin": "1234",
+                },
                 {"id": "luis", "name": "Luis", "role": "engineer", "pin": "1234"},
             ]
             for data in default_users:
@@ -269,7 +299,9 @@ async def create_user(user_data: UserCreate):
     ensure_db()
     existing_user = await db.users.find_one({"name": user_data.name})
     if existing_user:
-        raise HTTPException(status_code=400, detail="User with this name already exists")
+        raise HTTPException(
+            status_code=400, detail="User with this name already exists"
+        )
     user_dict = user_data.model_dump()
     user_dict["id"] = str(uuid.uuid4())
     user_dict["created_at"] = datetime.utcnow().isoformat()
@@ -338,16 +370,13 @@ async def update_material(material_id: str, material_data: MaterialUpdate):
     update_data = {k: v for k, v in material_data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No update data provided")
-    
+
     update_data["updated_at"] = datetime.utcnow()
-    result = await db.materials.update_one(
-        {"id": material_id},
-        {"$set": update_data}
-    )
-    
+    result = await db.materials.update_one({"id": material_id}, {"$set": update_data})
+
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Material not found")
-    
+
     updated_material = await db.materials.find_one({"id": material_id})
     return Material(**updated_material)
 
@@ -386,16 +415,13 @@ async def update_tool(tool_id: str, tool_data: ToolUpdate):
     update_data = {k: v for k, v in tool_data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No update data provided")
-    
+
     update_data["updated_at"] = datetime.utcnow()
-    result = await db.tools.update_one(
-        {"id": tool_id},
-        {"$set": update_data}
-    )
-    
+    result = await db.tools.update_one({"id": tool_id}, {"$set": update_data})
+
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Tool not found")
-    
+
     updated_tool = await db.tools.find_one({"id": tool_id})
     return Tool(**updated_tool)
 
@@ -407,10 +433,10 @@ async def update_tool(tool_id: str, tool_data: ToolUpdate):
 async def low_stock():
     ensure_db()
     # Find materials where quantity <= min_stock
-    low_stock_materials = await db.materials.find({
-        "$expr": {"$lte": ["$quantity", "$min_stock"]}
-    }).to_list(1000)
-    
+    low_stock_materials = await db.materials.find(
+        {"$expr": {"$lte": ["$quantity", "$min_stock"]}}
+    ).to_list(1000)
+
     materials = [Material(**material) for material in low_stock_materials]
     return {"count": len(materials), "materials": materials}
 
@@ -421,7 +447,9 @@ async def low_stock():
 @api_router.get("/transactions", response_model=List[Transaction])
 async def list_transactions(limit: int = 20):
     ensure_db()
-    transactions = await db.transactions.find().sort("timestamp", -1).limit(limit).to_list(limit)
+    transactions = (
+        await db.transactions.find().sort("timestamp", -1).limit(limit).to_list(limit)
+    )
     return [Transaction(**transaction) for transaction in transactions]
 
 
@@ -440,12 +468,12 @@ async def create_transaction(transaction_data: TransactionCreate):
 @api_router.post("/dev/seed-basic")
 async def seed_basic_data():
     ensure_db()
-    
+
     # Clear existing data
     await db.materials.delete_many({})
     await db.tools.delete_many({})
     await db.transactions.delete_many({})
-    
+
     # Seed materials
     sample_materials = [
         {
@@ -453,71 +481,84 @@ async def seed_basic_data():
             "sku": "SAF-HEL-001",
             "quantity": 15,
             "min_stock": 10,
-            "location": "Safety Storage"
+            "location": "Safety Storage",
         },
         {
             "name": "Steel Bolts M8",
             "sku": "BOL-STL-M8",
             "quantity": 5,
             "min_stock": 20,
-            "location": "Hardware Bin A"
+            "location": "Hardware Bin A",
         },
         {
             "name": "LED Work Lights",
             "sku": "LED-WRK-002",
             "quantity": 8,
             "min_stock": 5,
-            "location": "Electrical Storage"
+            "location": "Electrical Storage",
         },
         {
             "name": "Heavy Duty Gloves",
             "sku": "GLV-HD-001",
             "quantity": 25,
             "min_stock": 15,
-            "location": "Safety Storage"
-        }
+            "location": "Safety Storage",
+        },
     ]
-    
+
     created_materials = []
     for mat_data in sample_materials:
         material = Material(**mat_data)
         await db.materials.insert_one(material.model_dump())
         created_materials.append(material)
-    
+
     # Seed tools
     sample_tools = [
         {
             "name": "Impact Drill",
             "condition": "good",
             "serial": "DRL-001-2023",
-            "location": "Tool Room A"
+            "location": "Tool Room A",
         },
         {
             "name": "Digital Multimeter",
-            "condition": "excellent",
+            "condition": "good",
             "serial": "DMM-005-2024",
-            "location": "Electronics Bay"
+            "location": "Electronics Bay",
         },
         {
             "name": "Torque Wrench",
             "condition": "fair",
             "serial": "TW-003-2022",
-            "location": "Tool Room B"
+            "location": "Tool Room B",
         },
         {
             "name": "Angle Grinder",
             "condition": "poor",
             "serial": "AG-007-2021",
-            "location": "Repair Shop"
-        }
+            "location": "Repair Shop",
+        },
     ]
-    
+
     created_tools = []
     for tool_data in sample_tools:
+        # Normalize condition to prevent validation errors
+        if "condition" in tool_data:
+            original_condition = tool_data["condition"]
+            condition = tool_data["condition"].lower().strip()
+            if condition not in {"good", "fair", "poor"}:
+                print(
+                    f"⚠️ Coerced invalid tool condition '{original_condition}' to 'good' for tool '{tool_data.get('name', 'Unknown')}'"
+                )
+                tool_data["condition"] = "good"
+            else:
+                # Valid condition but might need normalization (whitespace/case)
+                tool_data["condition"] = condition
+
         tool = Tool(**tool_data)
         await db.tools.insert_one(tool.model_dump())
         created_tools.append(tool)
-    
+
     # Seed some transactions
     sample_transactions = [
         {
@@ -526,38 +567,40 @@ async def seed_basic_data():
             "item_id": created_materials[0].id,
             "quantity": 3,
             "note": "Used for maintenance job #123",
-            "user_id": "lee_carter"
+            "user_id": "lee_carter",
         },
         {
             "type": "in",
-            "item_type": "material", 
+            "item_type": "material",
             "item_id": created_materials[1].id,
             "quantity": 50,
             "note": "New shipment received",
-            "user_id": "dan_carter"
+            "user_id": "dan_carter",
         },
         {
             "type": "out",
             "item_type": "tool",
             "item_id": created_tools[0].id,
             "note": "Checked out for equipment repair",
-            "user_id": "lee_paull"
-        }
+            "user_id": "lee_paull",
+        },
     ]
-    
+
     created_transactions = []
     for trans_data in sample_transactions:
         transaction = Transaction(**trans_data)
         await db.transactions.insert_one(transaction.model_dump())
         created_transactions.append(transaction)
-    
-    print(f"✅ Seeded {len(created_materials)} materials, {len(created_tools)} tools, {len(created_transactions)} transactions")
-    
+
+    print(
+        f"✅ Seeded {len(created_materials)} materials, {len(created_tools)} tools, {len(created_transactions)} transactions"
+    )
+
     return {
         "message": "Basic seed data created successfully",
         "materials_count": len(created_materials),
-        "tools_count": len(created_tools), 
-        "transactions_count": len(created_transactions)
+        "tools_count": len(created_tools),
+        "transactions_count": len(created_transactions),
     }
 
 
