@@ -4,10 +4,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   Modal,
-  ScrollView,
   TextInput,
   Vibration,
   Dimensions,
@@ -17,6 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import UniversalHeader from '../components/UniversalHeader';
+import Screen from './components/Screen';
+import Container from './components/Container';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -533,9 +533,10 @@ export default function Scanner() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Universal Header */}
-      <UniversalHeader title="QR Scanner" showBackButton={true} />
+    <Screen>
+      <Container>
+        {/* Universal Header */}
+        <UniversalHeader title="QR Scanner" showBackButton={true} />
 
       {/* Camera Scanner */}
       <View style={styles.scannerContainer}>
@@ -782,7 +783,8 @@ export default function Scanner() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+      </Container>
+    </Screen>
   );
 }
 
