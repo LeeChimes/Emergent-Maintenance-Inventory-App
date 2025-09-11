@@ -4,8 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UniversalHeader from '../components/UniversalHeader';
-
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_BASE_URL } from '../utils/config';
 
 interface User {
   id: string;
@@ -118,7 +117,7 @@ export default function AddItem() {
 
       const endpoint = itemType === 'material' ? '/api/materials' : '/api/tools';
       
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(itemData),

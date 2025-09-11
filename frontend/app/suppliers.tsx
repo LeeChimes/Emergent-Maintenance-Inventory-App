@@ -4,8 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UniversalHeader from '../components/UniversalHeader';
-
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_BASE_URL } from '../utils/config';
 
 interface User {
   id: string;
@@ -78,7 +77,7 @@ export default function Suppliers() {
 
   const fetchSuppliers = async () => {
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`);
+      const response = await fetch(`${API_BASE_URL}/api/suppliers`);
       if (response.ok) {
         const data = await response.json();
         setSuppliers(data);
@@ -108,7 +107,7 @@ export default function Suppliers() {
     }
 
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`, {
+      const response = await fetch(`${API_BASE_URL}/api/suppliers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSupplier),
@@ -138,7 +137,7 @@ export default function Suppliers() {
     setScanningWebsite(true);
     
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers/${supplierId}/scan-website`, {
+      const response = await fetch(`${API_BASE_URL}/api/suppliers/${supplierId}/scan-website`, {
         method: 'POST',
       });
 

@@ -13,8 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import UniversalHeader from '../components/UniversalHeader';
-
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_BASE_URL } from '../utils/config';
 
 interface User {
   id: string;
@@ -71,7 +70,7 @@ export default function AuditLog() {
 
   const fetchAuditLog = async () => {
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/transactions?limit=100&sort=desc`);
+      const response = await fetch(`${API_BASE_URL}/api/transactions?limit=100&sort=desc`);
       if (response.ok) {
         const data = await response.json();
         setAuditEntries(data || []);

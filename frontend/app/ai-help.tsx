@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Tex
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import UniversalHeader from '../components/UniversalHeader';
-
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_BASE_URL } from '../utils/config';
 
 export default function AIHelp() {
   const [question, setQuestion] = useState('');
@@ -62,7 +61,7 @@ Please provide step-by-step instructions for the user's question. Be clear, conc
 User Question: ${currentQuestion}
 `;
 
-      const aiResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/ai-chat`, {
+      const aiResponse = await fetch(`${API_BASE_URL}/api/ai-chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

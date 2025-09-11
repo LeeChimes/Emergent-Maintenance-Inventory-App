@@ -73,7 +73,7 @@ class ErrorReportingServiceClass {
     }
 
     try {
-      const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+      const { API_BASE_URL } = await import('../utils/config');
       
       const payload = {
         errors: this.errorQueue,
@@ -110,11 +110,11 @@ class ErrorReportingServiceClass {
   private async simulateErrorReporting(payload: any) {
     // Send error reports to your backend for immediate attention
     try {
-      const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+      const { API_BASE_URL } = await import('../utils/config');
       
       // Send each error report individually for better tracking
       for (const errorReport of payload.errors) {
-        const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/error-reports`, {
+        const response = await fetch(`${API_BASE_URL}/api/error-reports`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

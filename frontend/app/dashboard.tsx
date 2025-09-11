@@ -11,8 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_BASE_URL } from '../utils/config';
 
 interface User {
   id: string;
@@ -64,7 +63,7 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/alerts/low-stock`);
+      const response = await fetch(`${API_BASE_URL}/api/alerts/low-stock`);
       if (response.ok) {
         const data = await response.json();
         setLowStockItems(data.materials || []);

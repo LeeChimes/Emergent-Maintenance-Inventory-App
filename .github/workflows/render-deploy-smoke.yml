@@ -1,0 +1,90 @@
+name: Render Deploy & Smoke Tests
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      backend_url:
+        description: 'Backend URL to test'
+        required: false
+        default: 'https://chimes-backend.onrender.com'
+      run_seed:
+        description: 'Run database seeding after deployment'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  smoke-tests:
+    runs-on: ubuntu-latest
+    name: Smoke Tests
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set backend URL
+      id: set-url
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "BACKEND_URL=${{ github.event.inputs.backend_url }}" >> $GITHUB_ENV
+        else
+          echo "BACKEND_URL=https://chimes-backend.onrender.com" >> $GITHUB_ENV
+        fi
+        
+    - name: Wait for backend to be ready
+      run: |
+        echo "Testing backend at: $BACKEND_URL"
+        timeout 300 bash -c 'until curl -f "$BACKEND_URL/" > /dev/null 2>&1; do sleep 10; done'
+        
+    - name: Run smoke tests
+      run: |
+        echo "Running smoke tests against $BACKEND_URL"
+        
+        # Test health endpoint
+        echo "Testing health endpoint..."
+        curl -f "$BACKEND_URL/" || exit 1
+        
+        # Test API endpoints
+        echo "Testing tools API..."
+        curl -f "$BACKEND_URL/api/tools" || exit 1
+        
+        echo "Testing materials API..."
+        curl -f "$BACKEND_URL/api/materials" || exit 1
+        
+        echo "All smoke tests passed!"
+
+  deploy:
+    runs-on: ubuntu-latest
+    name: Trigger Render Deploy
+    needs: smoke-tests
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Trigger Render deployment
+      run: |
+        echo "Triggering Render deployment..."
+        # Add your Render deploy hook URL here when ready
+        # curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+        echo "Deployment triggered (hook URL to be configured)"
+        
+    - name: Wait for deployment
+      run: |
+        echo "Waiting for deployment to complete..."
+        sleep 60
+        
+  seed-database:
+    runs-on: ubuntu-latest
+    name: Seed Database
+    needs: deploy
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_seed == 'true'
+    
+    steps:
+    - name: Seed database
+      run: |
+        BACKEND_URL="${{ github.event.inputs.backend_url }}"
+        echo "Seeding database at $BACKEND_URL"
+        # Add database seeding logic here when ready
+        # curl -X POST "$BACKEND_URL/api/seed" -H "Authorization: Bearer ${{ secrets.SEED_TOKEN }}"
+        echo "Database seeding completed (endpoint to be configured)"

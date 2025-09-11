@@ -4,8 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UniversalHeader from '../components/UniversalHeader';
-
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { API_BASE_URL } from '../utils/config';
 
 interface User {
   id: string;
@@ -78,8 +77,8 @@ export default function StockTake() {
   const fetchItems = async () => {
     try {
       const [materialsResponse, toolsResponse] = await Promise.all([
-        fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/materials`),
-        fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/tools`)
+        fetch(`${API_BASE_URL}/api/materials`),
+        fetch(`${API_BASE_URL}/api/tools`)
       ]);
 
       let allItems: StockItem[] = [];
@@ -252,7 +251,7 @@ export default function StockTake() {
                 counts: stockCounts
               };
 
-              const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/stock-takes`, {
+              const response = await fetch(`${API_BASE_URL}/api/stock-takes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(stockTakeData)
