@@ -28,6 +28,7 @@ app.add_middleware(
 # -----------------------------------------------------------------------------
 MONGODB_URI = os.getenv("MONGODB_URI") or os.getenv("MONGO_URI")
 MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "emergent_inventory")
+ALLOW_LEGACY_LOGIN = os.getenv("ALLOW_LEGACY_LOGIN", "false").lower() == "true"
 
 client: Optional[AsyncIOMotorClient] = None
 db = None
@@ -50,12 +51,22 @@ def ensure_db():
         raise HTTPException(status_code=500, detail="Database not connected/configured")
 
 
+def validate_pin(pin: str) -> bool:
+    """Validate that PIN is exactly 4 digits"""
+    return isinstance(pin, str) and len(pin) == 4 and pin.isdigit()
+
+
 # -----------------------------------------------------------------------------
 # Models
 # -----------------------------------------------------------------------------
 class UserRole(str, Enum):
     supervisor = "supervisor"
     engineer = "engineer"
+
+
+class LoginRequest(BaseModel):
+    user_id: str
+    pin: str
 
 
 class UserCreate(BaseModel):
@@ -75,7 +86,6 @@ class UserResponse(BaseModel):
     id: str
     name: str
     role: str
-    pin: str
     created_at: Optional[str] = None
     last_login: Optional[str] = None
     created_by: Optional[str] = None
@@ -198,7 +208,7 @@ async def create_indexes_and_users():
     if db is None:
         print("ℹ️ Skipping indexes and default user creation; database not connected.")
         return
-    
+
     try:
         # Create helpful indexes
         await db.users.create_index("id", unique=True)
@@ -208,7 +218,7 @@ async def create_indexes_and_users():
         print("✅ Database indexes created")
     except Exception as e:
         print(f"⚠️ Error creating indexes (may already exist): {e}")
-    
+
     try:
         user_count = await db.users.count_documents({})
         if user_count == 0:
@@ -251,35 +261,97 @@ async def get_user(user_id: str):
 
 
 @api_router.post("/auth/login")
-async def login(user_id: str):
+async def login(request: Optional[LoginRequest] = None, user_id: Optional[str] = None):
     ensure_db()
-    user_doc = await db.users.find_one({"id": user_id})
-    if not user_doc:
-        raise HTTPException(status_code=404, detail="User not found")
-    user = User(**user_doc)
-    await db.users.update_one(
-        {"id": user_id},
-        {"$set": {"last_login": datetime.utcnow().isoformat()}},
-    )
-    return {"token": user.id, "user": user}
+
+    # Handle JSON body request (preferred)
+    if request is not None:
+        # Use JSON body - validate PIN
+        user_doc = await db.users.find_one({"id": request.user_id})
+        if not user_doc:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Verify PIN
+        if user_doc.get("pin") != request.pin:
+            raise HTTPException(status_code=401, detail="Invalid PIN")
+
+        user = User(**user_doc)
+        await db.users.update_one(
+            {"id": request.user_id},
+            {"$set": {"last_login": datetime.utcnow().isoformat()}},
+        )
+
+        # Return user without PIN field
+        user_dict = user.model_dump()
+        user_dict.pop("pin", None)  # Remove PIN from response
+        return {"token": user.id, "user": user_dict}
+
+    # Handle query parameter request (backwards compatibility)
+    elif user_id is not None:
+        if ALLOW_LEGACY_LOGIN:
+            # Legacy mode - allow query param without PIN
+            user_doc = await db.users.find_one({"id": user_id})
+            if not user_doc:
+                raise HTTPException(status_code=404, detail="User not found")
+            user = User(**user_doc)
+            await db.users.update_one(
+                {"id": user_id},
+                {"$set": {"last_login": datetime.utcnow().isoformat()}},
+            )
+            # Return user without PIN field
+            user_dict = user.model_dump()
+            user_dict.pop("pin", None)  # Remove PIN from response
+            return {"token": user.id, "user": user_dict}
+        else:
+            # PIN enforcement is enabled
+            raise HTTPException(
+                status_code=400,
+                detail="PIN authentication is now required. Please update your app and include both user_id and pin in the request body.",
+            )
+
+    # Neither JSON body nor query param provided
+    else:
+        raise HTTPException(
+            status_code=400, detail="Either JSON body with user_id and pin, or user_id query parameter is required"
+        )
 
 
 @api_router.post("/users", response_model=UserResponse)
 async def create_user(user_data: UserCreate):
     ensure_db()
+
+    # Validate PIN
+    if not validate_pin(user_data.pin):
+        raise HTTPException(status_code=400, detail="PIN must be exactly 4 digits")
+
     existing_user = await db.users.find_one({"name": user_data.name})
     if existing_user:
         raise HTTPException(status_code=400, detail="User with this name already exists")
+
     user_dict = user_data.model_dump()
     user_dict["id"] = str(uuid.uuid4())
     user_dict["created_at"] = datetime.utcnow().isoformat()
     await db.users.insert_one(user_dict)
-    return UserResponse(**user_dict)
+
+    # Return response without PIN
+    response_dict = user_dict.copy()
+    response_dict.pop("pin", None)
+    return UserResponse(**response_dict)
 
 
 @api_router.put("/users/{user_id}")
 async def update_user(user_id: str, user_data: UserUpdate):
     ensure_db()
+
+    # Validate PIN if provided
+    if not validate_pin(user_data.pin):
+        raise HTTPException(status_code=400, detail="PIN must be exactly 4 digits")
+
+    # Check if user exists first
+    existing_user = await db.users.find_one({"id": user_id})
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     result = await db.users.update_one(
         {"id": user_id},
         {
@@ -291,7 +363,8 @@ async def update_user(user_id: str, user_data: UserUpdate):
         },
     )
     if result.matched_count == 0:
-        return {"error": "User not found"}
+        raise HTTPException(status_code=404, detail="User not found")
+
     return {"success": True, "message": "User updated successfully"}
 
 
@@ -338,16 +411,13 @@ async def update_material(material_id: str, material_data: MaterialUpdate):
     update_data = {k: v for k, v in material_data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No update data provided")
-    
+
     update_data["updated_at"] = datetime.utcnow()
-    result = await db.materials.update_one(
-        {"id": material_id},
-        {"$set": update_data}
-    )
-    
+    result = await db.materials.update_one({"id": material_id}, {"$set": update_data})
+
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Material not found")
-    
+
     updated_material = await db.materials.find_one({"id": material_id})
     return Material(**updated_material)
 
@@ -386,16 +456,13 @@ async def update_tool(tool_id: str, tool_data: ToolUpdate):
     update_data = {k: v for k, v in tool_data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No update data provided")
-    
+
     update_data["updated_at"] = datetime.utcnow()
-    result = await db.tools.update_one(
-        {"id": tool_id},
-        {"$set": update_data}
-    )
-    
+    result = await db.tools.update_one({"id": tool_id}, {"$set": update_data})
+
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Tool not found")
-    
+
     updated_tool = await db.tools.find_one({"id": tool_id})
     return Tool(**updated_tool)
 
@@ -407,10 +474,8 @@ async def update_tool(tool_id: str, tool_data: ToolUpdate):
 async def low_stock():
     ensure_db()
     # Find materials where quantity <= min_stock
-    low_stock_materials = await db.materials.find({
-        "$expr": {"$lte": ["$quantity", "$min_stock"]}
-    }).to_list(1000)
-    
+    low_stock_materials = await db.materials.find({"$expr": {"$lte": ["$quantity", "$min_stock"]}}).to_list(1000)
+
     materials = [Material(**material) for material in low_stock_materials]
     return {"count": len(materials), "materials": materials}
 
@@ -440,84 +505,57 @@ async def create_transaction(transaction_data: TransactionCreate):
 @api_router.post("/dev/seed-basic")
 async def seed_basic_data():
     ensure_db()
-    
+
     # Clear existing data
     await db.materials.delete_many({})
     await db.tools.delete_many({})
     await db.transactions.delete_many({})
-    
+
     # Seed materials
     sample_materials = [
-        {
-            "name": "Safety Helmets",
-            "sku": "SAF-HEL-001",
-            "quantity": 15,
-            "min_stock": 10,
-            "location": "Safety Storage"
-        },
-        {
-            "name": "Steel Bolts M8",
-            "sku": "BOL-STL-M8",
-            "quantity": 5,
-            "min_stock": 20,
-            "location": "Hardware Bin A"
-        },
+        {"name": "Safety Helmets", "sku": "SAF-HEL-001", "quantity": 15, "min_stock": 10, "location": "Safety Storage"},
+        {"name": "Steel Bolts M8", "sku": "BOL-STL-M8", "quantity": 5, "min_stock": 20, "location": "Hardware Bin A"},
         {
             "name": "LED Work Lights",
             "sku": "LED-WRK-002",
             "quantity": 8,
             "min_stock": 5,
-            "location": "Electrical Storage"
+            "location": "Electrical Storage",
         },
         {
             "name": "Heavy Duty Gloves",
             "sku": "GLV-HD-001",
             "quantity": 25,
             "min_stock": 15,
-            "location": "Safety Storage"
-        }
+            "location": "Safety Storage",
+        },
     ]
-    
+
     created_materials = []
     for mat_data in sample_materials:
         material = Material(**mat_data)
         await db.materials.insert_one(material.model_dump())
         created_materials.append(material)
-    
+
     # Seed tools
     sample_tools = [
-        {
-            "name": "Impact Drill",
-            "condition": "good",
-            "serial": "DRL-001-2023",
-            "location": "Tool Room A"
-        },
+        {"name": "Impact Drill", "condition": "good", "serial": "DRL-001-2023", "location": "Tool Room A"},
         {
             "name": "Digital Multimeter",
             "condition": "excellent",
             "serial": "DMM-005-2024",
-            "location": "Electronics Bay"
+            "location": "Electronics Bay",
         },
-        {
-            "name": "Torque Wrench",
-            "condition": "fair",
-            "serial": "TW-003-2022",
-            "location": "Tool Room B"
-        },
-        {
-            "name": "Angle Grinder",
-            "condition": "poor",
-            "serial": "AG-007-2021",
-            "location": "Repair Shop"
-        }
+        {"name": "Torque Wrench", "condition": "fair", "serial": "TW-003-2022", "location": "Tool Room B"},
+        {"name": "Angle Grinder", "condition": "poor", "serial": "AG-007-2021", "location": "Repair Shop"},
     ]
-    
+
     created_tools = []
     for tool_data in sample_tools:
         tool = Tool(**tool_data)
         await db.tools.insert_one(tool.model_dump())
         created_tools.append(tool)
-    
+
     # Seed some transactions
     sample_transactions = [
         {
@@ -526,38 +564,40 @@ async def seed_basic_data():
             "item_id": created_materials[0].id,
             "quantity": 3,
             "note": "Used for maintenance job #123",
-            "user_id": "lee_carter"
+            "user_id": "lee_carter",
         },
         {
             "type": "in",
-            "item_type": "material", 
+            "item_type": "material",
             "item_id": created_materials[1].id,
             "quantity": 50,
             "note": "New shipment received",
-            "user_id": "dan_carter"
+            "user_id": "dan_carter",
         },
         {
             "type": "out",
             "item_type": "tool",
             "item_id": created_tools[0].id,
             "note": "Checked out for equipment repair",
-            "user_id": "lee_paull"
-        }
+            "user_id": "lee_paull",
+        },
     ]
-    
+
     created_transactions = []
     for trans_data in sample_transactions:
         transaction = Transaction(**trans_data)
         await db.transactions.insert_one(transaction.model_dump())
         created_transactions.append(transaction)
-    
-    print(f"✅ Seeded {len(created_materials)} materials, {len(created_tools)} tools, {len(created_transactions)} transactions")
-    
+
+    print(
+        f"✅ Seeded {len(created_materials)} materials, {len(created_tools)} tools, {len(created_transactions)} transactions"
+    )
+
     return {
         "message": "Basic seed data created successfully",
         "materials_count": len(created_materials),
-        "tools_count": len(created_tools), 
-        "transactions_count": len(created_transactions)
+        "tools_count": len(created_tools),
+        "transactions_count": len(created_transactions),
     }
 
 
@@ -565,6 +605,57 @@ async def seed_basic_data():
 async def seed_basic_data_browser_friendly():
     """Browser-friendly GET version of seed endpoint"""
     return await seed_basic_data()
+
+
+# -----------------------------------------------------------------------------
+# AI Chat endpoint
+# -----------------------------------------------------------------------------
+class AIChatRequest(BaseModel):
+    message: str
+    conversation_history: Optional[List] = None
+
+
+@api_router.post("/ai-chat")
+async def ai_chat(request: AIChatRequest):
+    """AI Chat endpoint - deterministic stub with helpful guidance"""
+    message = request.message.lower()
+
+    # Keywords and responses
+    if "dashboard" in message:
+        response = "📊 **Dashboard Help**: Your dashboard shows key metrics like total materials, tools, low stock alerts, and today's transactions. Use the health score to monitor inventory status. Quick actions are available for common tasks like inventory checks and stock takes."
+    elif "deliveries" in message or "delivery" in message:
+        response = "📦 **Deliveries Help**: To manage deliveries: 1) Create new deliveries from suppliers, 2) Process delivery notes with AI scanning, 3) Confirm items received and update inventory automatically. Check delivery status and history in the deliveries section."
+    elif "scanner" in message or "scan" in message:
+        response = "📱 **Scanner Help**: Use the QR scanner to: 1) Quickly find materials/tools by scanning their QR codes, 2) Perform stock takes efficiently, 3) Check item details instantly. Ensure good lighting and steady hands for best results."
+    elif "inventory" in message:
+        response = "📋 **Inventory Help**: Manage your inventory by: 1) Adding new materials and tools, 2) Updating quantities and conditions, 3) Setting reorder points for low stock alerts, 4) Performing regular stock takes, 5) Viewing transaction history."
+    elif "stock take" in message or "stocktake" in message:
+        response = "✅ **Stock Take Help**: Perform stock takes by: 1) Go to Stock Take section, 2) Scan items or search manually, 3) Enter actual quantities found, 4) Review discrepancies, 5) Save to update inventory records automatically."
+    elif "suppliers" in message or "supplier" in message:
+        response = "🏪 **Suppliers Help**: Manage suppliers by: 1) Adding supplier contact details, 2) Linking products to suppliers, 3) Creating purchase orders, 4) Tracking delivery performance, 5) Using AI to scan supplier catalogs for new products."
+    else:
+        response = "👋 **General Help**: I'm here to help with the Chimes Shopping Centre maintenance inventory system! I can provide guidance on: Dashboard navigation, Inventory management, QR scanning, Stock takes, Suppliers, and Deliveries. Ask me about any specific feature!"
+
+    return {"response": response}
+
+
+# -----------------------------------------------------------------------------
+# Error Reporting endpoint
+# -----------------------------------------------------------------------------
+@api_router.post("/error-reports")
+async def create_error_report(error_report: dict):
+    """Store error reports from the frontend"""
+    ensure_db()
+
+    # Add timestamp and store in database
+    error_report["created_at"] = datetime.utcnow().isoformat()
+    await db.error_reports.insert_one(error_report)
+
+    return {
+        "status": "received",
+        "estimated_fix_time": "24-72 hours",
+        "support_message": "Thanks—our team will investigate and update you.",
+    }
 
 
 # -----------------------------------------------------------------------------

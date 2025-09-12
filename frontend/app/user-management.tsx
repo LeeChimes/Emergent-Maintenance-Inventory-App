@@ -47,6 +47,8 @@ export default function UserManagement() {
   const [newUserName, setNewUserName] = useState('');
   const [newUserRole, setNewUserRole] = useState<'supervisor' | 'engineer'>('engineer');
   const [newUserPin, setNewUserPin] = useState('');
+  const [pinValidationError, setPinValidationError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     initializeScreen();
@@ -89,15 +91,38 @@ export default function UserManagement() {
     }
   };
 
+  const validatePin = (pin: string): string => {
+    if (!pin.trim()) {
+      return 'PIN is required';
+    }
+    if (pin.length !== 4) {
+      return 'PIN must be exactly 4 digits';
+    }
+    if (!/^\d{4}$/.test(pin)) {
+      return 'PIN must contain only numbers';
+    }
+    return '';
+  };
+
+  const handlePinChange = (pin: string) => {
+    setNewUserPin(pin);
+    setPinValidationError(validatePin(pin));
+  };
+
   const handleAddUser = async () => {
-    if (!newUserName.trim() || !newUserPin.trim()) {
+    if (!newUserName.trim()) {
+      Alert.alert('Error', 'Please enter a name');
       return;
     }
 
-    if (newUserPin.length !== 4 || !/^\d{4}$/.test(newUserPin)) {
+    const pinError = validatePin(newUserPin);
+    if (pinError) {
+      setPinValidationError(pinError);
+      Alert.alert('Invalid PIN', pinError);
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users`, {
         method: 'POST',
@@ -117,28 +142,62 @@ export default function UserManagement() {
         setShowAddModal(false);
         setNewUserName('');
         setNewUserPin('');
+        setPinValidationError('');
         setNewUserRole('engineer');
+        Alert.alert('Success', 'User created successfully');
+      } else {
+        const errorData = await response.json().catch(() => ({ detail: 'Failed to create user' }));
+        Alert.alert('Error', errorData.detail || 'Failed to create user');
       }
     } catch (error) {
       console.error('Error adding user:', error);
+      Alert.alert('Error', 'Network error. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleEditUser = async () => {
-    const updatedUser = {
-      name: newUserName,
-      role: newUserRole,
-      pin: newUserPin,
-    };
-    
-    await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${selectedUser.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedUser),
-    });
-    
-    closeEditModal();
-    await fetchUsers();
+    if (!newUserName.trim()) {
+      Alert.alert('Error', 'Please enter a name');
+      return;
+    }
+
+    const pinError = validatePin(newUserPin);
+    if (pinError) {
+      setPinValidationError(pinError);
+      Alert.alert('Invalid PIN', pinError);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const updatedUser = {
+        name: newUserName,
+        role: newUserRole,
+        pin: newUserPin,
+      };
+      
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedUser),
+      });
+
+      if (response.ok) {
+        closeEditModal();
+        await fetchUsers();
+        Alert.alert('Success', 'User updated successfully');
+      } else {
+        const errorData = await response.json().catch(() => ({ detail: 'Failed to update user' }));
+        Alert.alert('Error', errorData.detail || 'Failed to update user');
+      }
+    } catch (error) {
+      console.error('Error editing user:', error);
+      Alert.alert('Error', 'Network error. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -171,7 +230,9 @@ export default function UserManagement() {
   const resetForm = () => {
     setNewUserName('');
     setNewUserPin('');
+    setPinValidationError('');
     setNewUserRole('engineer');
+    setIsSubmitting(false);
   };
 
   const closeAddModal = () => {
@@ -267,7 +328,9 @@ export default function UserManagement() {
                 </View>
                 
                 <View style={styles.userMeta}>
-                  <Text style={styles.userPin}>PIN: {user.pin}</Text>
+                  <View style={styles.pinBadge}>
+                    <Text style={styles.pinBadgeText}>PIN set</Text>
+                  </View>
                   {user.created_at && (
                     <Text style={styles.lastLogin}>
                       Created: {new Date(user.created_at).toLocaleDateString()}
@@ -364,15 +427,22 @@ export default function UserManagement() {
             <View style={styles.formSection}>
               <Text style={styles.formLabel}>4-Digit PIN</Text>
               <TextInput
-                style={styles.formInput}
+                style={[
+                  styles.formInput,
+                  pinValidationError ? styles.formInputError : null
+                ]}
                 value={newUserPin}
-                onChangeText={setNewUserPin}
+                onChangeText={handlePinChange}
                 placeholder="1234"
                 placeholderTextColor="#666"
                 keyboardType="numeric"
                 maxLength={4}
               />
-              <Text style={styles.formHint}>Create a 4-digit PIN for this user</Text>
+              {pinValidationError ? (
+                <Text style={styles.formError}>{pinValidationError}</Text>
+              ) : (
+                <Text style={styles.formHint}>Create a 4-digit PIN for this user</Text>
+              )}
             </View>
           </ScrollView>
         </Container>
@@ -445,15 +515,22 @@ export default function UserManagement() {
             <View style={styles.formSection}>
               <Text style={styles.formLabel}>4-Digit PIN</Text>
               <TextInput
-                style={styles.formInput}
+                style={[
+                  styles.formInput,
+                  pinValidationError ? styles.formInputError : null
+                ]}
                 value={newUserPin}
-                onChangeText={setNewUserPin}
+                onChangeText={handlePinChange}
                 placeholder="1234"
                 placeholderTextColor="#666"
                 keyboardType="numeric"
                 maxLength={4}
               />
-              <Text style={styles.formHint}>Update the 4-digit PIN for this user</Text>
+              {pinValidationError ? (
+                <Text style={styles.formError}>{pinValidationError}</Text>
+              ) : (
+                <Text style={styles.formHint}>Update the 4-digit PIN for this user</Text>
+              )}
             </View>
           </ScrollView>
         </Container>
@@ -577,11 +654,20 @@ const styles = StyleSheet.create({
   },
   userMeta: {
     marginLeft: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  userPin: {
-    color: '#666',
-    fontSize: 12,
-    marginBottom: 4,
+  pinBadge: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  pinBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   lastLogin: {
     color: '#666',
@@ -643,8 +729,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
   },
+  formInputError: {
+    borderColor: '#F44336',
+  },
   formHint: {
     color: '#666',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  formError: {
+    color: '#F44336',
     fontSize: 12,
     marginTop: 4,
   },

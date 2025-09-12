@@ -63,15 +63,6 @@ export default function Index() {
   const [pin, setPin] = useState('');
   const [shakeAnimation] = useState(new Animated.Value(0));
 
-  // Default PINs for each user (in production, these would be stored securely)
-  const userPins: { [key: string]: string } = {
-    'lee_carter': '1234',
-    'dan_carter': '1234',
-    'lee_paull': '2468',
-    'dean_turnill': '1357',
-    'luis': '9876'
-  };
-
   useEffect(() => {
     initializeApp();
   }, []);
@@ -208,16 +199,7 @@ export default function Index() {
   };
 
   const handleUserSelect = async (selectedUser: any) => {
-    // For engineers, skip PIN and login directly
-    if (selectedUser.role === 'engineer') {
-      await AsyncStorage.setItem('userToken', selectedUser.id);
-      await AsyncStorage.setItem('userData', JSON.stringify(selectedUser));
-      setUser(selectedUser);
-      router.push('/engineer-hub');
-      return;
-    }
-    
-    // For supervisors, still require PIN
+    // All users now require PIN authentication - no bypass for engineers
     setSelectedUser(selectedUser);
     setShowPinModal(true);
   };
@@ -225,31 +207,19 @@ export default function Index() {
   const verifyPin = async () => {
     if (!selectedUser) return;
 
-    const correctPin = userPins[selectedUser.id];
-    if (pin === correctPin) {
-      await handleLogin(selectedUser.id);
-      setShowPinModal(false);
-      setPin('');
-    } else {
-      // Shake animation for wrong PIN
-      Animated.sequence([
-        Animated.timing(shakeAnimation, { toValue: 10, duration: 100, useNativeDriver: true }),
-        Animated.timing(shakeAnimation, { toValue: -10, duration: 100, useNativeDriver: true }),
-        Animated.timing(shakeAnimation, { toValue: 10, duration: 100, useNativeDriver: true }),
-        Animated.timing(shakeAnimation, { toValue: 0, duration: 100, useNativeDriver: true }),
-      ]).start();
-      
-      Alert.alert('Wrong PIN', 'Please enter the correct PIN to continue.');
-      setPin('');
-    }
-  };
-
-  const handleLogin = async (userId: string) => {
+    // Call the backend login API with JSON body
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login?user_id=${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: selectedUser.id,
+          pin: pin
+        }),
       });
-      
+
       if (response.ok) {
         const { token, user: userData } = await response.json();
         
@@ -257,19 +227,32 @@ export default function Index() {
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
         
         setUser(userData);
+        setShowPinModal(false);
+        setPin('');
         
-        // STEP 1: Redirect engineers to engineer hub, supervisors stay here
+        // Route engineers to engineer hub, supervisors stay here
         if (userData.role === 'engineer') {
           router.push('/engineer-hub');
         }
-        // Supervisors stay on current dashboard (no redirect needed)
-        
       } else {
-        Alert.alert('Error', 'Login failed. Please try again.');
+        // Handle login errors (401 for wrong PIN, 400 for other issues)
+        const errorData = await response.json().catch(() => ({ detail: 'Login failed' }));
+        
+        // Shake animation for wrong PIN
+        Animated.sequence([
+          Animated.timing(shakeAnimation, { toValue: 10, duration: 100, useNativeDriver: true }),
+          Animated.timing(shakeAnimation, { toValue: -10, duration: 100, useNativeDriver: true }),
+          Animated.timing(shakeAnimation, { toValue: 10, duration: 100, useNativeDriver: true }),
+          Animated.timing(shakeAnimation, { toValue: 0, duration: 100, useNativeDriver: true }),
+        ]).start();
+        
+        Alert.alert('Wrong PIN', errorData.detail || 'Please enter the correct PIN to continue.');
+        setPin('');
       }
     } catch (error) {
-      console.error('Error logging in:', error);
-      Alert.alert('Error', 'Could not connect to server. Please check your connection.');
+      console.error('Login error:', error);
+      Alert.alert('Error', 'Network error. Please try again.');
+      setPin('');
     }
   };
 
