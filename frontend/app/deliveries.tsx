@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import Screen from './components/Screen';
+import Container from './components/Container';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UniversalHeader from '../components/UniversalHeader';
 
@@ -234,16 +236,19 @@ export default function Deliveries() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <Screen scroll>
+      <Container>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading deliveries...</Text>
         </View>
-      </SafeAreaView>
+      </Container>
+    </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Screen scroll>
+      <Container>
       {/* Universal Header */}
       <UniversalHeader title="Deliveries" showBackButton={true} />
 
@@ -313,7 +318,8 @@ export default function Deliveries() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowAddDelivery(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <Screen scroll>
+      <Container>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowAddDelivery(false)}>
               <Ionicons name="close" size={24} color="#fff" />
@@ -365,7 +371,8 @@ export default function Deliveries() {
               </TouchableOpacity>
             </View>
           </ScrollView>
-        </SafeAreaView>
+        </Container>
+    </Screen>
       </Modal>
 
       {/* Manual Entry Modal */}
@@ -375,7 +382,8 @@ export default function Deliveries() {
         presentationStyle="fullScreen"
         onRequestClose={() => setShowManualEntry(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <Screen scroll>
+      <Container>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowManualEntry(false)}>
               <Ionicons name="close" size={24} color="#fff" />
@@ -539,7 +547,8 @@ export default function Deliveries() {
               )}
             </View>
           </ScrollView>
-        </SafeAreaView>
+        </Container>
+    </Screen>
       </Modal>
 
       {/* Delivery Details Modal */}
@@ -549,7 +558,8 @@ export default function Deliveries() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowDeliveryDetails(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <Screen scroll>
+      <Container>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowDeliveryDetails(false)}>
               <Ionicons name="close" size={24} color="#fff" />
@@ -606,9 +616,11 @@ export default function Deliveries() {
               </View>
             </ScrollView>
           )}
-        </SafeAreaView>
+        </Container>
+    </Screen>
       </Modal>
-    </SafeAreaView>
+    </Container>
+    </Screen>
   );
 }
 

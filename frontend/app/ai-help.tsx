@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import UniversalHeader from '../components/UniversalHeader';
+import Screen from './components/Screen';
+import Container from './components/Container';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -107,16 +109,12 @@ Please try again in a moment, or browse the detailed help sections.`;
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Universal Header */}
-      <UniversalHeader title="AI Help Assistant" showBackButton={true} />
+    <Screen scroll keyboardOffset={20}>
+      <Container>
+        {/* Universal Header */}
+        <UniversalHeader title="AI Help Assistant" showBackButton={true} />
 
-      <KeyboardAvoidingView 
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        {/* Conversation */}
-        <ScrollView style={styles.conversationContainer}>
+        {/* Conversation - handled by Screen scroll */}
           {conversationHistory.length === 0 ? (
             <View style={styles.welcomeSection}>
               <View style={styles.welcomeHeader}>
@@ -201,7 +199,7 @@ Please try again in a moment, or browse the detailed help sections.`;
               )}
             </View>
           )}
-        </ScrollView>
+        {/* ScrollView content ends here */}
 
         {/* Input */}
         <View style={styles.inputContainer}>
@@ -223,8 +221,9 @@ Please try again in a moment, or browse the detailed help sections.`;
             <Ionicons name="send" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        {/* KeyboardAvoidingView handled by Screen */}
+      </Container>
+    </Screen>
   );
 }
 

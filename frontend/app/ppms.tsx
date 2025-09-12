@@ -3,8 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
-  ScrollView,
+  
+  
   TouchableOpacity,
   Modal,
   TextInput,
@@ -15,6 +15,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import Screen from './components/Screen';
+import Container from './components/Container';
 import UniversalHeader from '../components/UniversalHeader';
 import { AppErrorHandler } from '../utils/AppErrorHandler';
 
@@ -353,18 +355,21 @@ export default function PPMs() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <Screen scroll>
+      <Container>
         <UniversalHeader title="PPMs" showBackButton={true} />
         <View style={styles.centerContent}>
           <Ionicons name="calendar" size={48} color="#4CAF50" />
           <Text style={styles.loadingText}>Loading maintenance schedules...</Text>
         </View>
-      </SafeAreaView>
+      </Container>
+    </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Screen scroll>
+      <Container>
       <UniversalHeader title="PPMs" showBackButton={true} />
       
       {/* Header Section */}
@@ -537,7 +542,8 @@ export default function PPMs() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </Container>
+    </Screen>
   );
 }
 
