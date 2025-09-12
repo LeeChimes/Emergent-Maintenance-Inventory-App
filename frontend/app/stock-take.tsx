@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UniversalHeader from '../components/UniversalHeader';
+import Screen from './components/Screen';
+import Container from './components/Container';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -294,12 +296,12 @@ export default function StockTake() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Universal Header */}
-      <UniversalHeader title="Stock Take" showBackButton={true} />
+    <Screen scroll>
+      <Container>
+        {/* Universal Header */}
+        <UniversalHeader title="Stock Take" showBackButton={true} />
 
-      {/* Content */}
-      <ScrollView style={styles.content}>
+        {/* Content - now handled by Screen scroll */}
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>📊 Stock Take</Text>
@@ -428,7 +430,7 @@ export default function StockTake() {
             })
           )}
         </View>
-      </ScrollView>
+        {/* ScrollView content ends here */}
 
       {/* Floating Finish Button */}
       {stockCounts.length > 0 && (
@@ -480,7 +482,8 @@ export default function StockTake() {
           </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+      </Container>
+    </Screen>
   );
 }
 

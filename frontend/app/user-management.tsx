@@ -3,8 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
-  ScrollView,
+  
+  
   TouchableOpacity,
   TextInput,
   Modal,
@@ -13,6 +13,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import Screen from './components/Screen';
+import Container from './components/Container';
 import UniversalHeader from '../components/UniversalHeader';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -246,31 +248,36 @@ export default function UserManagement() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <Screen scroll>
+      <Container>
         <UniversalHeader title="User Management" showBackButton={true} />
         <View style={styles.centerContent}>
           <Ionicons name="people" size={48} color="#4CAF50" />
           <Text style={styles.loadingText}>Loading users...</Text>
         </View>
-      </SafeAreaView>
+      </Container>
+    </Screen>
     );
   }
 
   if (!currentUser || currentUser.role !== 'supervisor') {
     return (
-      <SafeAreaView style={styles.container}>
+      <Screen scroll>
+      <Container>
         <UniversalHeader title="User Management" showBackButton={true} />
         <View style={styles.centerContent}>
           <Ionicons name="lock-closed" size={48} color="#F44336" />
           <Text style={styles.errorText}>Access Denied</Text>
           <Text style={styles.errorSubtext}>Only supervisors can manage users</Text>
         </View>
-      </SafeAreaView>
+      </Container>
+    </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Screen scroll>
+      <Container>
       <UniversalHeader title="User Management" showBackButton={true} />
       
       <ScrollView style={styles.content}>
@@ -360,7 +367,8 @@ export default function UserManagement() {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <Screen scroll>
+      <Container>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={closeAddModal}>
               <Ionicons name="close" size={24} color="#fff" />
@@ -437,7 +445,8 @@ export default function UserManagement() {
               )}
             </View>
           </ScrollView>
-        </SafeAreaView>
+        </Container>
+    </Screen>
       </Modal>
 
       {/* Edit User Modal */}
@@ -446,7 +455,8 @@ export default function UserManagement() {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <Screen scroll>
+      <Container>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={closeEditModal}>
               <Ionicons name="close" size={24} color="#fff" />
@@ -523,9 +533,11 @@ export default function UserManagement() {
               )}
             </View>
           </ScrollView>
-        </SafeAreaView>
+        </Container>
+    </Screen>
       </Modal>
-    </SafeAreaView>
+    </Container>
+    </Screen>
   );
 }
 

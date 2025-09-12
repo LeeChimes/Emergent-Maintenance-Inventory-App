@@ -3,13 +3,15 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
+  
   TouchableOpacity,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import Screen from './components/Screen';
+import Container from './components/Container';
 import UniversalHeader from '../components/UniversalHeader';
 
 interface User {
@@ -70,18 +72,21 @@ export default function EngineerHub() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <Screen scroll>
+      <Container>
         <View style={styles.centerContent}>
           <Ionicons name="cube" size={48} color="#4CAF50" />
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
-      </SafeAreaView>
+      </Container>
+    </Screen>
     );
   }
 
   if (!user || user.role !== 'engineer') {
     return (
-      <SafeAreaView style={styles.container}>
+      <Screen scroll>
+      <Container>
         <View style={styles.centerContent}>
           <Text style={styles.errorText}>Access Denied</Text>
           <TouchableOpacity
@@ -91,12 +96,14 @@ export default function EngineerHub() {
             <Text style={styles.buttonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </Container>
+    </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Screen scroll>
+      <Container>
       <UniversalHeader 
         title="Engineer Hub" 
         showBackButton={false}
@@ -186,7 +193,8 @@ export default function EngineerHub() {
           </View>
         </View>
       </View>
-    </SafeAreaView>
+    </Container>
+    </Screen>
   );
 }
 

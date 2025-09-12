@@ -4,10 +4,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   Modal,
-  ScrollView,
   TextInput,
   RefreshControl,
 } from 'react-native';
@@ -16,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import UniversalHeader from '../components/UniversalHeader';
+import Screen from './components/Screen';
+import Container from './components/Container';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -434,9 +434,10 @@ export default function Inventory() {
   const filteredItems = filterItems(currentItems);
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Universal Header */}
-      <UniversalHeader title="Inventory" showBackButton={true} />
+    <Screen>
+      <Container>
+        {/* Universal Header */}
+        <UniversalHeader title="Inventory" showBackButton={true} />
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
@@ -539,7 +540,8 @@ export default function Inventory() {
       </View>
 
       {renderItemModal()}
-    </SafeAreaView>
+      </Container>
+    </Screen>
   );
 }
 

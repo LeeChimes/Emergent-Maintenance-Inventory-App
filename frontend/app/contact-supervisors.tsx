@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import Screen from './components/Screen';
+import Container from './components/Container';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UniversalHeader from '../components/UniversalHeader';
 
@@ -111,7 +113,8 @@ export default function ContactSupervisors() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Screen scroll>
+      <Container>
       {/* Universal Header */}
       <UniversalHeader title="Contact Supervisors" showBackButton={true} />
 
@@ -244,7 +247,8 @@ export default function ContactSupervisors() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </Container>
+    </Screen>
   );
 }
 

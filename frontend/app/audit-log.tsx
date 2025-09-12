@@ -3,8 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
-  ScrollView,
+  
+  
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -12,6 +12,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import Screen from './components/Screen';
+import Container from './components/Container';
 import UniversalHeader from '../components/UniversalHeader';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -147,7 +149,8 @@ export default function AuditLog() {
 
   if (!user || user.role !== 'supervisor') {
     return (
-      <SafeAreaView style={styles.container}>
+      <Screen scroll>
+      <Container>
         <View style={styles.centerContent}>
           <Ionicons name="lock-closed" size={48} color="#F44336" />
           <Text style={styles.accessDeniedText}>Access Denied</Text>
@@ -162,12 +165,14 @@ export default function AuditLog() {
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </Container>
+    </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Screen scroll>
+      <Container>
       <UniversalHeader title="Audit Log" showBackButton={true} />
 
       <ScrollView
@@ -249,7 +254,8 @@ export default function AuditLog() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </Container>
+    </Screen>
   );
 }
 

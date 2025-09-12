@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UniversalHeader from '../components/UniversalHeader';
+import Screen from './components/Screen';
+import Container from './components/Container';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -163,41 +165,46 @@ export default function Suppliers() {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
-      </SafeAreaView>
+      <Screen>
+        <Container>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
+        </Container>
+      </Screen>
     );
   }
 
   if (user.role !== 'supervisor') {
     return (
-      <SafeAreaView style={styles.container}>
-        <UniversalHeader title="Suppliers" showBackButton={true} />
-        
-        <View style={styles.accessDenied}>
-          <Ionicons name="lock-closed" size={64} color="#666" />
-          <Text style={styles.accessDeniedTitle}>Access Restricted</Text>
-          <Text style={styles.accessDeniedText}>
-            Only supervisors can manage suppliers. You can view supplier information in the delivery logging section.
-          </Text>
+      <Screen>
+        <Container>
+          <UniversalHeader title="Suppliers" showBackButton={true} />
           
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.push('/')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+          <View style={styles.accessDenied}>
+            <Ionicons name="lock-closed" size={64} color="#666" />
+            <Text style={styles.accessDeniedTitle}>Access Restricted</Text>
+            <Text style={styles.accessDeniedText}>
+              Only supervisors can manage suppliers. You can view supplier information in the delivery logging section.
+            </Text>
+            
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.push('/')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.backButtonText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        </Container>
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Universal Header */}
+    <Screen scroll>
+      <Container>
+        {/* Universal Header */}
       <UniversalHeader title="Suppliers" showBackButton={true} />
 
       {/* Main Content */}
@@ -275,7 +282,7 @@ export default function Suppliers() {
             ))
           )}
         </View>
-      </ScrollView>
+      {/* ScrollView content ends here */}
 
       {/* Floating Add Button */}
       <TouchableOpacity
@@ -472,7 +479,8 @@ export default function Suppliers() {
           )}
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+      </Container>
+    </Screen>
   );
 }
 
