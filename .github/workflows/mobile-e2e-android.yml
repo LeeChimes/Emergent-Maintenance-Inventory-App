@@ -41,7 +41,7 @@ jobs:
         shell: bash
 
       - name: Install deps
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
       - name: Expo prebuild (Android)
         run: npx expo prebuild -p android --non-interactive --no-install
