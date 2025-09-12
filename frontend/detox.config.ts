@@ -17,7 +17,8 @@ const config: DetoxConfig = {
   configurations: {
     'android.emu.debug': {
       device: {
-        type: 'android.emulator'
+        type: 'android.emulator',
+        avdName: 'Pixel_7_API_34'
       },
       app: {
         type: 'android.apk',

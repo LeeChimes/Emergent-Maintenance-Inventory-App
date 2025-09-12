@@ -1,4 +1,7 @@
 module.exports = {
   testTimeout: 120000,
-  setupFilesAfterEnv: ['./init.js'],
+  reporters: ['detox/runners/jest/reporter'],
+  testEnvironment: 'node',
+  setupFilesAfterEnv: ['detox/runners/jest/adapter'],
+  testMatch: ['**/?(*.)+(e2e).[tj]s?(x)']
 };
