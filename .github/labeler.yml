@@ -1,0 +1,20 @@
+"area: frontend":
+  - changed-files:
+      - any-glob-to-any-file: 'frontend/**'
+
+"area: android":
+  - changed-files:
+      - any-glob-to-any-file: 'frontend/android/**'
+
+"area: ios":
+  - changed-files:
+      - any-glob-to-any-file: 'frontend/ios/**'
+
+"area: ci":
+  - changed-files:
+      - any-glob-to-any-file: '.github/**'
+
+"area: docs":
+  - changed-files:
+      - any-glob-to-any-file: 'docs/**'
+      - any-glob-to-any-file: '**/*.md'
