@@ -1,12 +1,13 @@
 from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Any, Dict
 from datetime import datetime
 from enum import Enum
 from motor.motor_asyncio import AsyncIOMotorClient
 import uuid
 import os
+import re
 
 # -----------------------------------------------------------------------------
 # App and Router setup
@@ -50,12 +51,22 @@ def ensure_db():
         raise HTTPException(status_code=500, detail="Database not connected/configured")
 
 
+def validate_pin(pin: str) -> bool:
+    """Validate PIN is exactly 4 digits"""
+    return bool(re.match(r'^\d{4}$', str(pin)))
+
+
 # -----------------------------------------------------------------------------
 # Models
 # -----------------------------------------------------------------------------
 class UserRole(str, Enum):
     supervisor = "supervisor"
     engineer = "engineer"
+
+
+class LoginRequest(BaseModel):
+    user_id: str
+    pin: str
 
 
 class UserCreate(BaseModel):
@@ -66,16 +77,15 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    name: str
-    role: str
-    pin: str
+    name: Optional[str] = None
+    role: Optional[str] = None
+    pin: Optional[str] = None
 
 
 class UserResponse(BaseModel):
     id: str
     name: str
     role: str
-    pin: str
     created_at: Optional[str] = None
     last_login: Optional[str] = None
     created_by: Optional[str] = None
@@ -178,6 +188,30 @@ class TransactionCreate(BaseModel):
 
 
 # -----------------------------------------------------------------------------
+# Delivery Models
+# -----------------------------------------------------------------------------
+class Delivery(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    supplier_id: str
+    supplier_name: str
+    delivery_date: datetime = Field(default_factory=datetime.utcnow)
+    status: str = "pending"  # pending, confirmed, cancelled
+    items: List[Dict[str, Any]] = []
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    audit_log: List[Dict[str, Any]] = []
+
+
+class DeliveryCreate(BaseModel):
+    supplier_id: str
+    supplier_name: str
+    delivery_date: Optional[datetime] = None
+    items: List[Dict[str, Any]] = []
+    notes: Optional[str] = None
+
+
+# -----------------------------------------------------------------------------
 # Health checks
 # -----------------------------------------------------------------------------
 @app.get("/")
@@ -251,47 +285,130 @@ async def get_user(user_id: str):
 
 
 @api_router.post("/auth/login")
-async def login(user_id: str):
+async def login(user_id: Optional[str] = None, login_data: Optional[LoginRequest] = None):
     ensure_db()
-    user_doc = await db.users.find_one({"id": user_id})
-    if not user_doc:
-        raise HTTPException(status_code=404, detail="User not found")
-    user = User(**user_doc)
-    await db.users.update_one(
-        {"id": user_id},
-        {"$set": {"last_login": datetime.utcnow().isoformat()}},
-    )
-    return {"token": user.id, "user": user}
+    
+    # Get environment flag for legacy login support
+    allow_legacy_login = os.getenv("ALLOW_LEGACY_LOGIN", "true").lower() == "true"
+    
+    # Preferred path: JSON body with user_id and pin
+    if login_data:
+        user_doc = await db.users.find_one({"id": login_data.user_id})
+        if not user_doc:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user = User(**user_doc)
+        if user.pin != login_data.pin:
+            raise HTTPException(status_code=401, detail="Invalid PIN")
+            
+        # Update last login
+        await db.users.update_one(
+            {"id": login_data.user_id},
+            {"$set": {"last_login": datetime.utcnow().isoformat()}},
+        )
+        
+        # Return user without PIN
+        user_response = UserResponse(
+            id=user.id,
+            name=user.name,
+            role=user.role,
+            created_at=user.created_at.isoformat() if user.created_at else None,
+            last_login=user.last_login,
+            created_by=user.created_by
+        )
+        
+        return {"token": user.id, "user": user_response}
+    
+    # Legacy path: query parameter user_id without PIN
+    elif user_id:
+        if not allow_legacy_login:
+            raise HTTPException(
+                status_code=400, 
+                detail="Legacy login disabled. Please send JSON request with user_id and pin fields."
+            )
+        
+        user_doc = await db.users.find_one({"id": user_id})
+        if not user_doc:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user = User(**user_doc)
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"last_login": datetime.utcnow().isoformat()}},
+        )
+        
+        # Return user without PIN for legacy compatibility
+        user_response = UserResponse(
+            id=user.id,
+            name=user.name,
+            role=user.role,
+            created_at=user.created_at.isoformat() if user.created_at else None,
+            last_login=user.last_login,
+            created_by=user.created_by
+        )
+        
+        return {"token": user.id, "user": user_response}
+    
+    else:
+        raise HTTPException(
+            status_code=400, 
+            detail="Please provide login credentials via JSON body with user_id and pin fields."
+        )
 
 
 @api_router.post("/users", response_model=UserResponse)
 async def create_user(user_data: UserCreate):
     ensure_db()
+    
+    # Validate PIN format
+    if not validate_pin(user_data.pin):
+        raise HTTPException(status_code=400, detail="PIN must be exactly 4 digits")
+    
     existing_user = await db.users.find_one({"name": user_data.name})
     if existing_user:
         raise HTTPException(status_code=400, detail="User with this name already exists")
+    
     user_dict = user_data.model_dump()
     user_dict["id"] = str(uuid.uuid4())
     user_dict["created_at"] = datetime.utcnow().isoformat()
     await db.users.insert_one(user_dict)
-    return UserResponse(**user_dict)
+    
+    # Return response without PIN
+    return UserResponse(
+        id=user_dict["id"],
+        name=user_dict["name"], 
+        role=user_dict["role"],
+        created_at=user_dict["created_at"],
+        created_by=user_dict.get("created_by")
+    )
 
 
 @api_router.put("/users/{user_id}")
 async def update_user(user_id: str, user_data: UserUpdate):
     ensure_db()
+    
+    # Build update dictionary from provided fields only
+    update_dict = {}
+    if user_data.name is not None:
+        update_dict["name"] = user_data.name
+    if user_data.role is not None:
+        update_dict["role"] = user_data.role
+    if user_data.pin is not None:
+        if not validate_pin(user_data.pin):
+            raise HTTPException(status_code=400, detail="PIN must be exactly 4 digits")
+        update_dict["pin"] = str(user_data.pin)
+    
+    if not update_dict:
+        raise HTTPException(status_code=400, detail="No valid fields provided for update")
+    
     result = await db.users.update_one(
         {"id": user_id},
-        {
-            "$set": {
-                "name": user_data.name,
-                "role": user_data.role,
-                "pin": user_data.pin,
-            }
-        },
+        {"$set": update_dict}
     )
+    
     if result.matched_count == 0:
-        return {"error": "User not found"}
+        raise HTTPException(status_code=404, detail="User not found")
+    
     return {"success": True, "message": "User updated successfully"}
 
 
@@ -435,6 +552,136 @@ async def create_transaction(transaction_data: TransactionCreate):
 
 
 # -----------------------------------------------------------------------------
+# AI Chat and Error Reporting endpoints
+# -----------------------------------------------------------------------------
+class AIChatRequest(BaseModel):
+    message: str
+    conversation_history: Optional[List[Any]] = []
+
+
+class AIChatResponse(BaseModel):
+    response: str
+
+
+@api_router.post("/ai-chat", response_model=AIChatResponse)
+async def ai_chat(request: AIChatRequest):
+    """Deterministic AI helper that recognizes keywords and provides guidance"""
+    message_lower = request.message.lower()
+    
+    # Dashboard related questions
+    if "dashboard" in message_lower:
+        response = """Dashboard Help:
+1. Your dashboard shows key metrics: materials count, tools count, low stock items
+2. Use the colored buttons to navigate to different sections
+3. Engineers see Asset Inventory and Maintenance Hub buttons
+4. Supervisors see all management options including User Management
+5. The priority items section shows urgent tasks requiring attention"""
+    
+    # Deliveries related questions  
+    elif "deliver" in message_lower:
+        response = """Delivery Management:
+1. Go to Deliveries section from the main menu
+2. Tap 'Log New Delivery' to record incoming items
+3. Enter supplier info, delivery details, and items received
+4. Use the confirmation process to update inventory automatically
+5. All team members can log deliveries - no special permissions needed"""
+    
+    # Scanner related questions
+    elif "scan" in message_lower:
+        response = """QR Scanner Help:
+1. Access scanner from the main dashboard
+2. Point camera at QR code or barcode on items
+3. If scanning fails, use 'Enter Manually' option
+4. Scanner works for checking items in/out of inventory
+5. Make sure camera permissions are enabled in device settings"""
+    
+    # Inventory related questions
+    elif "inventory" in message_lower:
+        response = """Inventory Management:
+1. View all materials and tools in the Inventory section
+2. Add new items using the '+' button
+3. Update quantities by tapping on items
+4. Set minimum stock levels to get low stock alerts
+5. Use the search function to quickly find specific items"""
+    
+    # Stock take related questions
+    elif "stock" in message_lower:
+        response = """Stock Take Process:
+1. Go to Stock Take section from inventory menu
+2. Choose full count or selective items
+3. Scan or manually enter current quantities
+4. System will show discrepancies for review
+5. Confirm counts to update inventory records"""
+        
+    # Suppliers related questions
+    elif "supplier" in message_lower:
+        response = """Supplier Management:
+1. Access Suppliers section from main menu
+2. Add new suppliers with contact details
+3. Link suppliers to materials/tools for better tracking
+4. View supplier history and delivery performance
+5. Use supplier data when logging new deliveries"""
+    
+    # User management related questions
+    elif "user" in message_lower and "management" in message_lower:
+        response = """User Management (Supervisors Only):
+1. Add new team members with roles (Engineer/Supervisor)
+2. Set 4-digit PINs for secure access
+3. Edit user details and permissions
+4. Remove users who no longer need access
+5. View user activity and last login times"""
+    
+    # Generic help
+    else:
+        response = """Chimes Asset Inventory App Help:
+
+KEY FEATURES:
+• Dashboard - Overview of inventory status
+• QR Scanner - Check items in/out quickly  
+• Inventory - Manage materials and tools
+• Deliveries - Log incoming shipments
+• Stock Take - Count and verify inventory
+• Suppliers - Manage vendor information
+
+ROLES:
+• Engineers - Basic inventory access
+• Supervisors - Full management access
+
+Need specific help? Try asking about: dashboard, deliveries, scanner, inventory, stock take, suppliers, or user management."""
+
+    return AIChatResponse(response=response)
+
+
+@api_router.post("/error-reports")
+async def error_reports(error_data: dict):
+    """Accept error reports and store them for investigation"""
+    ensure_db()
+    
+    # Add timestamp and create document
+    error_document = {
+        "id": error_data.get("id", str(uuid.uuid4())),
+        "error": error_data.get("error", "Unknown error"),
+        "message": error_data.get("message", ""),
+        "screen": error_data.get("screen", "Unknown"),
+        "stack": error_data.get("stack", ""),
+        "timestamp": error_data.get("timestamp", datetime.utcnow().isoformat()),
+        "user_id": error_data.get("userId", "anonymous"),
+        "device_info": error_data.get("deviceInfo", {}),
+        "additional_data": error_data.get("additionalData", {}),
+        "created_at": datetime.utcnow()
+    }
+    
+    # Store in error_reports collection
+    await db.error_reports.insert_one(error_document)
+    
+    return {
+        "status": "received",
+        "estimated_fix_time": "24-72 hours", 
+        "support_message": "Thanks—our team will investigate and update you."
+    }
+
+
+# -----------------------------------------------------------------------------
 # Development seed endpoints
 # -----------------------------------------------------------------------------
 @api_router.post("/dev/seed-basic")
@@ -568,8 +815,9 @@ async def seed_basic_data_browser_friendly():
 
 
 # -----------------------------------------------------------------------------
-# Include router
+# Include router and register delivery endpoints
 # -----------------------------------------------------------------------------
+import delivery_routes  # register delivery endpoints
 app.include_router(api_router)
 
 # Optional: local dev entrypoint (Render ignores this)
