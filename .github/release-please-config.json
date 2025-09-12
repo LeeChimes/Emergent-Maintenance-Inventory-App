@@ -1,8 +1,14 @@
 {
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+  "changelog-types": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "chore", "section": "Miscellaneous" }
+  ],
   "packages": {
     "frontend": {
-      "release-type": "node",
-      "package-name": "emergent-maintenance-frontend"
+      "release-type": "node"
     }
   }
 }
