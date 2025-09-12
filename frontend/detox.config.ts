@@ -17,8 +17,7 @@ const config: DetoxConfig = {
   configurations: {
     'android.emu.debug': {
       device: {
-        type: 'android.emulator',
-        avdName: 'Medium Phone',
+        type: 'android.emulator'
       },
       app: {
         type: 'android.apk',
