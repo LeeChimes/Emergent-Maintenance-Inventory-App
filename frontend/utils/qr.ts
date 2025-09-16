@@ -1,13 +1,10 @@
 // frontend/utils/qr.ts
-// A simple, versioned QR payload format so we can evolve safely.
-// Example payload: {"v":1,"t":"asset","id":"ASSET-123","extra":{"label":"Pump 4"}}
-
 export type QRType = 'asset' | 'door' | 'delivery' | 'tool' | 'part';
 
 export interface QRPayload {
   v: 1;
   t: QRType;
-  id: string; // primary identifier
+  id: string;
   extra?: Record<string, string | number | boolean | null>;
 }
 

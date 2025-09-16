@@ -1,10 +1,9 @@
+// frontend/app/ppms.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  
-  
   TouchableOpacity,
   ScrollView,
   Modal,
@@ -15,13 +14,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import Screen from './components/Screen';
 import Container from './components/Container';
+// If UniversalHeader is under app/components, change the import to './components/UniversalHeader'
 import UniversalHeader from '../components/UniversalHeader';
 import { AppErrorHandler } from '../utils/AppErrorHandler';
 
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width } = Dimensions.get('window');
 
 interface User {
@@ -46,6 +45,11 @@ interface PPM {
 }
 
 export default function PPMs() {
+  // Read params when the universal scanner redirects here:
+  // /ppms?scanned=1&t=door&id=FD-CORE8-012
+  const params = useLocalSearchParams<{ scanned?: string; t?: string; id?: string }>();
+  const [scanDoorId, setScanDoorId] = useState<string>('');
+
   const [user, setUser] = useState<User | null>(null);
   const [ppms, setPpms] = useState<PPM[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,14 +72,24 @@ export default function PPMs() {
     created_by: '',
   });
 
+  // capture scanned door id (if any)
+  useEffect(() => {
+    if (params.scanned === '1' && params.t === 'door' && params.id) {
+      const doorId = String(params.id);
+      setScanDoorId(doorId);
+      // Optional: immediately filter to only this door
+      // setSelectedFilter('All'); // ensure filter doesn't hide it
+      // setSearchQuery(doorId);
+      // Optional: auto-open a form drawer/modal for this door here
+    }
+  }, [params.scanned, params.t, params.id]);
+
   useEffect(() => {
     initializeUser();
   }, []);
 
   useEffect(() => {
-    if (user) {
-      fetchPPMs();
-    }
+    if (user) fetchPPMs();
   }, [user]);
 
   const initializeUser = async () => {
@@ -84,7 +98,7 @@ export default function PPMs() {
       if (userData) {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
-        setNewPpm(prev => ({ ...prev, created_by: parsedUser.id }));
+        setNewPpm((prev) => ({ ...prev, created_by: parsedUser.id }));
       } else {
         router.replace('/');
       }
@@ -98,13 +112,27 @@ export default function PPMs() {
 
   const fetchPPMs = async () => {
     try {
-      // For now, we'll use mock data since the backend doesn't have PPM endpoints yet
+      // Mock PPMs until backend endpoints are available
       const mockPPMs: PPM[] = [
+        {
+          id: 'FD-CORE8-012', // match a door-like ID so scanning highlights it
+          name: 'Fire Door Check — Core 8 Door 012',
+          description: 'Inspect hinges, seals, closure speed, and signage.',
+          equipment: 'Fire Door — Core 8 — 012',
+          frequency: 'Monthly',
+          next_due: '2025-01-15',
+          assigned_to: 'Lee Paull',
+          priority: 'High',
+          status: 'Due',
+          last_completed: '2024-12-15',
+          created_by: 'lee_carter',
+          created_at: '2024-11-01',
+        },
         {
           id: '1',
           name: 'HVAC Filter Replacement',
           description: 'Replace all HVAC filters in main shopping areas',
-          equipment: 'HVAC System - Main Mall',
+          equipment: 'HVAC System — Main Mall',
           frequency: 'Monthly',
           next_due: '2025-01-15',
           assigned_to: 'Lee Paull',
@@ -118,7 +146,7 @@ export default function PPMs() {
           id: '2',
           name: 'Emergency Lighting Test',
           description: 'Test all emergency lighting systems throughout the centre',
-          equipment: 'Emergency Lighting - All Areas',
+          equipment: 'Emergency Lighting — All Areas',
           frequency: 'Weekly',
           next_due: '2025-01-08',
           assigned_to: 'Dean Turnill',
@@ -132,7 +160,7 @@ export default function PPMs() {
           id: '3',
           name: 'Escalator Safety Inspection',
           description: 'Comprehensive safety check of all escalators',
-          equipment: 'Escalators - Level 1 & 2',
+          equipment: 'Escalators — Level 1 & 2',
           frequency: 'Quarterly',
           next_due: '2025-03-01',
           assigned_to: 'Luis',
@@ -146,7 +174,7 @@ export default function PPMs() {
           id: '4',
           name: 'Fire Safety Equipment Check',
           description: 'Inspect fire extinguishers, hoses, and alarm systems',
-          equipment: 'Fire Safety - All Locations',
+          equipment: 'Fire Safety — All Locations',
           frequency: 'Monthly',
           next_due: '2024-12-28',
           assigned_to: 'Lee Paull',
@@ -157,7 +185,6 @@ export default function PPMs() {
           created_at: '2024-08-15',
         },
       ];
-      
       setPpms(mockPPMs);
     } catch (error) {
       console.error('Error fetching PPMs:', error);
@@ -185,7 +212,7 @@ export default function PPMs() {
         created_at: new Date().toISOString(),
       };
 
-      setPpms(prev => [newPpmWithId, ...prev]);
+      setPpms((prev) => [newPpmWithId, ...prev]);
       setShowCreateModal(false);
       setNewPpm({
         name: '',
@@ -208,38 +235,54 @@ export default function PPMs() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': return '#4CAF50';
-      case 'Due': return '#FF9800';
-      case 'Overdue': return '#F44336';
-      case 'Completed': return '#2196F3';
-      default: return '#666';
+      case 'Active':
+        return '#4CAF50';
+      case 'Due':
+        return '#FF9800';
+      case 'Overdue':
+        return '#F44336';
+      case 'Completed':
+        return '#2196F3';
+      default:
+        return '#666';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'High': return '#F44336';
-      case 'Medium': return '#FF9800';
-      case 'Low': return '#4CAF50';
-      default: return '#666';
+      case 'High':
+        return '#F44336';
+      case 'Medium':
+        return '#FF9800';
+      case 'Low':
+        return '#4CAF50';
+      default:
+        return '#666';
     }
   };
 
   const getFrequencyIcon = (frequency: string) => {
     switch (frequency) {
-      case 'Weekly': return 'calendar';
-      case 'Monthly': return 'calendar-outline';
-      case 'Quarterly': return 'calendar-sharp';
-      case 'Yearly': return 'calendar-clear';
-      default: return 'calendar';
+      case 'Weekly':
+        return 'calendar';
+      case 'Monthly':
+        return 'calendar-outline';
+      case 'Quarterly':
+        return 'calendar-sharp';
+      case 'Yearly':
+        return 'calendar-clear';
+      default:
+        return 'calendar';
     }
   };
 
-  const filteredPPMs = ppms.filter(ppm => {
+  const filteredPPMs = ppms.filter((ppm) => {
     const matchesFilter = selectedFilter === 'All' || ppm.status === selectedFilter;
-    const matchesSearch = ppm.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         ppm.equipment.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         ppm.assigned_to.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      ppm.name.toLowerCase().includes(q) ||
+      ppm.equipment.toLowerCase().includes(q) ||
+      ppm.assigned_to.toLowerCase().includes(q);
     return matchesFilter && matchesSearch;
   });
 
@@ -249,10 +292,7 @@ export default function PPMs() {
         <View style={styles.createModal}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Create New PPM</Text>
-            <TouchableOpacity
-              onPress={() => setShowCreateModal(false)}
-              style={styles.closeButton}
-            >
+            <TouchableOpacity onPress={() => setShowCreateModal(false)} style={styles.closeButton}>
               <Ionicons name="close" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -263,7 +303,7 @@ export default function PPMs() {
               <TextInput
                 style={styles.textInput}
                 value={newPpm.name}
-                onChangeText={(text) => setNewPpm(prev => ({ ...prev, name: text }))}
+                onChangeText={(text) => setNewPpm((prev) => ({ ...prev, name: text }))}
                 placeholder="e.g., HVAC Filter Replacement"
                 placeholderTextColor="#666"
               />
@@ -274,8 +314,8 @@ export default function PPMs() {
               <TextInput
                 style={styles.textInput}
                 value={newPpm.equipment}
-                onChangeText={(text) => setNewPpm(prev => ({ ...prev, equipment: text }))}
-                placeholder="e.g., HVAC System - Main Mall"
+                onChangeText={(text) => setNewPpm((prev) => ({ ...prev, equipment: text }))}
+                placeholder="e.g., HVAC System — Main Mall"
                 placeholderTextColor="#666"
               />
             </View>
@@ -285,10 +325,10 @@ export default function PPMs() {
               <TextInput
                 style={[styles.textInput, styles.textArea]}
                 value={newPpm.description}
-                onChangeText={(text) => setNewPpm(prev => ({ ...prev, description: text }))}
+                onChangeText={(text) => setNewPpm((prev) => ({ ...prev, description: text }))}
                 placeholder="Detailed description of the maintenance task"
                 placeholderTextColor="#666"
-                multiline={true}
+                multiline
                 numberOfLines={3}
               />
             </View>
@@ -316,7 +356,7 @@ export default function PPMs() {
               <TextInput
                 style={styles.textInput}
                 value={newPpm.next_due}
-                onChangeText={(text) => setNewPpm(prev => ({ ...prev, next_due: text }))}
+                onChangeText={(text) => setNewPpm((prev) => ({ ...prev, next_due: text }))}
                 placeholder="YYYY-MM-DD"
                 placeholderTextColor="#666"
               />
@@ -327,7 +367,7 @@ export default function PPMs() {
               <TextInput
                 style={styles.textInput}
                 value={newPpm.assigned_to}
-                onChangeText={(text) => setNewPpm(prev => ({ ...prev, assigned_to: text }))}
+                onChangeText={(text) => setNewPpm((prev) => ({ ...prev, assigned_to: text }))}
                 placeholder="Team member name"
                 placeholderTextColor="#666"
               />
@@ -335,17 +375,11 @@ export default function PPMs() {
           </ScrollView>
 
           <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.cancelButton]}
-              onPress={() => setShowCreateModal(false)}
-            >
+            <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setShowCreateModal(false)}>
               <Text style={styles.modalButtonText}>Cancel</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.modalButton, styles.createButton]}
-              onPress={handleCreatePPM}
-            >
+
+            <TouchableOpacity style={[styles.modalButton, styles.createButton]} onPress={handleCreatePPM}>
               <Text style={styles.modalButtonText}>Create PPM</Text>
             </TouchableOpacity>
           </View>
@@ -357,193 +391,207 @@ export default function PPMs() {
   if (loading) {
     return (
       <Screen scroll>
-      <Container>
-        <UniversalHeader title="PPMs" showBackButton={true} />
-        <View style={styles.centerContent}>
-          <Ionicons name="calendar" size={48} color="#4CAF50" />
-          <Text style={styles.loadingText}>Loading maintenance schedules...</Text>
-        </View>
-      </Container>
-    </Screen>
+        <Container>
+          <UniversalHeader title="PPMs" showBackButton={true} />
+          <View style={styles.centerContent}>
+            <Ionicons name="calendar" size={48} color="#4CAF50" />
+            <Text style={styles.loadingText}>Loading maintenance schedules...</Text>
+          </View>
+        </Container>
+      </Screen>
     );
   }
 
   return (
     <Screen scroll>
       <Container>
-      <UniversalHeader title="PPMs" showBackButton={true} />
-      
-      {/* Header Section */}
-      <View style={styles.headerSection}>
-        <View style={styles.headerLeft}>
-          <Ionicons name="calendar" size={28} color="#4CAF50" />
-          <View>
-            <Text style={styles.headerTitle}>Planned Preventive Maintenance</Text>
-            <Text style={styles.headerSubtitle}>{filteredPPMs.length} scheduled tasks</Text>
+        <UniversalHeader title="PPMs" showBackButton={true} />
+
+        {/* Header Section */}
+        <View style={styles.headerSection}>
+          <View style={styles.headerLeft}>
+            <Ionicons name="calendar" size={28} color="#4CAF50" />
+            <View>
+              <Text style={styles.headerTitle}>Planned Preventive Maintenance</Text>
+              <Text style={styles.headerSubtitle}>{filteredPPMs.length} scheduled tasks</Text>
+            </View>
+          </View>
+
+          {user?.role === 'supervisor' && (
+            <TouchableOpacity style={styles.addButton} onPress={() => setShowCreateModal(true)}>
+              <Ionicons name="add" size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Quick Stats */}
+        <View style={styles.statsSection}>
+          <View style={styles.statCard}>
+            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+            <Text style={styles.statNumber}>{ppms.filter((p) => p.status === 'Active').length}</Text>
+            <Text style={styles.statLabel}>Active</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Ionicons name="time" size={20} color="#FF9800" />
+            <Text style={styles.statNumber}>{ppms.filter((p) => p.status === 'Due').length}</Text>
+            <Text style={styles.statLabel}>Due</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Ionicons name="warning" size={20} color="#F44336" />
+            <Text style={styles.statNumber}>{ppms.filter((p) => p.status === 'Overdue').length}</Text>
+            <Text style={styles.statLabel}>Overdue</Text>
           </View>
         </View>
-        
-        {user?.role === 'supervisor' && (
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowCreateModal(true)}
-          >
-            <Ionicons name="add" size={24} color="#fff" />
+
+        {/* Search and Filter */}
+        <View style={styles.searchSection}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={20} color="#666" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search PPMs..."
+              placeholderTextColor="#666"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+
+          <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilterModal(true)}>
+            <Ionicons name="filter" size={20} color="#fff" />
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
 
-      {/* Quick Stats */}
-      <View style={styles.statsSection}>
-        <View style={styles.statCard}>
-          <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-          <Text style={styles.statNumber}>{ppms.filter(p => p.status === 'Active').length}</Text>
-          <Text style={styles.statLabel}>Active</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Ionicons name="time" size={20} color="#FF9800" />
-          <Text style={styles.statNumber}>{ppms.filter(p => p.status === 'Due').length}</Text>
-          <Text style={styles.statLabel}>Due</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Ionicons name="warning" size={20} color="#F44336" />
-          <Text style={styles.statNumber}>{ppms.filter(p => p.status === 'Overdue').length}</Text>
-          <Text style={styles.statLabel}>Overdue</Text>
-        </View>
-      </View>
-
-      {/* Search and Filter */}
-      <View style={styles.searchSection}>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#666" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search PPMs..."
-            placeholderTextColor="#666"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-        
-        <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => setShowFilterModal(true)}
+        {/* PPMs List */}
+        <ScrollView
+          style={styles.content}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
-          <Ionicons name="filter" size={20} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      {/* PPMs List */}
-      <ScrollView
-        style={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        {filteredPPMs.map((ppm) => (
-          <View key={ppm.id} style={styles.ppmCard}>
-            <View style={styles.ppmHeader}>
-              <View style={styles.ppmTitleSection}>
-                <Text style={styles.ppmName}>{ppm.name}</Text>
-                <Text style={styles.ppmEquipment}>{ppm.equipment}</Text>
-              </View>
-              
-              <View style={styles.ppmStatusSection}>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(ppm.status) }]}>
-                  <Text style={styles.statusText}>{ppm.status}</Text>
+          {filteredPPMs.map((ppm) => (
+            <View
+              key={ppm.id}
+              style={[
+                styles.ppmCard,
+                // highlight if the scanned id matches this record
+                scanDoorId &&
+                (ppm?.id === scanDoorId ||
+                  (ppm?.equipment && ppm.equipment.includes(scanDoorId)))
+                  ? { borderWidth: 2, borderColor: '#4CAF50' }
+                  : null,
+              ]}
+            >
+              <View style={styles.ppmHeader}>
+                <View style={styles.ppmTitleSection}>
+                  <Text style={styles.ppmName}>{ppm.name}</Text>
+                  <Text style={styles.ppmEquipment}>{ppm.equipment}</Text>
                 </View>
-                <View style={[styles.priorityBadge, { borderColor: getPriorityColor(ppm.priority) }]}>
-                  <Text style={[styles.priorityText, { color: getPriorityColor(ppm.priority) }]}>
-                    {ppm.priority}
-                  </Text>
+
+                <View style={styles.ppmStatusSection}>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(ppm.status) }]}>
+                    <Text style={styles.statusText}>{ppm.status}</Text>
+                  </View>
+                  <View style={[styles.priorityBadge, { borderColor: getPriorityColor(ppm.priority) }]}>
+                    <Text style={[styles.priorityText, { color: getPriorityColor(ppm.priority) }]}>{ppm.priority}</Text>
+                  </View>
                 </View>
               </View>
-            </View>
 
-            <Text style={styles.ppmDescription}>{ppm.description}</Text>
+              <Text style={styles.ppmDescription}>{ppm.description}</Text>
 
-            <View style={styles.ppmDetails}>
-              <View style={styles.detailItem}>
-                <Ionicons name={getFrequencyIcon(ppm.frequency)} size={16} color="#666" />
-                <Text style={styles.detailText}>{ppm.frequency}</Text>
-              </View>
-              
-              <View style={styles.detailItem}>
-                <Ionicons name="calendar-outline" size={16} color="#666" />
-                <Text style={styles.detailText}>Due: {ppm.next_due}</Text>
-              </View>
-              
-              <View style={styles.detailItem}>
-                <Ionicons name="person" size={16} color="#666" />
-                <Text style={styles.detailText}>{ppm.assigned_to}</Text>
-              </View>
-            </View>
+              <View style={styles.ppmDetails}>
+                <View style={styles.detailItem}>
+                  <Ionicons name={getFrequencyIcon(ppm.frequency)} size={16} color="#666" />
+                  <Text style={styles.detailText}>{ppm.frequency}</Text>
+                </View>
 
-            <View style={styles.ppmActions}>
-              <TouchableOpacity style={styles.actionButton} onPress={() => Alert.alert('PPM', 'Open PPM details (route TBD)')}>
-                <Ionicons name="eye" size={18} color="#2196F3" />
-                <Text style={[styles.actionText, { color: '#2196F3' }]}>View</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.actionButton} onPress={() => Alert.alert('Complete', 'Completion flow not implemented yet')}>
-                <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-                <Text style={[styles.actionText, { color: '#4CAF50' }]}>Complete</Text>
-              </TouchableOpacity>
-              
-              {user?.role === 'supervisor' && (
-                <TouchableOpacity style={styles.actionButton} onPress={() => Alert.alert('Edit', 'Edit flow not implemented yet')}>
-                  <Ionicons name="create" size={18} color="#FF9800" />
-                  <Text style={[styles.actionText, { color: '#FF9800' }]}>Edit</Text>
+                <View style={styles.detailItem}>
+                  <Ionicons name="calendar-outline" size={16} color="#666" />
+                  <Text style={styles.detailText}>Due: {ppm.next_due}</Text>
+                </View>
+
+                <View style={styles.detailItem}>
+                  <Ionicons name="person" size={16} color="#666" />
+                  <Text style={styles.detailText}>{ppm.assigned_to}</Text>
+                </View>
+              </View>
+
+              <View style={styles.ppmActions}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => Alert.alert('PPM', 'Open PPM details (route TBD)')}
+                >
+                  <Ionicons name="eye" size={18} color="#2196F3" />
+                  <Text style={[styles.actionText, { color: '#2196F3' }]}>View</Text>
                 </TouchableOpacity>
-              )}
+
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => Alert.alert('Complete', 'Completion flow not implemented yet')}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+                  <Text style={[styles.actionText, { color: '#4CAF50' }]}>Complete</Text>
+                </TouchableOpacity>
+
+                {user?.role === 'supervisor' && (
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => Alert.alert('Edit', 'Edit flow not implemented yet')}
+                  >
+                    <Ionicons name="create" size={18} color="#FF9800" />
+                    <Text style={[styles.actionText, { color: '#FF9800' }]}>Edit</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          ))}
+
+          {filteredPPMs.length === 0 && (
+            <View style={styles.emptyState}>
+              <Ionicons name="calendar-outline" size={64} color="#666" />
+              <Text style={styles.emptyTitle}>No PPMs Found</Text>
+              <Text style={styles.emptyText}>
+                {searchQuery ? 'Try adjusting your search criteria' : 'Get started by creating your first PPM schedule'}
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+
+        {renderCreateModal()}
+
+        {/* Filter Modal */}
+        <Modal visible={showFilterModal} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.filterModal}>
+              <Text style={styles.filterTitle}>Filter PPMs</Text>
+
+              {['All', 'Active', 'Due', 'Overdue', 'Completed'].map((filter) => (
+                <TouchableOpacity
+                  key={filter}
+                  style={[
+                    styles.filterOption,
+                    selectedFilter === filter && styles.selectedFilterOption,
+                  ]}
+                  onPress={() => {
+                    setSelectedFilter(filter);
+                    setShowFilterModal(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.filterOptionText,
+                      selectedFilter === filter && styles.selectedFilterOptionText,
+                    ]}
+                  >
+                    {filter}
+                  </Text>
+                  {selectedFilter === filter && (
+                    <Ionicons name="checkmark" size={20} color="#4CAF50" />
+                  )}
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
-        ))}
-
-        {filteredPPMs.length === 0 && (
-          <View style={styles.emptyState}>
-            <Ionicons name="calendar-outline" size={64} color="#666" />
-            <Text style={styles.emptyTitle}>No PPMs Found</Text>
-            <Text style={styles.emptyText}>
-              {searchQuery ? 'Try adjusting your search criteria' : 'Get started by creating your first PPM schedule'}
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-
-      {renderCreateModal()}
-
-      {/* Filter Modal */}
-      <Modal visible={showFilterModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.filterModal}>
-            <Text style={styles.filterTitle}>Filter PPMs</Text>
-            
-            {['All', 'Active', 'Due', 'Overdue', 'Completed'].map((filter) => (
-              <TouchableOpacity
-                key={filter}
-                style={[
-                  styles.filterOption,
-                  selectedFilter === filter && styles.selectedFilterOption
-                ]}
-                onPress={() => {
-                  setSelectedFilter(filter);
-                  setShowFilterModal(false);
-                }}
-              >
-                <Text style={[
-                  styles.filterOptionText,
-                  selectedFilter === filter && styles.selectedFilterOptionText
-                ]}>
-                  {filter}
-                </Text>
-                {selectedFilter === filter && (
-                  <Ionicons name="checkmark" size={20} color="#4CAF50" />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </Modal>
-    </Container>
+        </Modal>
+      </Container>
     </Screen>
   );
 }
