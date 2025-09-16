@@ -478,18 +478,18 @@ export default function PPMs() {
             </View>
 
             <View style={styles.ppmActions}>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity style={styles.actionButton} onPress={() => Alert.alert('PPM', 'Open PPM details (route TBD)')}>
                 <Ionicons name="eye" size={18} color="#2196F3" />
                 <Text style={[styles.actionText, { color: '#2196F3' }]}>View</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity style={styles.actionButton} onPress={() => Alert.alert('Complete', 'Completion flow not implemented yet')}>
                 <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
                 <Text style={[styles.actionText, { color: '#4CAF50' }]}>Complete</Text>
               </TouchableOpacity>
               
               {user?.role === 'supervisor' && (
-                <TouchableOpacity style={styles.actionButton}>
+                <TouchableOpacity style={styles.actionButton} onPress={() => Alert.alert('Edit', 'Edit flow not implemented yet')}>
                   <Ionicons name="create" size={18} color="#FF9800" />
                   <Text style={[styles.actionText, { color: '#FF9800' }]}>Edit</Text>
                 </TouchableOpacity>
