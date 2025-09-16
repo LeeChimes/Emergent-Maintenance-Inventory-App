@@ -1,5 +1,5 @@
 // frontend/app/inventory.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -16,12 +16,14 @@ import { router, useLocalSearchParams } from 'expo-router';
 import Screen from './components/Screen';
 import Container from './components/Container';
 import UniversalHeader from './components/UniversalHeader';
-import { AppErrorHandler } from '../utils/AppErrorHandler';
+import { AppErrorHandler } from './utils/AppErrorHandler';
+
+type Role = 'supervisor' | 'engineer';
 
 interface User {
   id: string;
   name: string;
-  role: 'supervisor' | 'engineer';
+  role: Role;
 }
 
 interface InventoryItem {
@@ -33,7 +35,7 @@ interface InventoryItem {
 }
 
 export default function Inventory() {
-  // from /scan redirect: /inventory?scanned=1&t=asset&id=ASSET-123
+  // supports /inventory?scanned=1&t=asset&id=ASSET-123
   const params = useLocalSearchParams<{ scanned?: string; t?: string; id?: string }>();
   const [scanFilter, setScanFilter] = useState<string>('');
 
@@ -50,29 +52,23 @@ export default function Inventory() {
   }, [params.scanned, params.id]);
 
   useEffect(() => {
-    initializeUser();
+    (async () => {
+      try {
+        const userData = await AsyncStorage.getItem('userData');
+        if (!userData) return router.replace('/');
+        setUser(JSON.parse(userData));
+      } catch (error) {
+        console.error('Error loading user data:', error);
+        router.replace('/');
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   useEffect(() => {
     if (user) fetchItems();
   }, [user]);
-
-  const initializeUser = async () => {
-    try {
-      const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-      } else {
-        router.replace('/');
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      router.replace('/');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchItems = async () => {
     try {
@@ -98,6 +94,7 @@ export default function Inventory() {
   const filteredItems = items.filter((x) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
+      !q ||
       x.name.toLowerCase().includes(q) ||
       x.sku.toLowerCase().includes(q) ||
       x.location.toLowerCase().includes(q);
@@ -123,7 +120,7 @@ export default function Inventory() {
         </Container>
       </Screen>
     );
-  }
+    }
 
   return (
     <Screen scroll>
