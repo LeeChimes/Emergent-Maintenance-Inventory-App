@@ -1,7 +1,7 @@
 // frontend/app/generate-qr.tsx
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { buildQR, QRType } from '../utils/qr';
+import { buildQR, QRType } from './utils/qr';
 import QRBadge from './components/QRBadge';
 
 const TYPES: QRType[] = ['asset', 'door', 'delivery', 'tool', 'part'];
