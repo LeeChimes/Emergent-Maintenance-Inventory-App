@@ -17,8 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import Screen from './components/Screen';
 import Container from './components/Container';
-// If UniversalHeader is under app/components, change the import to './components/UniversalHeader'
-import UniversalHeader from '../components/UniversalHeader';
+import UniversalHeader from './components/UniversalHeader';
 import { AppErrorHandler } from '../utils/AppErrorHandler';
 
 const { width } = Dimensions.get('window');
@@ -78,9 +77,7 @@ export default function PPMs() {
       const doorId = String(params.id);
       setScanDoorId(doorId);
       // Optional: immediately filter to only this door
-      // setSelectedFilter('All'); // ensure filter doesn't hide it
       // setSearchQuery(doorId);
-      // Optional: auto-open a form drawer/modal for this door here
     }
   }, [params.scanned, params.t, params.id]);
 
@@ -115,7 +112,7 @@ export default function PPMs() {
       // Mock PPMs until backend endpoints are available
       const mockPPMs: PPM[] = [
         {
-          id: 'FD-CORE8-012', // match a door-like ID so scanning highlights it
+          id: 'FD-CORE8-012', // matches a door-like ID so scanning highlights it
           name: 'Fire Door Check — Core 8 Door 012',
           description: 'Inspect hinges, seals, closure speed, and signage.',
           equipment: 'Fire Door — Core 8 — 012',
@@ -392,7 +389,7 @@ export default function PPMs() {
     return (
       <Screen scroll>
         <Container>
-          <UniversalHeader title="PPMs" showBackButton={true} />
+          <UniversalHeader title="PPMs" showBackButton />
           <View style={styles.centerContent}>
             <Ionicons name="calendar" size={48} color="#4CAF50" />
             <Text style={styles.loadingText}>Loading maintenance schedules...</Text>
@@ -405,7 +402,7 @@ export default function PPMs() {
   return (
     <Screen scroll>
       <Container>
-        <UniversalHeader title="PPMs" showBackButton={true} />
+        <UniversalHeader title="PPMs" showBackButton />
 
         {/* Header Section */}
         <View style={styles.headerSection}>
