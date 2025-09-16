@@ -8,7 +8,9 @@ import {
   Modal,
   TextInput,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -521,11 +523,24 @@ export default function Inventory() {
               </TouchableOpacity>
             )}
           </View>
+        ) : activeTab === 'materials' ? (
+          <FlashList<Material>
+            data={filteredItems.filter(isMaterial) as Material[]}
+            renderItem={renderMaterialItem}
+            keyExtractor={(item) => item.id}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor="#4CAF50"
+              />
+            }
+            showsVerticalScrollIndicator={false}
+          />
         ) : (
-          <FlashList
-            data={filteredItems}
-            renderItem={activeTab === 'materials' ? renderMaterialItem : renderToolItem}
-            estimatedItemSize={120}
+          <FlashList<Tool>
+            data={filteredItems.filter(i => !isMaterial(i)) as Tool[]}
+            renderItem={renderToolItem}
             keyExtractor={(item) => item.id}
             refreshControl={
               <RefreshControl

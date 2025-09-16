@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -282,7 +282,8 @@ export default function Suppliers() {
             ))
           )}
         </View>
-      {/* ScrollView content ends here */}
+  </ScrollView>
+  {/* ScrollView content ends here */}
 
       {/* Floating Add Button */}
       <TouchableOpacity

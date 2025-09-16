@@ -9,6 +9,7 @@ import {
   TextInput,
   Vibration,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +18,7 @@ import { router } from 'expo-router';
 import UniversalHeader from '../components/UniversalHeader';
 import Screen from './components/Screen';
 import Container from './components/Container';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -507,7 +509,7 @@ export default function Scanner() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.permissionContainer}>
-          <Ionicons name="camera-off" size={64} color="#666" />
+          <Ionicons name="camera" size={64} color="#666" />
           <Text style={styles.permissionTitle}>Camera Permission Required</Text>
           <Text style={styles.permissionText}>
             We need camera access to scan QR codes for inventory management.
@@ -727,7 +729,7 @@ export default function Scanner() {
             <TouchableOpacity 
               onPress={() => {
                 if (manualCode.trim()) {
-                  handleBarCodeScanned({ type: 'manual', data: manualCode.trim() });
+                  handleBarCodeScanned({ data: manualCode.trim() } as any);
                   setShowManualEntry(false);
                   setManualCode('');
                 }
@@ -769,7 +771,7 @@ export default function Scanner() {
                 style={[styles.manualSubmitButton, !manualCode.trim() && styles.disabledButton]}
                 onPress={() => {
                   if (manualCode.trim()) {
-                    handleBarCodeScanned({ type: 'manual', data: manualCode.trim() });
+                    handleBarCodeScanned({ data: manualCode.trim() } as any);
                     setShowManualEntry(false);
                     setManualCode('');
                   }
@@ -1120,11 +1122,6 @@ const styles = StyleSheet.create({
   checkinButton: {
     backgroundColor: '#2196F3',
   },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   actionForm: {
     backgroundColor: '#2d2d2d',
     borderRadius: 12,
@@ -1211,10 +1208,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     lineHeight: 20,
   },
-  inputGroup: {
+  manualInputGroup: {
     marginBottom: 20,
   },
-  inputLabel: {
+  manualInputLabel: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',

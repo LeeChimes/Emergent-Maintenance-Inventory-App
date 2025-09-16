@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import Screen from './components/Screen';
@@ -7,10 +7,16 @@ import Container from './components/Container';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UniversalHeader from '../components/UniversalHeader';
 
+interface User {
+  id: string;
+  name: string;
+  role: 'supervisor' | 'engineer';
+}
+
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function ContactSupervisors() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [urgency, setUrgency] = useState('normal');
