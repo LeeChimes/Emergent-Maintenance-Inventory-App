@@ -1,13 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput, ScrollView } from 'react-native';
+// frontend/app/deliveries.tsx
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  RefreshControl,
+  Alert,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router, useLocalSearchParams } from 'expo-router';
 import Screen from './components/Screen';
 import Container from './components/Container';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import UniversalHeader from '../components/UniversalHeader';
-
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import { AppErrorHandler } from '../utils/AppErrorHandler';
 
 interface User {
   id: string;
@@ -15,1018 +24,365 @@ interface User {
   role: 'supervisor' | 'engineer';
 }
 
-interface Supplier {
-  id: string;
-  name: string;
-  website_url?: string;
-  contact_person?: string;
-  phone?: string;
-  email?: string;
-}
-
-interface DeliveryItem {
-  item_name: string;
-  quantity_expected?: number;
-  quantity_received?: number;
-  unit: string;
-  item_code?: string;
-  condition: string;
-  notes?: string;
-  matched_inventory_id?: string;
-  price_per_unit?: number;
-}
+type DeliveryStatus = 'Pending' | 'Received' | 'Issue';
 
 interface Delivery {
-  id: string;
-  supplier_id: string;
-  supplier_name: string;
-  delivery_number: string;
-  expected_date?: string;
-  delivery_date?: string;
-  driver_name?: string;
-  tracking_number?: string;
+  id: string;            // e.g., 'DEL-001'
+  supplier: string;      // e.g., 'Screwfix'
+  reference: string;     // e.g., PO or courier ref
+  date: string;          // ISO date
+  location: string;      // where to bring it
+  status: DeliveryStatus;
   notes?: string;
-  status: 'pending' | 'delivered' | 'partial' | 'cancelled';
-  items: DeliveryItem[];
-  created_by: string;
-  created_at: string;
-  delivery_note_photo?: string;
-  receiver_name: string;
 }
 
 export default function Deliveries() {
+  // read params from scanner redirect
+  const params = useLocalSearchParams<{ scanned?: string; t?: string; id?: string }>();
+  const [scanId, setScanId] = useState<string>('');
+
   const [user, setUser] = useState<User | null>(null);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Modal states
-  const [showAddDelivery, setShowAddDelivery] = useState(false);
-  const [showManualEntry, setShowManualEntry] = useState(false);
-  const [showDeliveryDetails, setShowDeliveryDetails] = useState(false);
-  const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
-  const [showAIProcessing, setShowAIProcessing] = useState(false);
-  const [newDelivery, setNewDelivery] = useState({
-    supplier_id: '',
-    supplier_name: '',
-    delivery_number: '',
-    expected_date: '',
-    driver_name: '',
-    tracking_number: '',
-    notes: '',
-    status: 'pending' as const,
-    delivery_note_photo: '',
-    receiver_name: '',
-    items: [] as DeliveryItem[]
-  });
+  // apply scanned delivery id
+  useEffect(() => {
+    if (params.scanned === '1' && params.t === 'delivery' && params.id) {
+      setScanId(String(params.id));
+      // If you prefer to auto-open a detail view, do it here instead:
+      // openDeliveryDetail(String(params.id));
+    }
+  }, [params.scanned, params.t, params.id]);
 
   useEffect(() => {
-    loadUserData();
+    initializeUser();
   }, []);
 
   useEffect(() => {
-    if (user) {
-      fetchDeliveries();
-      fetchSuppliers();
-    }
+    if (user) fetchDeliveries();
   }, [user]);
 
-  const loadUserData = async () => {
+  const initializeUser = async () => {
     try {
       const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        setUser(JSON.parse(userData));
-      } else {
-        router.push('/');
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      router.push('/');
-    }
-  };
-
-  const fetchDeliveries = async () => {
-    try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/deliveries`);
-      if (response.ok) {
-        const data = await response.json();
-        setDeliveries(data);
-      }
-    } catch (error) {
-      console.error('Error fetching deliveries:', error);
+      if (!userData) return router.replace('/');
+      const parsed = JSON.parse(userData);
+      setUser(parsed);
+    } catch (e) {
+      console.error('Error loading user', e);
+      router.replace('/');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchSuppliers = async () => {
+  const fetchDeliveries = async () => {
     try {
-      console.log('📋 Fetching suppliers...');
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/suppliers`);
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Suppliers loaded:', data.length);
-        setSuppliers(data);
-        
-        // Auto-select first supplier if available to make testing easier
-        if (data.length > 0 && !newDelivery.supplier_id) {
-          setNewDelivery(prev => ({
-            ...prev,
-            supplier_id: data[0].id,
-            supplier_name: data[0].name
-          }));
-          console.log('🎯 Auto-selected first supplier:', data[0].name);
-        }
-      } else {
-        console.error('❌ Failed to fetch suppliers:', response.status);
-      }
-    } catch (error) {
-      console.error('❌ Error fetching suppliers:', error);
+      // Mock data until backend endpoints are wired
+      const mock: Delivery[] = [
+        {
+          id: 'DEL-001',
+          supplier: 'Screwfix',
+          reference: 'SF-PO-92311',
+          date: '2025-01-16',
+          location: 'Goods In',
+          status: 'Pending',
+          notes: 'Boxes 1/3 arrived earlier',
+        },
+        {
+          id: 'DEL-002',
+          supplier: 'Toolstation',
+          reference: 'TS-INV-4419',
+          date: '2025-01-15',
+          location: 'Workshop',
+          status: 'Received',
+        },
+        {
+          id: 'DEL-003',
+          supplier: 'DHL',
+          reference: 'DHL-TRACK-884211',
+          date: '2025-01-14',
+          location: 'Security',
+          status: 'Issue',
+          notes: 'Damaged packaging on arrival',
+        },
+      ];
+      setDeliveries(mock);
+    } catch (err) {
+      console.error('Error fetching deliveries', err);
+      AppErrorHandler.handleError(err as Error, 'Failed to load deliveries');
     }
   };
 
-  // Simplified - manual entry only
-  const resetForm = () => {
-    setNewDelivery({
-      supplier_id: '',
-      supplier_name: '',
-      delivery_number: '',
-      expected_date: '',
-      driver_name: '',
-      tracking_number: '',
-      notes: '',
-      status: 'pending',
-      delivery_note_photo: '',
-      receiver_name: '',
-      items: [] as DeliveryItem[]
-    });
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchDeliveries();
+    setRefreshing(false);
   };
 
-  const addDeliveryItem = () => {
-    setNewDelivery(prev => ({
-      ...prev,
-      items: [...prev.items, {
-        item_name: '',
-        quantity_expected: 1,
-        quantity_received: 1,
-        unit: 'pieces',
-        condition: 'good',
-        notes: ''
-      }]
-    }));
-  };
-
-  const updateDeliveryItem = (index: number, updates: Partial<DeliveryItem>) => {
-    setNewDelivery(prev => ({
-      ...prev,
-      items: prev.items.map((item, i) => 
-        i === index ? { ...item, ...updates } : item
-      )
-    }));
-  };
-
-  const removeDeliveryItem = (index: number) => {
-    setNewDelivery(prev => ({
-      ...prev,
-      items: prev.items.filter((_, i) => i !== index)
-    }));
-  };
-
-  const createManualDelivery = async () => {
-    if (!newDelivery.supplier_id) {
-      Alert.alert('Missing Information', 'Please select a supplier.');
-      return;
+  const getStatusColor = (s: DeliveryStatus) => {
+    switch (s) {
+      case 'Pending':
+        return '#FF9800';
+      case 'Received':
+        return '#4CAF50';
+      case 'Issue':
+        return '#F44336';
+      default:
+        return '#666';
     }
+  };
 
-    if (!newDelivery.delivery_number.trim()) {
-      Alert.alert('Missing Information', 'Please enter a delivery number.');
-      return;
-    }
+  const filtered = deliveries.filter((d) => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      d.id.toLowerCase().includes(q) ||
+      d.supplier.toLowerCase().includes(q) ||
+      d.reference.toLowerCase().includes(q) ||
+      d.location.toLowerCase().includes(q) ||
+      (d.notes?.toLowerCase().includes(q) ?? false);
+    const matchesScan =
+      !scanId ||
+      d.id.includes(scanId) ||
+      d.reference.includes(scanId) ||
+      d.supplier.toLowerCase().includes(scanId.toLowerCase());
+    return matchesSearch && matchesScan;
+  });
 
-    try {
-      const deliveryData = {
-        ...newDelivery,
-        created_by: user?.id || 'unknown',
-        receiver_name: user?.name || 'Unknown'
-      };
-
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/deliveries`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(deliveryData),
-      });
-
-      if (response.ok) {
-        Alert.alert('Success', 'Delivery logged successfully!');
-        resetForm();
-        setShowManualEntry(false);
-        setShowAddDelivery(false);
-        fetchDeliveries();
-      } else {
-        const errorData = await response.text();
-        console.error('Error creating delivery:', errorData);
-        Alert.alert('Error', 'Failed to create delivery. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error creating delivery:', error);
-      Alert.alert('Error', 'Failed to create delivery. Please try again.');
-    }
+  const markReceived = (delivery: Delivery) => {
+    Alert.alert(
+      'Mark as received',
+      `Confirm ${delivery.id} from ${delivery.supplier} is received?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          style: 'default',
+          onPress: () => {
+            setDeliveries((prev) =>
+              prev.map((d) => (d.id === delivery.id ? { ...d, status: 'Received' } : d))
+            );
+            Alert.alert('Updated', `${delivery.id} marked as received.`);
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
     return (
       <Screen scroll>
-      <Container>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading deliveries...</Text>
-        </View>
-      </Container>
-    </Screen>
+        <Container>
+          <UniversalHeader title="Deliveries" showBackButton={true} />
+          <View style={styles.centerContent}>
+            <Ionicons name="cube" size={48} color="#4CAF50" />
+            <Text style={styles.loadingText}>Loading deliveries…</Text>
+          </View>
+        </Container>
+      </Screen>
     );
   }
 
   return (
     <Screen scroll>
       <Container>
-      {/* Universal Header */}
-      <UniversalHeader title="Deliveries" showBackButton={true} />
+        <UniversalHeader title="Deliveries" showBackButton={true} />
 
-      {/* Main Content */}
-      <ScrollView style={styles.content}>
-        {/* Welcome Section */}
-        <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeTitle}>📦 Delivery Management</Text>
-          <Text style={styles.welcomeText}>
-            Track and manage all deliveries to the shopping centre. Log new deliveries, 
-            view delivery history, and manage inventory updates.
-          </Text>
+        {/* Search */}
+        <View style={styles.searchSection}>
+          <Ionicons name="search" size={20} color="#666" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search deliveries (ID, supplier, ref, location)…"
+            placeholderTextColor="#666"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
         </View>
 
-        {/* Recent Deliveries */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Deliveries</Text>
-          {deliveries.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="cube-outline" size={48} color="#666" />
-              <Text style={styles.emptyStateText}>No deliveries logged yet</Text>
-              <Text style={styles.emptyStateSubtext}>Tap the + button to log your first delivery</Text>
-            </View>
-          ) : (
-            deliveries.slice(0, 5).map((delivery) => (
-              <TouchableOpacity
-                key={delivery.id}
-                style={styles.deliveryCard}
-                onPress={() => {
-                  setSelectedDelivery(delivery);
-                  setShowDeliveryDetails(true);
-                }}
-              >
-                <View style={styles.deliveryHeader}>
-                  <View style={styles.deliveryInfo}>
-                    <Text style={styles.deliveryNumber}>#{delivery.delivery_number}</Text>
-                    <Text style={styles.supplierName}>{delivery.supplier_name}</Text>
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(delivery.status) }]}>
-                    <Text style={styles.statusText}>{delivery.status.toUpperCase()}</Text>
-                  </View>
+        {/* List */}
+        <ScrollView
+          style={styles.content}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
+          {filtered.map((d) => (
+            <View
+              key={d.id}
+              style={[
+                styles.card,
+                scanId &&
+                (d.id === scanId ||
+                  d.reference.includes(scanId) ||
+                  d.supplier.toLowerCase().includes(scanId.toLowerCase()))
+                  ? { borderWidth: 2, borderColor: '#4CAF50' }
+                  : null,
+              ]}
+            >
+              <View style={styles.headerRow}>
+                <Text style={styles.idText}>{d.id}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(d.status) }]}>
+                  <Text style={styles.statusTxt}>{d.status}</Text>
                 </View>
-                <Text style={styles.deliveryDate}>
-                  {new Date(delivery.created_at).toLocaleDateString()}
-                </Text>
-                <Text style={styles.itemCount}>
-                  {delivery.items.length} item{delivery.items.length !== 1 ? 's' : ''}
-                </Text>
-              </TouchableOpacity>
-            ))
-          )}
-        </View>
-      </ScrollView>
-
-      {/* Floating Add Button */}
-      <TouchableOpacity
-        style={styles.fabButton}
-        onPress={() => setShowAddDelivery(true)}
-      >
-        <Ionicons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
-
-      {/* Add Delivery Modal */}
-      <Modal
-        visible={showAddDelivery}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowAddDelivery(false)}
-      >
-        <Screen scroll>
-      <Container>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowAddDelivery(false)}>
-              <Ionicons name="close" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Log New Delivery</Text>
-            <View style={{ width: 24 }} />
-          </View>
-
-          <ScrollView style={styles.modalContent}>
-            <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>📦 Select Supplier</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.supplierSelector}>
-                {suppliers.map(supplier => (
-                  <TouchableOpacity
-                    key={supplier.id}
-                    style={[
-                      styles.supplierChip,
-                      newDelivery.supplier_id === supplier.id && styles.supplierChipSelected
-                    ]}
-                    onPress={() => setNewDelivery(prev => ({
-                      ...prev,
-                      supplier_id: supplier.id,
-                      supplier_name: supplier.name
-                    }))}
-                  >
-                    <Text style={[
-                      styles.supplierChipText,
-                      newDelivery.supplier_id === supplier.id && styles.supplierChipTextSelected
-                    ]}>
-                      {supplier.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-
-            <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>📋 Delivery Entry</Text>
-              
-              <TouchableOpacity 
-                style={styles.optionButton}
-                onPress={() => setShowManualEntry(true)}
-              >
-                <Ionicons name="create" size={24} color="#FF9800" />
-                <View style={styles.optionContent}>
-                  <Text style={styles.optionTitle}>✍️ Manual Entry</Text>
-                  <Text style={styles.optionDescription}>Enter delivery details manually</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </Container>
-    </Screen>
-      </Modal>
-
-      {/* Manual Entry Modal */}
-      <Modal
-        visible={showManualEntry}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={() => setShowManualEntry(false)}
-      >
-        <Screen scroll>
-      <Container>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowManualEntry(false)}>
-              <Ionicons name="close" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Manual Delivery Entry</Text>
-            <TouchableOpacity onPress={createManualDelivery}>
-              <Ionicons name="checkmark" size={24} color="#4CAF50" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalContent}>
-            {/* Basic Info */}
-            <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>📦 Delivery Information</Text>
-              
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Delivery Number *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter delivery number"
-                  value={newDelivery.delivery_number}
-                  onChangeText={(text) => setNewDelivery(prev => ({ ...prev, delivery_number: text }))}
-                />
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Driver Name</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter driver name"
-                  value={newDelivery.driver_name}
-                  onChangeText={(text) => setNewDelivery(prev => ({ ...prev, driver_name: text }))}
-                />
-              </View>
+              <Text style={styles.supplier}>{d.supplier}</Text>
+              <Text style={styles.lightText}>Ref: {d.reference}</Text>
+              <Text style={styles.lightText}>Date: {d.date}</Text>
+              <Text style={styles.lightText}>Location: {d.location}</Text>
+              {d.notes ? <Text style={styles.notes}>Notes: {d.notes}</Text> : null}
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Tracking Number</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter tracking number"
-                  value={newDelivery.tracking_number}
-                  onChangeText={(text) => setNewDelivery(prev => ({ ...prev, tracking_number: text }))}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Notes</Text>
-                <TextInput
-                  style={[styles.textInput, styles.textArea]}
-                  placeholder="Additional notes about the delivery..."
-                  value={newDelivery.notes}
-                  onChangeText={(text) => setNewDelivery(prev => ({ ...prev, notes: text }))}
-                  multiline
-                  numberOfLines={3}
-                />
-              </View>
-            </View>
-
-            {/* Items */}
-            <View style={styles.formSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>📋 Delivered Items</Text>
-                <TouchableOpacity style={styles.addButton} onPress={addDeliveryItem}>
-                  <Ionicons name="add" size={20} color="#4CAF50" />
-                  <Text style={styles.addButtonText}>Add Item</Text>
+              <View style={styles.actions}>
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => Alert.alert('View Delivery', `Viewing ${d.id}`)}
+                >
+                  <Ionicons name="eye" size={18} color="#2196F3" />
+                  <Text style={[styles.actionTxt, { color: '#2196F3' }]}>View</Text>
                 </TouchableOpacity>
+
+                {d.status !== 'Received' && (
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => markReceived(d)}>
+                    <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+                    <Text style={[styles.actionTxt, { color: '#4CAF50' }]}>Received</Text>
+                  </TouchableOpacity>
+                )}
+
+                {user?.role === 'supervisor' && (
+                  <TouchableOpacity
+                    style={styles.actionBtn}
+                    onPress={() => Alert.alert('Edit', 'Edit flow not implemented yet')}
+                  >
+                    <Ionicons name="create" size={18} color="#FF9800" />
+                    <Text style={[styles.actionTxt, { color: '#FF9800' }]}>Edit</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-
-              {newDelivery.items.map((item, index) => (
-                <View key={index} style={styles.itemForm}>
-                  <View style={styles.itemHeader}>
-                    <Text style={styles.itemNumber}>Item {index + 1}</Text>
-                    <TouchableOpacity onPress={() => removeDeliveryItem(index)}>
-                      <Ionicons name="trash" size={20} color="#F44336" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Item Name *</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Enter item name"
-                      value={item.item_name}
-                      onChangeText={(text) => updateDeliveryItem(index, { item_name: text })}
-                    />
-                  </View>
-
-                  <View style={styles.inputRow}>
-                    <View style={styles.inputHalf}>
-                      <Text style={styles.inputLabel}>Quantity</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="0"
-                        value={item.quantity_received?.toString() || ''}
-                        onChangeText={(text) => updateDeliveryItem(index, { quantity_received: parseInt(text) || 0 })}
-                        keyboardType="numeric"
-                      />
-                    </View>
-                    <View style={styles.inputHalf}>
-                      <Text style={styles.inputLabel}>Unit</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="pieces"
-                        value={item.unit}
-                        onChangeText={(text) => updateDeliveryItem(index, { unit: text })}
-                      />
-                    </View>
-                  </View>
-
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Item Code</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Enter item code (optional)"
-                      value={item.item_code || ''}
-                      onChangeText={(text) => updateDeliveryItem(index, { item_code: text })}
-                    />
-                  </View>
-
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Condition</Text>
-                    <View style={styles.conditionButtons}>
-                      {['good', 'damaged', 'defective'].map((conditionOption) => (
-                        <TouchableOpacity
-                          key={conditionOption}
-                          style={[
-                            styles.conditionButton,
-                            item.condition === conditionOption && styles.conditionButtonSelected
-                          ]}
-                          onPress={() => updateDeliveryItem(index, { condition: conditionOption })}
-                        >
-                          <Text style={[
-                            styles.conditionButtonText,
-                            item.condition === conditionOption && styles.conditionButtonTextSelected
-                          ]}>
-                            {conditionOption.charAt(0).toUpperCase() + conditionOption.slice(1)}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Notes</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Item-specific notes..."
-                      value={item.notes || ''}
-                      onChangeText={(text) => updateDeliveryItem(index, { notes: text })}
-                    />
-                  </View>
-                </View>
-              ))}
-
-              {newDelivery.items.length === 0 && (
-                <View style={styles.emptyItems}>
-                  <Ionicons name="cube-outline" size={32} color="#666" />
-                  <Text style={styles.emptyItemsText}>No items added yet</Text>
-                  <Text style={styles.emptyItemsSubtext}>Tap "Add Item" to start</Text>
-                </View>
-              )}
             </View>
-          </ScrollView>
-        </Container>
-    </Screen>
-      </Modal>
+          ))}
 
-      {/* Delivery Details Modal */}
-      <Modal
-        visible={showDeliveryDetails}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowDeliveryDetails(false)}
-      >
-        <Screen scroll>
-      <Container>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowDeliveryDetails(false)}>
-              <Ionicons name="close" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Delivery Details</Text>
-            <View style={{ width: 24 }} />
-          </View>
-
-          {selectedDelivery && (
-            <ScrollView style={styles.modalContent}>
-              <View style={styles.detailsSection}>
-                <Text style={styles.detailsTitle}>#{selectedDelivery.delivery_number}</Text>
-                <Text style={styles.detailsSupplier}>{selectedDelivery.supplier_name}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedDelivery.status) }]}>
-                  <Text style={styles.statusText}>{selectedDelivery.status.toUpperCase()}</Text>
-                </View>
-              </View>
-
-              <View style={styles.detailsInfo}>
-                <Text style={styles.detailsLabel}>Driver:</Text>
-                <Text style={styles.detailsValue}>{selectedDelivery.driver_name || 'Not specified'}</Text>
-              </View>
-
-              <View style={styles.detailsInfo}>
-                <Text style={styles.detailsLabel}>Tracking:</Text>
-                <Text style={styles.detailsValue}>{selectedDelivery.tracking_number || 'Not provided'}</Text>
-              </View>
-
-              <View style={styles.detailsInfo}>
-                <Text style={styles.detailsLabel}>Date:</Text>
-                <Text style={styles.detailsValue}>{new Date(selectedDelivery.created_at).toLocaleDateString()}</Text>
-              </View>
-
-              {selectedDelivery.notes && (
-                <View style={styles.detailsInfo}>
-                  <Text style={styles.detailsLabel}>Notes:</Text>
-                  <Text style={styles.detailsValue}>{selectedDelivery.notes}</Text>
-                </View>
-              )}
-
-              <View style={styles.itemsSection}>
-                <Text style={styles.sectionTitle}>Items Delivered</Text>
-                {selectedDelivery.items.map((item, index) => (
-                  <View key={index} style={styles.deliveredItem}>
-                    <Text style={styles.itemName}>{item.item_name}</Text>
-                    <Text style={styles.itemDetails}>
-                      Qty: {item.quantity_received} {item.unit} • Condition: {item.condition}
-                    </Text>
-                    {item.notes && (
-                      <Text style={styles.itemNotes}>{item.notes}</Text>
-                    )}
-                  </View>
-                ))}
-              </View>
-            </ScrollView>
+          {filtered.length === 0 && (
+            <View style={styles.emptyState}>
+              <Ionicons name="cube-outline" size={64} color="#666" />
+              <Text style={styles.emptyTitle}>No Deliveries Found</Text>
+              <Text style={styles.emptyText}>
+                {searchQuery ? 'Try adjusting your search' : 'No delivery records available.'}
+              </Text>
+            </View>
           )}
-        </Container>
-    </Screen>
-      </Modal>
-    </Container>
+        </ScrollView>
+      </Container>
     </Screen>
   );
 }
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'delivered': return '#4CAF50';
-    case 'pending': return '#FF9800';
-    case 'partial': return '#2196F3';
-    case 'cancelled': return '#F44336';
-    default: return '#666';
-  }
-};
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
-  loadingContainer: {
+  centerContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 16,
   },
   loadingText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
   },
-  header: {
+  searchSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     backgroundColor: '#2d2d2d',
-    borderBottomWidth: 1,
-    borderBottomColor: '#404040',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    margin: 20,
+    gap: 12,
   },
-  headerButton: {
-    padding: 8,
-    borderRadius: 8,
-    minWidth: 40,
-    minHeight: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
+  searchInput: {
+    flex: 1,
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    paddingVertical: 12,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
-  welcomeSection: {
+  card: {
     backgroundColor: '#2d2d2d',
-    padding: 20,
-    borderRadius: 12,
-    marginVertical: 16,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
   },
-  welcomeTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  welcomeText: {
-    color: '#ccc',
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
+  idText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  statusTxt: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 12,
+    textTransform: 'uppercase',
+  },
+  supplier: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  lightText: {
+    color: '#bbb',
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  notes: {
+    color: '#ddd',
+    fontSize: 13,
+    marginTop: 6,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    borderTopWidth: 1,
+    borderTopColor: '#404040',
+    paddingTop: 12,
+    marginTop: 8,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    padding: 8,
+  },
+  actionTxt: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
-    padding: 40,
-    backgroundColor: '#2d2d2d',
-    borderRadius: 12,
+    paddingVertical: 60,
+    gap: 16,
   },
-  emptyStateText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 16,
-  },
-  emptyStateSubtext: {
-    color: '#999',
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  deliveryCard: {
-    backgroundColor: '#2d2d2d',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#404040',
-  },
-  deliveryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  deliveryInfo: {
-    flex: 1,
-  },
-  deliveryNumber: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  supplierName: {
-    color: '#4CAF50',
-    fontSize: 14,
-    marginTop: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  deliveryDate: {
-    color: '#999',
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  itemCount: {
-    color: '#ccc',
-    fontSize: 12,
-  },
-  fabButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#2d2d2d',
-    borderBottomWidth: 1,
-    borderBottomColor: '#404040',
-  },
-  modalTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  modalContent: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  formSection: {
-    marginBottom: 24,
-    marginTop: 16,
-  },
-  supplierSelector: {
-    marginTop: 8,
-  },
-  supplierChip: {
-    backgroundColor: '#404040',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#555',
-  },
-  supplierChipSelected: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
-  },
-  supplierChipText: {
-    color: '#ccc',
-    fontSize: 14,
-  },
-  supplierChipTextSelected: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  optionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2d2d2d',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#404040',
-  },
-  optionContent: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  optionTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  optionDescription: {
-    color: '#999',
-    fontSize: 14,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  textInput: {
-    backgroundColor: '#2d2d2d',
-    borderWidth: 1,
-    borderColor: '#404040',
-    borderRadius: 8,
-    padding: 12,
-    color: '#fff',
-    fontSize: 16,
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#404040',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  addButtonText: {
-    color: '#4CAF50',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginLeft: 4,
-  },
-  itemForm: {
-    backgroundColor: '#2d2d2d',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#404040',
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  itemNumber: {
-    color: '#4CAF50',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  inputRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  inputHalf: {
-    flex: 1,
-  },
-  conditionButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  conditionButton: {
-    flex: 1,
-    backgroundColor: '#404040',
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#555',
-  },
-  conditionButtonSelected: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
-  },
-  conditionButtonText: {
-    color: '#ccc',
-    fontSize: 14,
-  },
-  conditionButtonTextSelected: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  emptyItems: {
-    alignItems: 'center',
-    padding: 32,
-    backgroundColor: '#2d2d2d',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#404040',
-  },
-  emptyItemsText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 12,
-  },
-  emptyItemsSubtext: {
-    color: '#999',
-    fontSize: 14,
-    marginTop: 4,
-  },
-  detailsSection: {
-    backgroundColor: '#2d2d2d',
-    padding: 20,
-    borderRadius: 12,
-    marginVertical: 16,
-    alignItems: 'center',
-  },
-  detailsTitle: {
+  emptyTitle: {
     color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 8,
   },
-  detailsSupplier: {
-    color: '#4CAF50',
+  emptyText: {
+    color: '#aaa',
     fontSize: 16,
-    marginBottom: 12,
-  },
-  detailsInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#404040',
-  },
-  detailsLabel: {
-    color: '#999',
-    fontSize: 14,
-  },
-  detailsValue: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  itemsSection: {
-    marginTop: 24,
-    marginBottom: 32,
-  },
-  deliveredItem: {
-    backgroundColor: '#2d2d2d',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#404040',
-  },
-  itemName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  itemDetails: {
-    color: '#ccc',
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  itemNotes: {
-    color: '#999',
-    fontSize: 12,
-    fontStyle: 'italic',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
