@@ -14,7 +14,7 @@ import { router } from 'expo-router';
 import Screen from './components/Screen';
 import Container from './components/Container';
 import UniversalHeader from './components/UniversalHeader';
-import { AppErrorHandler } from '../utils/AppErrorHandler';
+import { AppErrorHandler } from './utils/AppErrorHandler';
 
 interface User {
   id: string;

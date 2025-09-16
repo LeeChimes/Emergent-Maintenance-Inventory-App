@@ -1,105 +1,48 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  RefreshControl,
-  Linking,
-} from 'react-native';
+// frontend/app/dashboard.tsx
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import Screen from './components/Screen';
 import Container from './components/Container';
+import UniversalHeader from './components/UniversalHeader';
 
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+type Role = 'supervisor' | 'engineer';
 
 interface User {
   id: string;
   name: string;
-  role: 'supervisor' | 'engineer';
-}
-
-interface LowStockAlert {
-  id: string;
-  name: string;
-  quantity: number;
-  min_stock: number;
-  unit: string;
-  supplier?: {
-    name: string;
-    phone?: string;
-  };
+  role: Role;
 }
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
-  const [lowStockItems, setLowStockItems] = useState<LowStockAlert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    initializeUser();
+    (async () => {
+      try {
+        const ud = await AsyncStorage.getItem('userData');
+        if (!ud) return router.replace('/');
+        setUser(JSON.parse(ud));
+      } catch (e) {
+        console.error('Error loading user', e);
+        router.replace('/');
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      fetchDashboardData();
-    }
-  }, [user]);
-
-  const initializeUser = async () => {
-    try {
-      const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        setUser(JSON.parse(userData));
-      } else {
-        router.replace('/');
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      router.replace('/');
-    }
-  };
-
-  const fetchDashboardData = async () => {
-    try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/alerts/low-stock`);
-      if (response.ok) {
-        const data = await response.json();
-        setLowStockItems(data.materials || []);
-      }
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchDashboardData();
-  };
-
-  if (!user || user.role !== 'supervisor') {
+  if (loading) {
     return (
       <Screen>
         <Container>
-          <View style={styles.centerContent}>
-            <Ionicons name="lock-closed" size={48} color="#F44336" />
-            <Text style={styles.accessDeniedText}>Access Denied</Text>
-            <Text style={styles.accessDeniedSubtext}>
-              This dashboard is only available to supervisors
-            </Text>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.push('/')}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.backButtonText}>Go Back</Text>
-            </TouchableOpacity>
+          <UniversalHeader title="Dashboard" />
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color="#4CAF50" />
+            <Text style={styles.dim}>Loading…</Text>
           </View>
         </Container>
       </Screen>
@@ -107,392 +50,74 @@ export default function Dashboard() {
   }
 
   return (
-    <Screen
-      scroll
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-          tintColor="#4CAF50"
-        />
-      }
-    >
+    <Screen>
       <Container>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => router.push('/')}
-          >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Supervisor Dashboard</Text>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={handleRefresh}
-          >
-            <Ionicons name="refresh" size={24} color="#4CAF50" />
-          </TouchableOpacity>
-        </View>
-        {/* Welcome Section */}
-        <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeTitle}>
-            Welcome back, {user.name.split(' ')[0]}! 👋
-          </Text>
-          <Text style={styles.welcomeSubtext}>
-            Here's your inventory oversight dashboard
-          </Text>
-        </View>
+        <UniversalHeader title="Dashboard" />
+        <ScrollView style={styles.content}>
+          <Text style={styles.welcome}>Welcome, {user?.name ?? 'User'} 👋</Text>
 
-        {/* Low Stock Alerts */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="warning" size={24} color="#FF9800" />
-            <Text style={styles.sectionTitle}>Low Stock Alerts</Text>
+          <Text style={styles.section}>Quick Links</Text>
+          <View style={styles.grid}>
+            <Card icon="calendar" color="#4CAF50" label="PPMs" onPress={() => router.push('/ppms')} />
+            <Card icon="alert-circle" color="#FF9800" label="Incidents" onPress={() => router.push('/incidents')} />
+            <Card icon="cube" color="#2196F3" label="Inventory" onPress={() => router.push('/inventory')} />
+            <Card icon="construct" color="#9C27B0" label="Parts" onPress={() => router.push('/parts')} />
           </View>
 
-          {loading ? (
-            <View style={styles.loadingCard}>
-              <Text style={styles.loadingText}>Loading alerts...</Text>
-            </View>
-          ) : lowStockItems.length === 0 ? (
-            <View style={styles.noAlertsCard}>
-              <Ionicons name="checkmark-circle" size={32} color="#4CAF50" />
-              <Text style={styles.noAlertsTitle}>All Good! ✅</Text>
-              <Text style={styles.noAlertsText}>
-                No low stock alerts at the moment
-              </Text>
-            </View>
-          ) : (
-            lowStockItems.map((item) => (
-              <View key={item.id} style={styles.alertCard}>
-                <View style={styles.alertHeader}>
-                  <Ionicons name="cube" size={20} color="#FF9800" />
-                  <Text style={styles.alertItemName}>{item.name}</Text>
-                  <View style={styles.urgencyBadge}>
-                    <Text style={styles.urgencyText}>URGENT</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.alertDetails}>
-                  <Text style={styles.alertStock}>
-                    Current: {item.quantity} {item.unit}
-                  </Text>
-                  <Text style={styles.alertMinStock}>
-                    Minimum: {item.min_stock} {item.unit}
-                  </Text>
-                </View>
-
-                {item.supplier && (
-                  <View style={styles.supplierInfo}>
-                    <Text style={styles.supplierLabel}>Quick Reorder:</Text>
-                    <Text style={styles.supplierName}>{item.supplier.name}</Text>
-                    {item.supplier.phone && (
-                      <TouchableOpacity style={styles.callButton} onPress={() => item.supplier?.phone && Linking.openURL(`tel:${item.supplier.phone}`)}>
-                        <Ionicons name="call" size={16} color="#4CAF50" />
-                        <Text style={styles.callButtonText}>{item.supplier.phone}</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  style={styles.reorderButton}
-                  onPress={() => {
-                    // Navigate to add stock or reorder
-                    router.push('/inventory');
-                  }}
-                >
-                  <Ionicons name="add-circle" size={20} color="#fff" />
-                  <Text style={styles.reorderButtonText}>Quick Restock</Text>
-                </TouchableOpacity>
-              </View>
-            ))
-          )}
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="flash" size={24} color="#4CAF50" />
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={styles.section}>Help & Tools</Text>
+          <View style={styles.grid}>
+            <Card icon="help-circle" color="#22C55E" label="Help" onPress={() => router.push('/help')} />
+            <Card icon="qr-code" color="#60A5FA" label="Scanner" onPress={() => router.push('/scan')} />
+            {user?.role === 'supervisor' && (
+              <>
+                <Card icon="people" color="#34D399" label="Users" onPress={() => router.push('/user-management')} />
+                <Card icon="document-text" color="#3B82F6" label="Audit Log" onPress={() => router.push('/audit-log')} />
+                <Card icon="download" color="#F59E0B" label="Exports" onPress={() => router.push('/admin-exports')} />
+              </>
+            )}
           </View>
 
-          <View style={styles.quickActionsGrid}>
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => router.push('/inventory')}
-            >
-              <Ionicons name="list" size={28} color="#2196F3" />
-              <Text style={styles.quickActionText}>View All Inventory</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => router.push('/stock-take')}
-            >
-              <Ionicons name="clipboard" size={28} color="#795548" />
-              <Text style={styles.quickActionText}>Start Stock Take</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => router.push('/add-item')}
-            >
-              <Ionicons name="add-circle" size={28} color="#4CAF50" />
-              <Text style={styles.quickActionText}>Add New Items</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => router.push('/scanner')}
-            >
-              <Ionicons name="qr-code" size={28} color="#9C27B0" />
-              <Text style={styles.quickActionText}>QR Scanner</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => router.push('/suppliers')}
-            >
-              <Ionicons name="storefront" size={28} color="#FF9800" />
-              <Text style={styles.quickActionText}>Manage Suppliers</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => router.push('/deliveries')}
-            >
-              <Ionicons name="cube" size={28} color="#9C27B0" />
-              <Text style={styles.quickActionText}>Log Deliveries</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          <View style={{ height: 24 }} />
+        </ScrollView>
       </Container>
     </Screen>
   );
 }
 
+function Card({
+  icon,
+  label,
+  color,
+  onPress,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  color: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity style={styles.card} onPress={onPress}>
+      <Ionicons name={icon} size={28} color={color} />
+      <Text style={styles.cardTxt}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8 },
+  dim: { color: '#aaa' },
+  content: { padding: 20 },
+  welcome: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
+  section: { color: '#fff', fontSize: 14, fontWeight: '800', marginBottom: 8, opacity: 0.9 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  card: {
+    flexBasis: '47%',
     backgroundColor: '#2d2d2d',
-    borderBottomWidth: 1,
-    borderBottomColor: '#404040',
-  },
-  headerButton: {
-    width: 44,
-    height: 44,
+    borderRadius: 12,
+    padding: 18,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  content: {
-    flex: 1,
-  },
-  centerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  accessDeniedText: {
-    color: '#F44336',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  accessDeniedSubtext: {
-    color: '#aaa',
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  backButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  welcomeSection: {
-    padding: 20,
-    backgroundColor: '#2d2d2d',
-    margin: 20,
-    borderRadius: 12,
-  },
-  welcomeTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  welcomeSubtext: {
-    color: '#aaa',
-    fontSize: 14,
-  },
-  section: {
-    margin: 20,
-    marginTop: 0,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
     gap: 8,
   },
-  sectionTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  loadingCard: {
-    backgroundColor: '#2d2d2d',
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#aaa',
-    fontSize: 16,
-  },
-  noAlertsCard: {
-    backgroundColor: '#2d2d2d',
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    gap: 8,
-  },
-  noAlertsTitle: {
-    color: '#4CAF50',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  noAlertsText: {
-    color: '#aaa',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  alertCard: {
-    backgroundColor: '#2d2d2d',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
-  },
-  alertHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  alertItemName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    flex: 1,
-  },
-  urgencyBadge: {
-    backgroundColor: '#F44336',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  urgencyText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  alertDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  alertStock: {
-    color: '#F44336',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  alertMinStock: {
-    color: '#aaa',
-    fontSize: 14,
-  },
-  supplierInfo: {
-    backgroundColor: '#3d3d3d',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  supplierLabel: {
-    color: '#4CAF50',
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  supplierName: {
-    color: '#fff',
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  callButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  callButtonText: {
-    color: '#4CAF50',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  reorderButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#4CAF50',
-    padding: 12,
-    borderRadius: 8,
-    gap: 8,
-  },
-  reorderButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  quickActionCard: {
-    backgroundColor: '#2d2d2d',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    flex: 1,
-    minWidth: '45%',
-    gap: 8,
-  },
-  quickActionText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+  cardTxt: { color: '#fff', fontWeight: '700' },
 });

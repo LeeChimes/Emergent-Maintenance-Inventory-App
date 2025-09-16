@@ -15,7 +15,7 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import UniversalHeader from '../components/UniversalHeader';
+import UniversalHeader from './components/UniversalHeader';
 import Screen from './components/Screen';
 import Container from './components/Container';
 import { SafeAreaView } from 'react-native-safe-area-context';
