@@ -1,4 +1,4 @@
-// frontend/app/deliveries.tsx
+// frontend/app/parts.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -24,21 +24,20 @@ interface User {
   role: 'supervisor' | 'engineer';
 }
 
-interface Delivery {
-  id: string;        // e.g., "DEL-001"
-  description: string;
-  supplier: string;
-  date: string;
-  status: 'Pending' | 'Received';
+interface Part {
+  id: string;        // e.g., "PART-001"
+  name: string;      // e.g., "Light Bulb"
+  stock: number;     // e.g., 20
+  location: string;  // e.g., "Workshop Shelf A"
 }
 
-export default function Deliveries() {
-  // check for scanner redirect: /deliveries?scanned=1&t=delivery&id=DEL-001
+export default function Parts() {
+  // scanner redirect: /parts?scanned=1&t=part&id=PART-001
   const params = useLocalSearchParams<{ scanned?: string; t?: string; id?: string }>();
   const [scanFilter, setScanFilter] = useState<string>('');
 
   const [user, setUser] = useState<User | null>(null);
-  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [parts, setParts] = useState<Part[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,7 +53,7 @@ export default function Deliveries() {
   }, []);
 
   useEffect(() => {
-    if (user) fetchDeliveries();
+    if (user) fetchParts();
   }, [user]);
 
   const initializeUser = async () => {
@@ -64,41 +63,42 @@ export default function Deliveries() {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
     } catch (error) {
-      console.error('Error loading user', error);
+      console.error('Error loading user data:', error);
       router.replace('/');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchDeliveries = async () => {
+  const fetchParts = async () => {
     try {
-      const mock: Delivery[] = [
-        { id: 'DEL-001', description: 'Lighting spares', supplier: 'City Electricals', date: '2025-01-10', status: 'Pending' },
-        { id: 'DEL-002', description: 'Fire door hinges', supplier: 'Ironmongery Direct', date: '2025-01-08', status: 'Received' },
-        { id: 'DEL-003', description: 'Escalator parts', supplier: 'Kone Ltd', date: '2025-01-06', status: 'Pending' },
+      // mock parts
+      const mock: Part[] = [
+        { id: 'PART-001', name: 'LED Tube Light', stock: 20, location: 'Workshop Shelf A' },
+        { id: 'PART-002', name: 'Fuse 5A', stock: 50, location: 'Workshop Drawer 1' },
+        { id: 'PART-003', name: 'Ceiling Tile', stock: 10, location: 'Core 8 Storage' },
       ];
-      setDeliveries(mock);
+      setParts(mock);
     } catch (err) {
-      console.error('Error fetching deliveries', err);
-      AppErrorHandler.handleError(err as Error, 'Failed to load deliveries');
+      console.error('Error fetching parts:', err);
+      AppErrorHandler.handleError(err as Error, 'Failed to load parts');
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchDeliveries();
+    await fetchParts();
     setRefreshing(false);
   };
 
-  const filteredDeliveries = deliveries.filter((d) => {
+  const filteredParts = parts.filter((p) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
-      d.description.toLowerCase().includes(q) ||
-      d.supplier.toLowerCase().includes(q) ||
-      d.id.toLowerCase().includes(q);
+      p.name.toLowerCase().includes(q) ||
+      p.location.toLowerCase().includes(q) ||
+      p.id.toLowerCase().includes(q);
 
-    const matchesScan = !scanFilter || d.id.includes(scanFilter);
+    const matchesScan = !scanFilter || p.id.includes(scanFilter);
     return matchesSearch && matchesScan;
   });
 
@@ -106,10 +106,10 @@ export default function Deliveries() {
     return (
       <Screen scroll>
         <Container>
-          <UniversalHeader title="Deliveries" showBackButton />
+          <UniversalHeader title="Parts" showBackButton />
           <View style={styles.centerContent}>
-            <Ionicons name="cube" size={48} color="#4CAF50" />
-            <Text style={styles.loadingText}>Loading deliveries...</Text>
+            <Ionicons name="construct" size={48} color="#4CAF50" />
+            <Text style={styles.loadingText}>Loading parts...</Text>
           </View>
         </Container>
       </Screen>
@@ -119,50 +119,47 @@ export default function Deliveries() {
   return (
     <Screen scroll>
       <Container>
-        <UniversalHeader title="Deliveries" showBackButton />
+        <UniversalHeader title="Parts" showBackButton />
 
         {/* Search bar */}
         <View style={styles.searchSection}>
           <Ionicons name="search" size={20} color="#666" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search deliveries..."
+            placeholder="Search parts..."
             placeholderTextColor="#666"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
 
-        {/* Deliveries list */}
+        {/* Parts list */}
         <ScrollView
           style={styles.content}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
-          {filteredDeliveries.map((d) => (
+          {filteredParts.map((part) => (
             <View
-              key={d.id}
+              key={part.id}
               style={[
-                styles.card,
-                scanFilter && d.id === scanFilter
+                styles.partCard,
+                scanFilter && part.id === scanFilter
                   ? { borderWidth: 2, borderColor: '#4CAF50' }
                   : null,
               ]}
             >
-              <View style={styles.headerRow}>
-                <Text style={styles.id}>{d.id}</Text>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeTxt}>{d.status}</Text>
-                </View>
+              <View style={styles.partHeader}>
+                <Text style={styles.partName}>{part.name}</Text>
+                <Text style={styles.partId}>{part.id}</Text>
               </View>
 
-              <Text style={styles.description}>{d.description}</Text>
-              <Text style={styles.meta}>Supplier: {d.supplier}</Text>
-              <Text style={styles.meta}>Date: {d.date}</Text>
+              <Text style={styles.partDetail}>Stock: {part.stock}</Text>
+              <Text style={styles.partDetail}>Location: {part.location}</Text>
 
-              <View style={styles.actions}>
+              <View style={styles.partActions}>
                 <TouchableOpacity
                   style={styles.actionButton}
-                  onPress={() => Alert.alert('Delivery', `Viewing ${d.id}`)}
+                  onPress={() => Alert.alert('Part', `Viewing ${part.name}`)}
                 >
                   <Ionicons name="eye" size={18} color="#2196F3" />
                   <Text style={[styles.actionText, { color: '#2196F3' }]}>View</Text>
@@ -171,22 +168,22 @@ export default function Deliveries() {
                 {user?.role === 'supervisor' && (
                   <TouchableOpacity
                     style={styles.actionButton}
-                    onPress={() => Alert.alert('Update', 'Update flow not implemented yet')}
+                    onPress={() => Alert.alert('Edit', 'Edit part flow not implemented yet')}
                   >
                     <Ionicons name="create" size={18} color="#FF9800" />
-                    <Text style={[styles.actionText, { color: '#FF9800' }]}>Update</Text>
+                    <Text style={[styles.actionText, { color: '#FF9800' }]}>Edit</Text>
                   </TouchableOpacity>
                 )}
               </View>
             </View>
           ))}
 
-          {filteredDeliveries.length === 0 && (
+          {filteredParts.length === 0 && (
             <View style={styles.emptyState}>
               <Ionicons name="cube-outline" size={64} color="#666" />
-              <Text style={styles.emptyTitle}>No Deliveries Found</Text>
+              <Text style={styles.emptyTitle}>No Parts Found</Text>
               <Text style={styles.emptyText}>
-                {searchQuery ? 'Try adjusting your search criteria' : 'No deliveries recorded.'}
+                {searchQuery ? 'Try adjusting your search criteria' : 'No parts available.'}
               </Text>
             </View>
           )}
@@ -210,24 +207,12 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, color: '#fff', fontSize: 16, paddingVertical: 12 },
   content: { flex: 1, paddingHorizontal: 20 },
-  card: {
-    backgroundColor: '#2d2d2d',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-  },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  id: { color: '#fff', fontWeight: 'bold' },
-  badge: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  badgeTxt: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
-  description: { color: '#fff', fontSize: 16, marginBottom: 4 },
-  meta: { color: '#aaa', fontSize: 14 },
-  actions: {
+  partCard: { backgroundColor: '#2d2d2d', borderRadius: 16, padding: 16, marginBottom: 16 },
+  partHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  partName: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  partId: { color: '#aaa', fontSize: 14 },
+  partDetail: { color: '#aaa', fontSize: 14, marginBottom: 4 },
+  partActions: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     borderTopWidth: 1,

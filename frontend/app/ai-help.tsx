@@ -7,58 +7,33 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Platform,
-  KeyboardAvoidingView,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Screen from './components/Screen';
 import Container from './components/Container';
 import UniversalHeader from './components/UniversalHeader';
 
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
-
-export default function AIHelp() {
-  const [prompt, setPrompt] = useState('');
-  const [answer, setAnswer] = useState<string>('');
+export default function AiHelp() {
+  const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [response, setResponse] = useState<string | null>(null);
 
-  const onAsk = async () => {
-    const q = prompt.trim();
-    if (!q) return;
+  const handleAsk = async () => {
+    if (!query.trim()) return;
+
     setLoading(true);
-    setAnswer('');
+    setResponse(null);
 
-    try {
-      if (EXPO_PUBLIC_BACKEND_URL) {
-        // If your backend has an AI endpoint, wire it here.
-        // Example (adjust to your real endpoint shape):
-        const res = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/ai/help`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: q }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        setAnswer(data?.answer ?? 'No response text was returned.');
-      } else {
-        // Safe fallback: local mock so the screen works without backend
-        setAnswer(
-          [
-            'This is a local demo response (no backend URL set).',
-            '',
-            '• Tip: You can scan a QR from any page using the green button.',
-            '• PPMs: Scanning a fire door routes here and highlights the task.',
-            '• Inventory: Scanning an asset/tool/part routes to the item.',
-            '• Deliveries: Scanning a delivery QR routes and focuses it.',
-          ].join('\n')
-        );
-      }
-    } catch (e: any) {
-      setAnswer(`Sorry, I couldn’t fetch an answer.\n\n${String(e?.message || e)}`);
-    } finally {
+    // Mock AI response — replace later with backend/LLM call
+    setTimeout(() => {
+      setResponse(
+        `You asked: "${query}".\n\nHere’s a helpful suggestion:\n- Check the relevant PPM.\n- Review incident logs.\n- If still stuck, contact supervisor.`
+      );
       setLoading(false);
-    }
+    }, 1200);
   };
 
   return (
@@ -68,50 +43,35 @@ export default function AIHelp() {
 
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.select({ ios: 'padding', android: undefined })}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
-            <View style={styles.card}>
-              <Text style={styles.label}>Ask a question</Text>
-              <View style={styles.inputRow}>
-                <Ionicons name="chatbubble-ellipses-outline" size={18} color="#aaa" />
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g., How do I complete a fire door PPM?"
-                  placeholderTextColor="#666"
-                  value={prompt}
-                  onChangeText={setPrompt}
-                  multiline
-                />
+          <View style={styles.inputSection}>
+            <TextInput
+              style={styles.input}
+              placeholder="Ask a question about maintenance..."
+              placeholderTextColor="#777"
+              value={query}
+              onChangeText={setQuery}
+              multiline
+            />
+            <TouchableOpacity style={styles.askBtn} onPress={handleAsk}>
+              <Ionicons name="send" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.responseSection}>
+            {loading && (
+              <View style={styles.center}>
+                <ActivityIndicator size="large" color="#4CAF50" />
+                <Text style={styles.loadingTxt}>Thinking...</Text>
               </View>
+            )}
 
-              <TouchableOpacity style={styles.askBtn} onPress={onAsk} disabled={loading}>
-                {loading ? (
-                  <ActivityIndicator />
-                ) : (
-                  <>
-                    <Ionicons name="send" size={18} color="#fff" />
-                    <Text style={styles.askTxt}>Ask</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.card}>
-              <Text style={styles.label}>Answer</Text>
-              {loading ? (
-                <View style={styles.answerLoading}>
-                  <ActivityIndicator />
-                  <Text style={styles.answerHint}>Thinking…</Text>
-                </View>
-              ) : answer ? (
-                <Text style={styles.answer}>{answer}</Text>
-              ) : (
-                <Text style={styles.placeholder}>
-                  Your answer will appear here. Try asking about PPM steps, QR scanning, or inventory.
-                </Text>
-              )}
-            </View>
+            {response && (
+              <View style={styles.answerCard}>
+                <Text style={styles.answerTxt}>{response}</Text>
+              </View>
+            )}
           </ScrollView>
         </KeyboardAvoidingView>
       </Container>
@@ -120,44 +80,49 @@ export default function AIHelp() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: 20, gap: 16 },
-  card: {
-    backgroundColor: '#1c1c1c',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#333',
-  },
-  label: { color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 10 },
-  inputRow: {
+  inputSection: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    backgroundColor: '#2a2a2a',
+    alignItems: 'center',
+    backgroundColor: '#2d2d2d',
     borderRadius: 12,
+    margin: 20,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   input: {
     flex: 1,
-    minHeight: 60,
     color: '#fff',
-    fontSize: 15,
-    paddingTop: 2,
+    fontSize: 16,
+    minHeight: 40,
   },
   askBtn: {
-    marginTop: 12,
-    backgroundColor: '#3B82F6',
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
+    backgroundColor: '#4CAF50',
+    padding: 10,
+    borderRadius: 8,
+    marginLeft: 8,
   },
-  askTxt: { color: '#fff', fontWeight: '800' },
-  answerLoading: { alignItems: 'center', gap: 8, paddingVertical: 8 },
-  answerHint: { color: '#aaa' },
-  answer: { color: '#ddd', lineHeight: 20 },
-  placeholder: { color: '#777' },
+  responseSection: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  center: {
+    alignItems: 'center',
+    marginTop: 40,
+    gap: 12,
+  },
+  loadingTxt: {
+    color: '#aaa',
+    fontSize: 14,
+  },
+  answerCard: {
+    backgroundColor: '#2d2d2d',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 20,
+  },
+  answerTxt: {
+    color: '#fff',
+    fontSize: 15,
+    lineHeight: 20,
+  },
 });
