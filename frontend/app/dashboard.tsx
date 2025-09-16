@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -187,7 +188,7 @@ export default function Dashboard() {
                     <Text style={styles.supplierLabel}>Quick Reorder:</Text>
                     <Text style={styles.supplierName}>{item.supplier.name}</Text>
                     {item.supplier.phone && (
-                      <TouchableOpacity style={styles.callButton}>
+                      <TouchableOpacity style={styles.callButton} onPress={() => item.supplier?.phone && Linking.openURL(`tel:${item.supplier.phone}`)}>
                         <Ionicons name="call" size={16} color="#4CAF50" />
                         <Text style={styles.callButtonText}>{item.supplier.phone}</Text>
                       </TouchableOpacity>

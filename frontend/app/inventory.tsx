@@ -518,7 +518,7 @@ export default function Inventory() {
               {searchQuery ? 'No items match your search' : `No ${activeTab} found`}
             </Text>
             {!searchQuery && user?.role === 'supervisor' && (
-              <TouchableOpacity style={styles.addButton}>
+              <TouchableOpacity style={styles.addButton} onPress={() => router.push('/add-item')}>
                 <Text style={styles.addButtonText}>Add First Item</Text>
               </TouchableOpacity>
             )}
