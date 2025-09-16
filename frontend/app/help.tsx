@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import UniversalHeader from '../components/UniversalHeader';
+import UniversalHeader from './components/UniversalHeader';
 import Screen from './components/Screen';
 import Container from './components/Container';
 

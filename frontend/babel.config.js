@@ -3,7 +3,7 @@ module.exports = function (api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      'expo-router/babel',
+      // Stable with Expo SDK 51; if you ever upgrade and it complains, swap to worklets plugin.
       'react-native-reanimated/plugin',
     ],
   };
