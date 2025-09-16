@@ -22,7 +22,7 @@ type ScreenProps = PropsWithChildren<{
 export function Screen({
   children,
   scroll = false,
-  backgroundColor = '#FFFFFF',
+  backgroundColor = '#1a1a1a',
   contentContainerStyle,
   keyboardOffset = 0,
   style,
@@ -41,7 +41,7 @@ export function Screen({
             contentContainerStyle,
           ]}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator
+          showsVerticalScrollIndicator={false}
           refreshControl={refreshControl}
         >
           {children}
