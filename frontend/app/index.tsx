@@ -9,6 +9,7 @@ import {
   TextInput,
   Dimensions,
   Animated,
+  SafeAreaView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
@@ -62,6 +63,28 @@ export default function Index() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [pin, setPin] = useState('');
   const [shakeAnimation] = useState(new Animated.Value(0));
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
+  const [loginError, setLoginError] = useState('');
+
+  // Normalize any value into a user-displayable string (handles FastAPI 'detail' arrays)
+  const toDisplayString = (val: any): string => {
+    if (typeof val === 'string') return val;
+    if (Array.isArray(val)) {
+      // Try to extract 'msg' from validation error objects, otherwise stringify
+      const parts = val.map((item) =>
+        typeof item === 'object' && item !== null
+          ? (item.msg ?? JSON.stringify(item))
+          : String(item)
+      );
+      return parts.join('\n');
+    }
+    if (val && typeof val === 'object') {
+      if ('message' in val && typeof (val as any).message === 'string') return (val as any).message;
+      if ('msg' in val && typeof (val as any).msg === 'string') return (val as any).msg;
+      return JSON.stringify(val);
+    }
+    return String(val);
+  };
 
   useEffect(() => {
     initializeApp();
@@ -208,7 +231,13 @@ export default function Index() {
     if (!selectedUser) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      setIsVerifyingPin(true);
+      setLoginError('');
+      console.log('[Login] Verifying PIN for user', selectedUser.id, 'API:', API_BASE_URL);
+      // Timeout after 12s to avoid hanging UI
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      let response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -217,8 +246,40 @@ export default function Index() {
           user_id: selectedUser.id,
           pin: pin
         }),
-      });
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeout));
 
+  console.log('[Login] Response status:', response.status);
+      // Handle servers that expect embedded body under 'login_data'
+      if (response.status === 422) {
+        try {
+          const err = await response.clone().json().catch(() => null);
+          const looksLikeFieldRequired = Array.isArray(err?.detail) && err.detail.some((d: any) => (d?.msg || '').toLowerCase().includes('field required'));
+          if (looksLikeFieldRequired) {
+            console.warn('[Login] 422 field required - retrying with embedded body { login_data: { ... } }');
+            response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ login_data: { user_id: selectedUser.id, pin } }),
+              signal: controller.signal,
+            });
+            console.log('[Login] Retry response status:', response.status);
+          }
+        } catch (e) {
+          console.warn('[Login] Failed to parse 422 error or retry:', e);
+        }
+      }
+
+      // Final fallback: use legacy path (query param user_id) if still failing with 4xx
+      if (response.status >= 400 && response.status < 500 && response.status !== 401) {
+        console.warn('[Login] Falling back to legacy login path (?user_id=)');
+        response = await fetch(`${API_BASE_URL}/api/auth/login?user_id=${selectedUser.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+        });
+        console.log('[Login] Legacy response status:', response.status);
+      }
       if (response.status === 200) {
         const { token, user: userData } = await response.json();
         
@@ -238,16 +299,32 @@ export default function Index() {
         triggerShakeAnimation();
         Alert.alert('Wrong PIN', 'Please enter the correct PIN to continue.');
         setPin('');
+        setLoginError('Wrong PIN. Please try again.');
       } else {
         // Other error (400, 500, etc.)
-        const errorData = await response.json().catch(() => ({}));
-        Alert.alert('Login Error', errorData.detail || 'Login failed. Please try again.');
+        let message = 'Login failed. Please try again.';
+        try {
+          const errorData = await response.json();
+          message = toDisplayString(errorData?.detail ?? errorData) || message;
+        } catch (_) {
+          const text = await response.text().catch(() => '');
+          if (text) message = text;
+        }
+        console.warn('[Login] Non-200 response:', response.status, message);
+        Alert.alert('Login Error', message);
         setPin('');
+        setLoginError(message);
       }
     } catch (error) {
       console.error('Error verifying PIN:', error);
-      Alert.alert('Connection Error', 'Could not connect to server. Please check your connection.');
+      const msg = (error as any)?.name === 'AbortError'
+        ? 'Request timed out. Please check your connection and try again.'
+        : 'Could not connect to server. Please check your connection.';
+      Alert.alert('Connection Error', msg);
       setPin('');
+      setLoginError(msg);
+    } finally {
+      setIsVerifyingPin(false);
     }
   };
 
@@ -288,6 +365,7 @@ export default function Index() {
       console.error('Error logging in:', error);
       Alert.alert('Error', 'Could not connect to server. Please check your connection.');
     }
+  };
   const handleLogout = async () => {
     console.log('🚨 LOGOUT BUTTON CLICKED!'); // Debug log
     try {
@@ -358,19 +436,32 @@ export default function Index() {
               onPress={() => {
                 setShowPinModal(false);
                 setPin('');
+                setLoginError('');
               }}
             >
               <Text style={styles.pinButtonText}>Cancel</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
-              style={[styles.pinButton, styles.confirmButton]}
+              style={[
+                styles.pinButton,
+                styles.confirmButton,
+                (isVerifyingPin || pin.length !== 4) && { opacity: 0.6 }
+              ]}
               onPress={verifyPin}
-              disabled={pin.length !== 4}
+              disabled={isVerifyingPin || pin.length !== 4}
             >
-              <Text style={styles.pinButtonText}>Login</Text>
+              <Text style={styles.pinButtonText}>
+                {isVerifyingPin ? 'Logging in…' : 'Login'}
+              </Text>
             </TouchableOpacity>
           </View>
+
+          {!!loginError && (
+            <Text style={{ color: '#F44336', textAlign: 'center', marginTop: 8 }}>
+              {loginError}
+            </Text>
+          )}
 
           <Text style={styles.pinHint}>
             💡 Default PINs: Supervisors (1234), Engineers (check with supervisor)
@@ -399,8 +490,8 @@ export default function Index() {
           <View style={styles.headerContent}>
             <Ionicons name="cube" size={48} color="#4CAF50" />
             <View style={styles.headerText}>
-              <Text style={styles.headerTitle}>Asset Inventory</Text>
-              <Text style={styles.headerSubtitle}>Chimes Shopping Centre ✨</Text>
+              <Text style={styles.headerTitle} numberOfLines={1}>Asset Inventory</Text>
+              <Text style={styles.headerSubtitle} numberOfLines={1}>Chimes Shopping Centre ✨</Text>
             </View>
           </View>
         </View>
@@ -427,8 +518,8 @@ export default function Index() {
                   />
                 </View>
                 <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{userData.name}</Text>
-                  <Text style={styles.userRole}>
+                  <Text style={styles.userName} numberOfLines={1}>{userData.name}</Text>
+                  <Text style={styles.userRole} numberOfLines={1}>
                     {userData.role === 'supervisor' ? '⭐ Supervisor' : '🔧 Engineer'}
                   </Text>
                 </View>
@@ -453,8 +544,8 @@ export default function Index() {
         <View style={styles.headerLeft}>
           <Ionicons name="cube" size={32} color="#4CAF50" />
           <View>
-            <Text style={styles.headerTitle}>Asset Inventory</Text>
-            <Text style={styles.welcomeText}>
+            <Text style={styles.headerTitle} numberOfLines={1}>Asset Inventory</Text>
+            <Text style={styles.welcomeText} numberOfLines={1}>
               Hey {user.name.split(' ')[0]}! 👋 Ready to rock?
             </Text>
           </View>
@@ -698,20 +789,20 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   headerTitle: {
     color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
   },
   headerSubtitle: {
     color: '#aaa',
-    fontSize: 14,
+    fontSize: 13,
   },
   welcomeText: {
     color: '#4CAF50',
-    fontSize: 14,
+    fontSize: 13,
   },
   logoutButton: {
     padding: 16,
@@ -761,13 +852,13 @@ const styles = StyleSheet.create({
   userButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    gap: 16,
+    padding: 16,
+    gap: 12,
   },
   userIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -777,12 +868,13 @@ const styles = StyleSheet.create({
   },
   userName: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
+    flexShrink: 1,
   },
   userRole: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 12,
     opacity: 0.9,
   },
   modalOverlay: {
@@ -804,13 +896,14 @@ const styles = StyleSheet.create({
   },
   pinTitle: {
     color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     marginBottom: 8,
   },
   pinSubtitle: {
     color: '#4CAF50',
-    fontSize: 16,
+    fontSize: 14,
+    textAlign: 'center',
   },
   pinInputContainer: {
     alignItems: 'center',
@@ -859,7 +952,7 @@ const styles = StyleSheet.create({
   },
   scrollContentContainer: {
     flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: 16,
   },
   supervisorDashboard: {
     paddingHorizontal: 20,
@@ -904,8 +997,8 @@ const styles = StyleSheet.create({
   },
   prioritiesTitle: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '700',
     marginBottom: 12,
   },
   priorityItem: {
@@ -940,15 +1033,27 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    borderRadius: 16,
-    gap: 16,
-    minHeight: 80,
+    padding: 16,
+    borderRadius: 14,
+    gap: 12,
+    minHeight: 72,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
+  },
+  scanButton: {
+    backgroundColor: '#009688',
+  },
+  inventoryButton: {
+    backgroundColor: '#3F51B5',
+  },
+  stockTakeButton: {
+    backgroundColor: '#795548',
+  },
+  deliveryButton: {
+    backgroundColor: '#8BC34A',
   },
   actionButtonContent: {
     flex: 1,

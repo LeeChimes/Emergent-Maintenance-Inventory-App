@@ -6,6 +6,7 @@ import {
   
   
   TouchableOpacity,
+  ScrollView,
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';

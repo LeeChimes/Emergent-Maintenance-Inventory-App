@@ -3,13 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  
-  
   TouchableOpacity,
   TextInput,
   Modal,
   Switch,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -30,12 +29,6 @@ interface User {
   created_by?: string;
 }
 
-interface CurrentUser {
-  id: string;
-  name: string;
-  role: 'supervisor' | 'engineer';
-}
-
 // PIN validation function
 const validatePin = (pin: string): boolean => {
   return /^\d{4}$/.test(pin);
@@ -50,7 +43,7 @@ const getPinErrorMessage = (pin: string): string => {
 };
 
 export default function UserManagement() {
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -152,10 +145,7 @@ export default function UserManagement() {
       console.error('Error adding user:', error);
       Alert.alert('Error', 'Failed to create user. Please check your connection.');
     }
-  }; {
-      console.error('Error adding user:', error);
-    }
-  };
+    };
 
   const handleEditUser = async () => {
     // Validate form

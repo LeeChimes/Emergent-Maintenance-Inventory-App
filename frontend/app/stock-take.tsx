@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Modal, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -157,7 +158,7 @@ export default function StockTake() {
         },
         {
           text: 'Count',
-          onPress: (countedValue) => {
+          onPress: (countedValue?: string) => {
             if (countedValue && !isNaN(Number(countedValue))) {
               const counted = Number(countedValue);
               const variance = counted - item.current_quantity;
