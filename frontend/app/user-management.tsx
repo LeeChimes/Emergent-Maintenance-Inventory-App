@@ -1,763 +1,424 @@
-import React, { useState, useEffect } from 'react';
+// frontend/app/user-management.tsx
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Modal,
-  Switch,
-  Alert,
   ScrollView,
+  Alert,
+  ActivityIndicator,
+  Switch,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
-import Screen from './components/Screen';
-import Container from './components/Container';
-import UniversalHeader from '../components/UniversalHeader';
+import { useLocalSearchParams } from 'expo-router';
+import { AppErrorHandler } from '../utils/AppErrorHandler';
 
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+type Role = 'engineer' | 'supervisor';
 
 interface User {
   id: string;
   name: string;
-  role: 'supervisor' | 'engineer';
+  role: Role;
   pin: string;
-  created_at?: string;
-  last_login?: string;
-  created_by?: string;
 }
 
-// PIN validation function
-const validatePin = (pin: string): boolean => {
-  return /^\d{4}$/.test(pin);
-};
+type Mode = 'add' | 'edit';
 
-// PIN validation error message
-const getPinErrorMessage = (pin: string): string => {
-  if (!pin) return 'PIN is required';
-  if (pin.length !== 4) return 'PIN must be exactly 4 digits';
-  if (!/^\d+$/.test(pin)) return 'PIN must contain only numbers';
-  return '';
-};
+const API_BASE =
+  process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, '') ||
+  process.env.EXPO_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') ||
+  'http://localhost:8040';
 
-export default function UserManagement() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+const USERS_ENDPOINT = `${API_BASE}/api/users`;
+
+export default function UserManagementScreen() {
+  // demo role from query: /user-management?role=supervisor
+  const params = useLocalSearchParams<{ role?: string }>();
+  const currentUserRole: Role = (params.role === 'engineer' ? 'engineer' : 'supervisor') as Role;
+
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  
-  // Form states
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [mode, setMode] = useState<Mode>('add');
+  const [showModal, setShowModal] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [newUserName, setNewUserName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'supervisor' | 'engineer'>('engineer');
+  const [newUserRole, setNewUserRole] = useState<Role>('engineer');
   const [newUserPin, setNewUserPin] = useState('');
-  
-  // Form validation states
   const [pinError, setPinError] = useState('');
 
-  useEffect(() => {
-    initializeScreen();
+  const [showPins, setShowPins] = useState(false);
+
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const showToast = (type: 'success' | 'error', msg: string) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 2200);
+  };
+
+  const api = useMemo(() => {
+    return {
+      async list(): Promise<User[]> {
+        const result = await AppErrorHandler.safeNetworkCall(USERS_ENDPOINT, {}, 'Fetch users');
+        return result || [];
+      },
+      async create(payload: Omit<User, 'id'>): Promise<User> {
+        const result = await AppErrorHandler.safeNetworkCall(USERS_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }, 'Create user');
+        return result;
+      },
+      async update(id: string, payload: Partial<Omit<User, 'id'>>): Promise<User> {
+        const result = await AppErrorHandler.safeNetworkCall(`${USERS_ENDPOINT}/${encodeURIComponent(id)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }, 'Update user');
+        return result;
+      },
+      async remove(id: string): Promise<void> {
+        await AppErrorHandler.safeNetworkCall(`${USERS_ENDPOINT}/${encodeURIComponent(id)}`, { method: 'DELETE' }, 'Delete user');
+      },
+    };
   }, []);
 
-  const initializeScreen = async () => {
-    try {
-      const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        const user = JSON.parse(userData);
-        setCurrentUser(user);
-        
-        // Only supervisors can access this screen
-        if (user.role !== 'supervisor') {
-          router.replace('/settings');
-          return;
-        }
-        
-        await fetchUsers();
-      } else {
-        router.replace('/');
+  // initial load
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const data = await api.list();
+        if (mounted) setUsers(data);
+      } catch (e) {
+        showToast('error', 'Could not load users.');
+      } finally {
+        if (mounted) setLoading(false);
       }
-    } catch (error) {
-      console.error('Error initializing user management:', error);
-      router.replace('/settings');
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [api]);
+
+  const refresh = async () => {
+    setRefreshing(true);
+    try {
+      const data = await api.list();
+      setUsers(data);
+    } catch {
+      showToast('error', 'Refresh failed.');
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users`);
-      if (response.ok) {
-        const usersData = await response.json();
-        setUsers(usersData);
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  };
-
-  const handleAddUser = async () => {
-    // Validate form
-    const nameError = !newUserName.trim();
-    const currentPinError = getPinErrorMessage(newUserPin);
-    
-    if (nameError) {
-      Alert.alert('Validation Error', 'Name is required');
-      return;
-    }
-    
-    if (currentPinError) {
-      setPinError(currentPinError);
-      Alert.alert('Validation Error', currentPinError);
-      return;
-    }
-    
-    setPinError('');
-
-    try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: newUserName.trim(),
-          role: newUserRole,
-          pin: newUserPin,
-          created_by: currentUser?.id
-        }),
-      });
-
-      if (response.ok) {
-        await fetchUsers();
-        resetForm();
-        setShowAddModal(false);
-        Alert.alert('Success', 'User created successfully');
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.detail || 'Failed to create user';
-        Alert.alert('Error', errorMessage);
-      }
-    } catch (error) {
-      console.error('Error adding user:', error);
-      Alert.alert('Error', 'Failed to create user. Please check your connection.');
-    }
+      setRefreshing(false);
     };
-
-  const handleEditUser = async () => {
-    // Validate form
-    const nameError = !newUserName.trim();
-    const currentPinError = newUserPin ? getPinErrorMessage(newUserPin) : '';
-    
-    if (nameError) {
-      Alert.alert('Validation Error', 'Name is required');
-      return;
-    }
-    
-    if (currentPinError) {
-      setPinError(currentPinError);
-      Alert.alert('Validation Error', currentPinError);
-      return;
-    }
-    
-    setPinError('');
-
-    // Build update object with only provided fields
-    const updatedUser: any = {
-      name: newUserName.trim(),
-      role: newUserRole,
-    };
-    
-    // Only include PIN if provided
-    if (newUserPin) {
-      updatedUser.pin = newUserPin;
-    }
-    
-    try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${selectedUser?.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedUser),
-      });
-      
-      if (response.ok) {
-        closeEditModal();
-        await fetchUsers();
-        Alert.alert('Success', 'User updated successfully');
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.detail || 'Failed to update user';
-        Alert.alert('Error', errorMessage);
-      }
-    } catch (error) {
-      console.error('Error updating user:', error);
-      Alert.alert('Error', 'Failed to update user. Please check your connection.');
-    }
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    // Can't delete yourself
-    if (userId === currentUser?.id) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/users/${userId}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        await fetchUsers();
-      }
-    } catch (error) {
-      console.error('Error deleting user:', error);
-    }
+  const validatePin = (pin: string) => {
+    if (!pin) return 'PIN is required';
+    if (pin.length !== 4) return 'PIN must be exactly 4 digits';
+    if (!/^[0-9]+$/.test(pin)) return 'PIN must contain only numbers';
+    return '';
   };
 
-  const openEditModal = (user: User) => {
-    setSelectedUser(user);
-    setNewUserName(user.name || '');
-    setNewUserRole(user.role || 'engineer');
-    setNewUserPin(user.pin || '');
-    setShowEditModal(true);
+  const hasDuplicateName = (name: string, excludeId?: string) => {
+    const t = name.trim().toLowerCase();
+    return users.some((u) => u.name.trim().toLowerCase() === t && u.id !== excludeId);
   };
 
-  const resetForm = () => {
+  const openAdd = () => {
+    setMode('add');
+    setEditingUserId(null);
     setNewUserName('');
-    setNewUserPin('');
     setNewUserRole('engineer');
+    setNewUserPin('');
+    setPinError('');
+    setShowModal(true);
+  };
+
+  const openEdit = (user: User) => {
+    setMode('edit');
+    setEditingUserId(user.id);
+    setNewUserName(user.name);
+    setNewUserRole(user.role);
+    setNewUserPin(user.pin);
+    setPinError('');
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
     setPinError('');
   };
 
-  const closeAddModal = () => {
-    setShowAddModal(false);
-    resetForm();
+  const handleSave = async () => {
+    if (currentUserRole !== 'supervisor') {
+      showToast('error', 'Access denied: supervisors only.');
+      return;
+    }
+
+    const name = newUserName.trim();
+    if (!name) return showToast('error', 'Name is required.');
+
+    const pErr = validatePin(newUserPin);
+    setPinError(pErr);
+    if (pErr) return;
+
+    try {
+      if (mode === 'add') {
+        if (hasDuplicateName(name)) return showToast('error', 'That name already exists.');
+        const created = await api.create({ name, role: newUserRole, pin: newUserPin });
+        setUsers((prev) => [...prev, created]);
+        closeModal();
+        showToast('success', 'User added.');
+      } else {
+        const id = editingUserId!;
+        if (hasDuplicateName(name, id)) return showToast('error', 'That name already exists.');
+        const updated = await api.update(id, { name, role: newUserRole, pin: newUserPin });
+        setUsers((prev) => prev.map((u) => (u.id === id ? updated : u)));
+        closeModal();
+        showToast('success', 'User updated.');
+      }
+    } catch (e) {
+      showToast('error', 'Save failed. Check network/server.');
+    }
   };
 
-  const closeEditModal = () => {
-    setShowEditModal(false);
-    setSelectedUser(null);
-    resetForm();
+  const requestDelete = (user: User) => {
+    if (currentUserRole !== 'supervisor') {
+      showToast('error', 'Access denied: supervisors only.');
+      return;
+    }
+    Alert.alert('Delete user', `Delete “${user.name}”?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => confirmDelete(user.id) },
+    ]);
+  };
+
+  const confirmDelete = async (id: string) => {
+    try {
+      await api.remove(id);
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+      showToast('success', 'User deleted.');
+    } catch {
+      showToast('error', 'Delete failed.');
+    }
   };
 
   if (loading) {
     return (
-      <Screen scroll>
-      <Container>
-        <UniversalHeader title="User Management" showBackButton={true} />
-        <View style={styles.centerContent}>
-          <Ionicons name="people" size={48} color="#4CAF50" />
-          <Text style={styles.loadingText}>Loading users...</Text>
-        </View>
-      </Container>
-    </Screen>
+      <View style={[styles.screen, styles.center]}>
+        <ActivityIndicator />
+        <Text style={{ color: '#ccc', marginTop: 8 }}>Loading users…</Text>
+      </View>
     );
   }
 
-  if (!currentUser || currentUser.role !== 'supervisor') {
+  if (currentUserRole !== 'supervisor') {
     return (
-      <Screen scroll>
-      <Container>
-        <UniversalHeader title="User Management" showBackButton={true} />
-        <View style={styles.centerContent}>
-          <Ionicons name="lock-closed" size={48} color="#F44336" />
-          <Text style={styles.errorText}>Access Denied</Text>
-          <Text style={styles.errorSubtext}>Only supervisors can manage users</Text>
-        </View>
-      </Container>
-    </Screen>
+      <View style={[styles.screen, styles.center, { padding: 24 }]}>
+        <Ionicons name="lock-closed" size={36} color="#F44336" />
+        <Text style={styles.deniedTitle}>Access denied</Text>
+        <Text style={styles.deniedText}>
+          Only supervisors can manage users. Please contact your supervisor if you need changes.
+        </Text>
+      </View>
     );
   }
 
   return (
-    <Screen scroll>
-      <Container>
-      <UniversalHeader title="User Management" showBackButton={true} />
-      
-      <ScrollView style={styles.content}>
-        {/* Header Section */}
-        <View style={styles.headerSection}>
-          <View style={styles.headerInfo}>
-            <Ionicons name="people" size={24} color="#4CAF50" />
-            <Text style={styles.headerTitle}>Team Management</Text>
-          </View>
-          <Text style={styles.headerSubtext}>
-            Manage team members, roles, and access
-          </Text>
+    <View style={styles.screen}>
+      {toast && (
+        <View style={[styles.toast, toast.type === 'success' ? styles.toastSuccess : styles.toastError]}>
+          <Text style={styles.toastText}>{toast.msg}</Text>
+        </View>
+      )}
+
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={{ marginBottom: 16 }}>
+          <Ionicons name="people" size={24} color="#4CAF50" />
+          <Text style={styles.title}>User Management</Text>
+          <Text style={styles.subtle}>Manage team members, roles, and access</Text>
         </View>
 
-        {/* Add User Button */}
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => setShowAddModal(true)}
-        >
-          <Ionicons name="person-add" size={24} color="#fff" />
-          <Text style={styles.addButtonText}>Add New User</Text>
-        </TouchableOpacity>
+        <View style={styles.rowBetween}>
+          <TouchableOpacity style={styles.addButton} onPress={openAdd} activeOpacity={0.7}>
+            <Text style={styles.addButtonText}>Add User</Text>
+          </TouchableOpacity>
+          <View style={styles.pinToggle}>
+            <Text style={{ color: '#ccc', marginRight: 8 }}>Show PINs</Text>
+            <Switch value={showPins} onValueChange={setShowPins} />
+          </View>
+        </View>
 
-        {/* Users List */}
-        <View style={styles.usersSection}>
-          <Text style={styles.sectionTitle}>Team Members ({users.length})</Text>
-          
-          {users.map((user) => (
-            <View key={user.id} style={styles.userCard}>
-              <View style={styles.userInfo}>
-                <View style={styles.userHeader}>
-                  <View style={[
-                    styles.roleIndicator,
-                    { backgroundColor: user.role === 'supervisor' ? '#4CAF50' : '#2196F3' }
-                  ]}>
-                    <Ionicons 
-                      name={user.role === 'supervisor' ? 'shield-checkmark' : 'construct'} 
-                      size={16} 
-                      color="#fff" 
-                    />
-                  </View>
-                  <View style={styles.userDetails}>
-                    <Text style={styles.userName}>{user.name}</Text>
-                    <Text style={styles.userRole}>
-                      {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                    </Text>
-                  </View>
-                </View>
-                
-                <View style={styles.userMeta}>
-                  <Text style={styles.userPin}>PIN: ••••</Text>
-                  {user.created_at && (
-                    <Text style={styles.lastLogin}>
-                      Created: {new Date(user.created_at).toLocaleDateString()}
-                    </Text>
-                  )}
-                </View>
-              </View>
+        <View style={{ marginTop: 16 }}>
+          <View style={styles.headerRow}>
+            <Text style={[styles.headerCell, { flex: 2 }]}>Name</Text>
+            <Text style={[styles.headerCell, { flex: 1 }]}>Role</Text>
+            <Text style={[styles.headerCell, { flex: 1 }]}>PIN</Text>
+            <Text style={[styles.headerCell, { width: 96, textAlign: 'right' }]}>Actions</Text>
+          </View>
 
-              <View style={styles.userActions}>
-                <TouchableOpacity 
-                  style={styles.editButton}
-                  onPress={() => openEditModal(user)}
-                >
-                  <Ionicons name="create" size={20} color="#2196F3" />
-                </TouchableOpacity>
-                
-                {user.id !== currentUser.id && (
-                  <TouchableOpacity 
-                    style={styles.deleteButton}
-                    onPress={() => handleDeleteUser(user.id)}
-                  >
-                    <Ionicons name="trash" size={20} color="#F44336" />
+          <FlatList
+            data={users}
+            keyExtractor={user => user.id}
+            renderItem={({ item: user }) => (
+              <View key={user.id} style={styles.userRow}>
+                <Text style={[styles.cell, { flex: 2 }]} numberOfLines={1}>{user.name}</Text>
+                <Text style={[styles.cell, { flex: 1 }]}>{user.role}</Text>
+                <Text style={[styles.cell, { flex: 1 }]}>{showPins ? user.pin : '•'.repeat(user.pin.length)}</Text>
+
+                <View style={[styles.cell, styles.actionsCell]}>
+                  <TouchableOpacity style={[styles.iconBtn, { marginRight: 8 }]} onPress={() => openEdit(user)} accessibilityLabel={`Edit user ${user.name}`} activeOpacity={0.7}>
+                    <Ionicons name="create" size={18} color="#fff" />
                   </TouchableOpacity>
-                )}
+                  <TouchableOpacity style={[styles.iconBtn, styles.dangerBtn]} onPress={() => requestDelete(user)} accessibilityLabel={`Delete user ${user.name}`} activeOpacity={0.7}>
+                    <Ionicons name="trash" size={18} color="#fff" />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          ))}
+            )}
+            ListEmptyComponent={refreshing ? (
+              <View style={[styles.center, { paddingVertical: 24 }]}>
+                <ActivityIndicator />
+                <Text style={{ color: '#aaa', marginTop: 8 }}>Refreshing…</Text>
+              </View>
+            ) : null}
+          />
+
+          <TouchableOpacity onPress={refresh} style={[styles.refreshBtn, { marginTop: users.length ? 14 : 0 }]} accessibilityLabel="Refresh user list" activeOpacity={0.7}>
+            <Ionicons name="refresh" size={16} color="#fff" />
+            <Text style={{ color: '#fff', marginLeft: 6, fontWeight: '600' }}>Refresh</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Add User Modal */}
-      <Modal
-        visible={showAddModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <Screen scroll>
-      <Container>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={closeAddModal}>
-              <Ionicons name="close" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Add New User</Text>
-            <TouchableOpacity onPress={handleAddUser}>
-              <Ionicons name="checkmark" size={24} color="#4CAF50" />
-            </TouchableOpacity>
+      {showModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>{mode === 'add' ? 'Add New User' : 'Edit User'}</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Name"
+              placeholderTextColor="#aaa"
+              value={newUserName}
+              onChangeText={setNewUserName}
+            />
+
+            <View style={styles.roleOptions}>
+              <TouchableOpacity
+                style={[styles.roleOption, newUserRole === 'engineer' && styles.roleOptionSelected]}
+                onPress={() => setNewUserRole('engineer')}
+                activeOpacity={0.7}
+              >
+                <Text style={newUserRole === 'engineer' ? styles.roleOptionTextSelected : styles.roleOptionText}>
+                  Engineer
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.roleOption, newUserRole === 'supervisor' && styles.roleOptionSelected]}
+                onPress={() => setNewUserRole('supervisor')}
+                activeOpacity={0.7}
+              >
+                <Text style={newUserRole === 'supervisor' ? styles.roleOptionTextSelected : styles.roleOptionText}>
+                  Supervisor
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="4-digit PIN"
+              placeholderTextColor="#aaa"
+              keyboardType="numeric"
+              maxLength={4}
+              value={newUserPin}
+              onChangeText={setNewUserPin}
+            />
+            {pinError ? <Text style={styles.pinError}>{pinError}</Text> : null}
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
+              <TouchableOpacity style={styles.modalButton} onPress={closeModal} activeOpacity={0.7}>
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalButton} onPress={handleSave} activeOpacity={0.7}>
+                <Text style={styles.modalButtonText}>{mode === 'add' ? 'Add' : 'Save'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-
-          <ScrollView style={styles.modalContent}>
-            <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Full Name</Text>
-              <TextInput
-                style={styles.formInput}
-                value={newUserName}
-                onChangeText={setNewUserName}
-                placeholder="Enter full name"
-                placeholderTextColor="#666"
-              />
-            </View>
-
-            <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Role</Text>
-              <View style={styles.roleSelector}>
-                <TouchableOpacity 
-                  style={[
-                    styles.roleOption,
-                    newUserRole === 'engineer' && styles.roleOptionSelected
-                  ]}
-                  onPress={() => setNewUserRole('engineer')}
-                >
-                  <Ionicons name="construct" size={20} color={newUserRole === 'engineer' ? '#fff' : '#2196F3'} />
-                  <Text style={[
-                    styles.roleOptionText,
-                    newUserRole === 'engineer' && styles.roleOptionTextSelected
-                  ]}>Engineer</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[
-                    styles.roleOption,
-                    newUserRole === 'supervisor' && styles.roleOptionSelected
-                  ]}
-                  onPress={() => setNewUserRole('supervisor')}
-                >
-                  <Ionicons name="shield-checkmark" size={20} color={newUserRole === 'supervisor' ? '#fff' : '#4CAF50'} />
-                  <Text style={[
-                    styles.roleOptionText,
-                    newUserRole === 'supervisor' && styles.roleOptionTextSelected
-                  ]}>Supervisor</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.formSection}>
-              <Text style={styles.formLabel}>4-Digit PIN</Text>
-              <TextInput
-                style={[styles.formInput, pinError ? styles.formInputError : null]}
-                value={newUserPin}
-                onChangeText={(text) => {
-                  setNewUserPin(text);
-                  const error = getPinErrorMessage(text);
-                  setPinError(error);
-                }}
-                placeholder="1234"
-                placeholderTextColor="#666"
-                keyboardType="numeric"
-                maxLength={4}
-              />
-              {pinError ? (
-                <Text style={styles.formError}>{pinError}</Text>
-              ) : (
-                <Text style={styles.formHint}>Create a 4-digit PIN for this user</Text>
-              )}
-            </View>
-          </ScrollView>
-        </Container>
-    </Screen>
-      </Modal>
-
-      {/* Edit User Modal */}
-      <Modal
-        visible={showEditModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <Screen scroll>
-      <Container>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={closeEditModal}>
-              <Ionicons name="close" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Edit User</Text>
-            <TouchableOpacity onPress={handleEditUser}>
-              <Ionicons name="checkmark" size={24} color="#4CAF50" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalContent}>
-            <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Full Name</Text>
-              <TextInput
-                style={styles.formInput}
-                value={newUserName}
-                onChangeText={setNewUserName}
-                placeholder="Enter full name"
-                placeholderTextColor="#666"
-              />
-            </View>
-
-            <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Role</Text>
-              <View style={styles.roleSelector}>
-                <TouchableOpacity 
-                  style={[
-                    styles.roleOption,
-                    newUserRole === 'engineer' && styles.roleOptionSelected
-                  ]}
-                  onPress={() => setNewUserRole('engineer')}
-                >
-                  <Ionicons name="construct" size={20} color={newUserRole === 'engineer' ? '#fff' : '#2196F3'} />
-                  <Text style={[
-                    styles.roleOptionText,
-                    newUserRole === 'engineer' && styles.roleOptionTextSelected
-                  ]}>Engineer</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[
-                    styles.roleOption,
-                    newUserRole === 'supervisor' && styles.roleOptionSelected
-                  ]}
-                  onPress={() => setNewUserRole('supervisor')}
-                >
-                  <Ionicons name="shield-checkmark" size={20} color={newUserRole === 'supervisor' ? '#fff' : '#4CAF50'} />
-                  <Text style={[
-                    styles.roleOptionText,
-                    newUserRole === 'supervisor' && styles.roleOptionTextSelected
-                  ]}>Supervisor</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.formSection}>
-              <Text style={styles.formLabel}>4-Digit PIN</Text>
-              <TextInput
-                style={[styles.formInput, pinError ? styles.formInputError : null]}
-                value={newUserPin}
-                onChangeText={(text) => {
-                  setNewUserPin(text);
-                  const error = text ? getPinErrorMessage(text) : '';
-                  setPinError(error);
-                }}
-                placeholder="1234 (leave blank to keep current)"
-                placeholderTextColor="#666"
-                keyboardType="numeric"
-                maxLength={4}
-              />
-              {pinError ? (
-                <Text style={styles.formError}>{pinError}</Text>
-              ) : (
-                <Text style={styles.formHint}>Update the 4-digit PIN for this user (or leave blank to keep current)</Text>
-              )}
-            </View>
-          </ScrollView>
-        </Container>
-    </Screen>
-      </Modal>
-    </Container>
-    </Screen>
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
+  screen: { flex: 1, backgroundColor: '#111' },
+  container: { padding: 20, paddingBottom: 40 },
+  center: { justifyContent: 'center', alignItems: 'center' },
+
+  toast: { position: 'absolute', top: 12, left: 12, right: 12, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, zIndex: 50 },
+  toastSuccess: { backgroundColor: '#1B5E20' },
+  toastError: { backgroundColor: '#B71C1C' },
+  toastText: { color: '#fff', fontSize: 14, fontWeight: '600', textAlign: 'center' },
+
+  title: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginTop: 6 },
+  subtle: { color: '#aaa', marginTop: 2 },
+
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  pinToggle: { flexDirection: 'row', alignItems: 'center' },
+
+  headerRow: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 12, backgroundColor: '#222', borderTopLeftRadius: 8, borderTopRightRadius: 8 },
+  headerCell: { color: '#ccc', fontSize: 13, fontWeight: '700' },
+
+  userRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1b1b1b', paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#333' },
+  cell: {
+    paddingVertical: 8,
+    paddingHorizontal: 6,
   },
-  content: {
-    flex: 1,
-  },
-  centerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    color: '#fff',
-    fontSize: 18,
-  },
-  errorText: {
-    color: '#F44336',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 16,
-  },
-  errorSubtext: {
-    color: '#aaa',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  headerSection: {
-    padding: 20,
-    backgroundColor: '#2d2d2d',
-    marginBottom: 20,
-  },
-  headerInfo: {
+  actionsCell: {
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
   },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  headerSubtext: {
-    color: '#aaa',
-    fontSize: 14,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#4CAF50',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 12,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  usersSection: {
-    paddingHorizontal: 20,
-  },
-  sectionTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  userCard: {
-    backgroundColor: '#2d2d2d',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
-  },
-  roleIndicator: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userDetails: {
-    flex: 1,
-  },
-  userName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  userRole: {
-    color: '#aaa',
-    fontSize: 14,
-  },
-  userMeta: {
-    marginLeft: 44,
-  },
-  userPin: {
-    color: '#666',
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  lastLogin: {
-    color: '#666',
-    fontSize: 12,
-  },
-  userActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  editButton: {
-    backgroundColor: '#404040',
-    padding: 8,
+
+  iconBtn: { backgroundColor: '#3B82F6', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6 },
+  dangerBtn: { backgroundColor: '#EF4444' },
+
+  refreshBtn: { alignSelf: 'flex-start', marginTop: 8, backgroundColor: '#374151', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center' },
+
+  addButton: { backgroundColor: '#2196F3', padding: 12, borderRadius: 8, alignItems: 'center', minWidth: 120 },
+  addButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+
+  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
+  modalContainer: { backgroundColor: '#222', borderRadius: 12, padding: 24, width: '88%', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
+  modalTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
+  input: { backgroundColor: '#2d2d2d', color: '#fff', borderRadius: 8, padding: 12, fontSize: 16, marginBottom: 12 },
+
+  roleOptions: { flexDirection: 'row', marginBottom: 12 },
+  roleOption: { backgroundColor: '#404040', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, marginRight: 8 },
+  roleOptionSelected: { backgroundColor: '#4CAF50' },
+  roleOptionText: { color: '#aaa', fontSize: 14, fontWeight: '600' },
+  roleOptionTextSelected: { color: '#fff', fontSize: 14, fontWeight: '600' },
+
+  pinError: { color: '#F44336', fontSize: 14, marginBottom: 8 },
+
+  deniedTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginTop: 10 },
+  deniedText: { color: '#bbb', textAlign: 'center', marginTop: 8 },
+
+  modalButton: {
+    backgroundColor: '#2196F3',
+    padding: 12,
     borderRadius: 8,
+    marginHorizontal: 8,
   },
-  deleteButton: {
-    backgroundColor: '#404040',
-    padding: 8,
-    borderRadius: 8,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#2d2d2d',
-    borderBottomWidth: 1,
-    borderBottomColor: '#404040',
-  },
-  modalTitle: {
+  modalButtonText: {
     color: '#fff',
-    fontSize: 18,
     fontWeight: 'bold',
-  },
-  modalContent: {
-    flex: 1,
-    padding: 20,
-  },
-  formSection: {
-    marginBottom: 24,
-  },
-  formLabel: {
-    color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  formInput: {
-    backgroundColor: '#2d2d2d',
-    borderWidth: 1,
-    borderColor: '#404040',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    color: '#fff',
-    fontSize: 16,
-  },
-  formInputError: {
-    borderColor: '#f44336',
-    borderWidth: 2,
-  },
-  formHint: {
-    color: '#666',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  formError: {
-    color: '#f44336',
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  roleSelector: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  roleOption: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2d2d2d',
-    borderWidth: 1,
-    borderColor: '#404040',
-    borderRadius: 8,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  roleOptionSelected: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
-  },
-  roleOptionText: {
-    color: '#aaa',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  roleOptionTextSelected: {
-    color: '#fff',
   },
 });
