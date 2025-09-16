@@ -1,34 +1,17 @@
-import React, { PropsWithChildren } from 'react';
-import { View, StyleProp, ViewStyle } from 'react-native';
+// frontend/app/components/Container.tsx
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
 
-type ContainerProps = PropsWithChildren<{
-  maxWidth?: number;
-  paddingHorizontal?: number;
-  style?: StyleProp<ViewStyle>;
-}>;
-
-export function Container({
-  children,
-  maxWidth = 900,
-  paddingHorizontal = 16,
-  style,
-}: ContainerProps) {
-  return (
-    <View
-      style={[
-        {
-          width: '100%',
-          maxWidth,
-          alignSelf: 'center',
-          paddingHorizontal,
-          flexGrow: 1,
-        },
-        style,
-      ]}
-    >
-      {children}
-    </View>
-  );
+interface Props {
+  children: React.ReactNode;
 }
 
-export default Container;
+export default function Container({ children }: Props) {
+  return <View style={styles.container}>{children}</View>;
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
