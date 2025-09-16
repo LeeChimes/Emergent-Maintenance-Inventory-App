@@ -1,6 +1,7 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { AppErrorHandler } from '../utils/AppErrorHandler';
@@ -16,14 +17,15 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style="auto" />
-      <ErrorBoundary>
-        <Stack
-          screenOptions={{
-            headerShown: true,
-            contentStyle: { backgroundColor: '#FFFFFF' },
-          }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <ErrorBoundary>
+          <Stack
+            screenOptions={{
+              headerShown: true,
+              contentStyle: { backgroundColor: '#1a1a1a' },
+            }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="scanner" options={{ headerShown: false }} />
         <Stack.Screen name="inventory" options={{ headerShown: false }} />
@@ -52,5 +54,6 @@ export default function RootLayout() {
       </Stack>
     </ErrorBoundary>
   </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
