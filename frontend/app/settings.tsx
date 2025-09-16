@@ -1,145 +1,87 @@
-import React, { useState, useEffect } from 'react';
+// frontend/app/settings.tsx
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  ScrollView,
+  Switch,
   TouchableOpacity,
   Alert,
-  Switch,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import UniversalHeader from '../components/UniversalHeader';
 import Screen from './components/Screen';
 import Container from './components/Container';
+import UniversalHeader from './components/UniversalHeader';
 
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+type Role = 'supervisor' | 'engineer';
 
 interface User {
   id: string;
   name: string;
-  role: 'supervisor' | 'engineer';
+  role: Role;
 }
 
 export default function Settings() {
   const [user, setUser] = useState<User | null>(null);
-  const [vibrationEnabled, setVibrationEnabled] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [loading, setLoading] = useState(true);
+
+  // simple local settings
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [photoRequired, setPhotoRequired] = useState(false); // e.g., require photo before completing PPM
+  const [scanRequired, setScanRequired] = useState(false);   // e.g., require QR scan before completing PPM
 
   useEffect(() => {
-    initializeUser();
-    loadSettings();
+    (async () => {
+      try {
+        const ud = await AsyncStorage.getItem('userData');
+        if (!ud) return router.replace('/');
+        const parsed: User = JSON.parse(ud);
+        setUser(parsed);
+
+        // load local toggles (optional persistence)
+        const storedPush = await AsyncStorage.getItem('settings.pushEnabled');
+        const storedPhoto = await AsyncStorage.getItem('settings.photoRequired');
+        const storedScan = await AsyncStorage.getItem('settings.scanRequired');
+        if (storedPush !== null) setPushEnabled(storedPush === '1');
+        if (storedPhoto !== null) setPhotoRequired(storedPhoto === '1');
+        if (storedScan !== null) setScanRequired(storedScan === '1');
+      } catch (e) {
+        console.error('Error loading settings', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
-  const initializeUser = async () => {
+  const togglePersist = async (key: string, value: boolean) => {
     try {
-      const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        setUser(JSON.parse(userData));
-      } else {
-        router.replace('/');
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
+      await AsyncStorage.setItem(key, value ? '1' : '0');
+    } catch (e) {
+      console.error('Error saving setting', e);
+    }
+  };
+
+  const onLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('userData');
       router.replace('/');
+    } catch (e) {
+      Alert.alert('Error', 'Could not log out. Try again.');
     }
   };
 
-  const loadSettings = async () => {
-    try {
-      const vibration = await AsyncStorage.getItem('vibrationEnabled');
-      const sound = await AsyncStorage.getItem('soundEnabled');
-      const notifications = await AsyncStorage.getItem('notificationsEnabled');
-      
-      if (vibration !== null) setVibrationEnabled(JSON.parse(vibration));
-      if (sound !== null) setSoundEnabled(JSON.parse(sound));
-      if (notifications !== null) setNotificationsEnabled(JSON.parse(notifications));
-    } catch (error) {
-      console.error('Error loading settings:', error);
-    }
-  };
-
-  const saveSetting = async (key: string, value: boolean) => {
-    try {
-      await AsyncStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.error('Error saving setting:', error);
-    }
-  };
-
-  const handleVibrationToggle = (value: boolean) => {
-    setVibrationEnabled(value);
-    saveSetting('vibrationEnabled', value);
-  };
-
-  const handleSoundToggle = (value: boolean) => {
-    setSoundEnabled(value);
-    saveSetting('soundEnabled', value);
-  };
-
-  const handleNotificationsToggle = (value: boolean) => {
-    setNotificationsEnabled(value);
-    saveSetting('notificationsEnabled', value);
-  };
-
-  const handleLogout = async () => {
-    try {
-      // Clear user data
-      await AsyncStorage.multiRemove(['userToken', 'userData']);
-      // Navigate back to main login screen
-      router.replace('/');
-    } catch (error) {
-      console.error('Error during logout:', error);
-      // Force navigation even if there's an error
-      router.replace('/');
-    }
-  };
-
-  const handleResetApp = () => {
-    Alert.alert(
-      'Reset App Data',
-      'This will clear all app settings and log you out. Are you sure?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: async () => {
-            await AsyncStorage.clear();
-            router.replace('/');
-          },
-        },
-      ]
-    );
-  };
-
-  const handleAbout = () => {
-    Alert.alert(
-      'Asset Inventory App',
-      'Version 1.0.0\n\nBuilt for Chimes Shopping Centre maintenance team.\n\nDeveloped with ❤️ using React Native and Expo.',
-      [{ text: 'OK' }]
-    );
-  };
-
-  if (!user || user.role !== 'supervisor') {
+  if (loading) {
     return (
-      <Screen>
+      <Screen scroll>
         <Container>
-          <View style={styles.centerContent}>
-            <Ionicons name="lock-closed" size={48} color="#F44336" />
-            <Text style={styles.accessDeniedText}>Access Denied</Text>
-            <Text style={styles.accessDeniedSubtext}>
-              Settings are only accessible to supervisors
-            </Text>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.push('/')}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.backButtonText}>Go Back</Text>
-            </TouchableOpacity>
+          <UniversalHeader title="Settings" showBackButton />
+          <View style={styles.center}>
+            <ActivityIndicator />
+            <Text style={styles.loadingTxt}>Loading settings…</Text>
           </View>
         </Container>
       </Screen>
@@ -149,356 +91,155 @@ export default function Settings() {
   return (
     <Screen scroll>
       <Container>
-        {/* Universal Header */}
-        <UniversalHeader title="Settings" showBackButton={true} />
+        <UniversalHeader title="Settings" showBackButton />
 
-        {/* Content - handled by Screen scroll */}
-        {/* User Info */}
-        <View style={styles.section}>
-          <View style={styles.userCard}>
-            <View style={styles.userIconContainer}>
-              <Ionicons name="person-circle" size={48} color="#4CAF50" />
-            </View>
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>{user.name}</Text>
-              <Text style={styles.userRole}>
-                {user.role === 'supervisor' ? '⭐ Supervisor' : '🔧 Engineer'}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* App Preferences */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📱 App Preferences</Text>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="phone-portrait" size={20} color="#4CAF50" />
-              <View style={styles.settingText}>
-                <Text style={styles.settingTitle}>Vibration Feedback</Text>
-                <Text style={styles.settingDescription}>
-                  Vibrate on successful scans and actions
-                </Text>
+        <ScrollView style={styles.content}>
+          {/* Profile */}
+          <View style={styles.card}>
+            <View style={styles.row}>
+              <Ionicons name="person-circle-outline" size={28} color="#4CAF50" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title}>{user?.name ?? 'Unknown'}</Text>
+                <Text style={styles.subtitle}>Role: {user?.role ?? '-'}</Text>
               </View>
             </View>
-            <Switch
-              value={vibrationEnabled}
-              onValueChange={handleVibrationToggle}
-              trackColor={{ false: '#666', true: '#4CAF50' }}
-              thumbColor={vibrationEnabled ? '#fff' : '#f4f3f4'}
-            />
           </View>
 
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="volume-high" size={20} color="#2196F3" />
-              <View style={styles.settingText}>
-                <Text style={styles.settingTitle}>Sound Effects</Text>
-                <Text style={styles.settingDescription}>
-                  Play sounds for app interactions
-                </Text>
+          {/* App Toggles */}
+          <Text style={styles.section}>App</Text>
+          <View style={styles.card}>
+            <View style={styles.item}>
+              <View style={styles.itemLeft}>
+                <Ionicons name="notifications-outline" size={20} color="#9CA3AF" />
+                <Text style={styles.itemText}>Push notifications</Text>
               </View>
+              <Switch
+                value={pushEnabled}
+                onValueChange={(v) => {
+                  setPushEnabled(v);
+                  togglePersist('settings.pushEnabled', v);
+                }}
+              />
             </View>
-            <Switch
-              value={soundEnabled}
-              onValueChange={handleSoundToggle}
-              trackColor={{ false: '#666', true: '#4CAF50' }}
-              thumbColor={soundEnabled ? '#fff' : '#f4f3f4'}
-            />
-          </View>
 
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="notifications" size={20} color="#FF9800" />
-              <View style={styles.settingText}>
-                <Text style={styles.settingTitle}>Low Stock Notifications</Text>
-                <Text style={styles.settingDescription}>
-                  Get alerts when items are running low
-                </Text>
+            <View style={styles.item}>
+              <View style={styles.itemLeft}>
+                <Ionicons name="camera-outline" size={20} color="#9CA3AF" />
+                <Text style={styles.itemText}>Require photo before completing PPM</Text>
               </View>
+              <Switch
+                value={photoRequired}
+                onValueChange={(v) => {
+                  setPhotoRequired(v);
+                  togglePersist('settings.photoRequired', v);
+                }}
+              />
             </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={handleNotificationsToggle}
-              trackColor={{ false: '#666', true: '#4CAF50' }}
-              thumbColor={notificationsEnabled ? '#fff' : '#f4f3f4'}
-            />
+
+            <View style={styles.item}>
+              <View style={styles.itemLeft}>
+                <Ionicons name="qr-code-outline" size={20} color="#9CA3AF" />
+                <Text style={styles.itemText}>Require scan before completing PPM</Text>
+              </View>
+              <Switch
+                value={scanRequired}
+                onValueChange={(v) => {
+                  setScanRequired(v);
+                  togglePersist('settings.scanRequired', v);
+                }}
+              />
+            </View>
           </View>
-        </View>
 
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
-          
-          <TouchableOpacity 
-            style={styles.actionItem}
-            onPress={() => router.push('/inventory')}
-          >
-            <Ionicons name="refresh-circle" size={24} color="#4CAF50" />
-            <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>Refresh Inventory Data</Text>
-              <Text style={styles.actionDescription}>Force sync with server</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#666" />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.actionItem}
-            onPress={() => router.push('/dashboard')}
-          >
-            <Ionicons name="analytics" size={24} color="#2196F3" />
-            <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>View Reports</Text>
-              <Text style={styles.actionDescription}>Check inventory status</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#666" />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.actionItem}
-            onPress={() => router.push('/add-item')}
-          >
-            <Ionicons name="add-circle" size={24} color="#4CAF50" />
-            <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>Add New Items</Text>
-              <Text style={styles.actionDescription}>Materials and tools</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#666" />
-          </TouchableOpacity>
-
-          {/* Supervisor-only User Management */}
+          {/* Supervisor Tools */}
           {user?.role === 'supervisor' && (
-            <TouchableOpacity 
-              style={styles.actionItem}
-              onPress={() => router.push('/user-management')}
-            >
-              <Ionicons name="people" size={24} color="#4CAF50" />
-              <View style={styles.actionText}>
-                <Text style={styles.actionTitle}>User Management</Text>
-                <Text style={styles.actionDescription}>Manage team members and access</Text>
+            <>
+              <Text style={styles.section}>Supervisor</Text>
+              <View style={styles.card}>
+                <TouchableOpacity
+                  style={styles.navBtn}
+                  onPress={() => router.push('/admin-exports')}
+                >
+                  <Ionicons name="download-outline" size={20} color="#fff" />
+                  <Text style={styles.navBtnTxt}>Admin Exports</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.navBtn}
+                  onPress={() => router.push('/audit-log')}
+                >
+                  <Ionicons name="document-text-outline" size={20} color="#fff" />
+                  <Text style={styles.navBtnTxt}>Audit Log</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.navBtn}
+                  onPress={() => router.push('/user-management')}
+                >
+                  <Ionicons name="people-outline" size={20} color="#fff" />
+                  <Text style={styles.navBtnTxt}>User Management</Text>
+                </TouchableOpacity>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
-            </TouchableOpacity>
+            </>
           )}
 
-          {/* Logout Button */}
-          <TouchableOpacity 
-            style={styles.actionItem}
-            onPress={handleLogout}
-          >
-            <Ionicons name="log-out" size={24} color="#FF9800" />
-            <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>Logout</Text>
-              <Text style={styles.actionDescription}>Switch to different user</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
+          {/* Danger Zone */}
+          <Text style={styles.section}>Account</Text>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={[styles.navBtn, { backgroundColor: '#EF4444' }]}
+              onPress={onLogout}
+            >
+              <Ionicons name="log-out-outline" size={20} color="#fff" />
+              <Text style={styles.navBtnTxt}>Log out</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* App Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ℹ️ App Information</Text>
-          
-          <TouchableOpacity style={styles.actionItem} onPress={handleAbout}>
-            <Ionicons name="information-circle" size={24} color="#9C27B0" />
-            <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>About This App</Text>
-              <Text style={styles.actionDescription}>Version and details</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#666" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/help')}>
-            <Ionicons name="help-circle" size={24} color="#FF9800" />
-            <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>Help & Support</Text>
-              <Text style={styles.actionDescription}>Get assistance</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Danger Zone */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⚠️ Danger Zone</Text>
-          
-          <TouchableOpacity 
-            style={[styles.actionItem, styles.dangerItem]}
-            onPress={handleResetApp}
-          >
-            <Ionicons name="trash" size={24} color="#F44336" />
-            <View style={styles.actionText}>
-              <Text style={[styles.actionTitle, styles.dangerText]}>Reset App Data</Text>
-              <Text style={styles.actionDescription}>Clear all settings and logout</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#F44336" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.bottomSpacer} />
-        {/* ScrollView content ends here */}
+          <View style={{ height: 20 }} />
+        </ScrollView>
       </Container>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  loadingTxt: { color: '#aaa' },
+  content: { padding: 20 },
+  section: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
+    marginTop: 10,
+    marginBottom: 8,
+    opacity: 0.9,
   },
-  header: {
+  card: {
+    backgroundColor: '#1f1f1f',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#333',
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  title: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  subtitle: { color: '#9CA3AF', fontSize: 13 },
+  item: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
-    backgroundColor: '#2d2d2d',
-    borderBottomWidth: 1,
-    borderBottomColor: '#404040',
+    paddingVertical: 10,
   },
-  headerButton: {
-    width: 44,
-    height: 44,
+  itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  itemText: { color: '#E5E7EB', fontSize: 15 },
+  navBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  content: {
-    flex: 1,
-  },
-  centerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  accessDeniedText: {
-    color: '#F44336',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 16,
+    gap: 10,
+    backgroundColor: '#374151',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     marginBottom: 8,
   },
-  accessDeniedSubtext: {
-    color: '#aaa',
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  backButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  section: {
-    margin: 20,
-    marginBottom: 0,
-  },
-  sectionTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  userCard: {
-    backgroundColor: '#2d2d2d',
-    borderRadius: 12,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    marginBottom: 20,
-  },
-  userIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#3d3d3d',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  userRole: {
-    color: '#4CAF50',
-    fontSize: 14,
-  },
-  settingItem: {
-    backgroundColor: '#2d2d2d',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  settingText: {
-    flex: 1,
-  },
-  settingTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  settingDescription: {
-    color: '#aaa',
-    fontSize: 12,
-  },
-  actionItem: {
-    backgroundColor: '#2d2d2d',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  actionText: {
-    flex: 1,
-  },
-  actionTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  actionDescription: {
-    color: '#aaa',
-    fontSize: 12,
-  },
-  dangerItem: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#F44336',
-  },
-  dangerText: {
-    color: '#F44336',
-  },
-  bottomSpacer: {
-    height: 40,
-  },
+  navBtnTxt: { color: '#fff', fontWeight: '800' },
 });

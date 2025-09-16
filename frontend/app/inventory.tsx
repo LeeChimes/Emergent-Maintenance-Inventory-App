@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import Screen from './components/Screen';
 import Container from './components/Container';
-import UniversalHeader from '../components/UniversalHeader';
+import UniversalHeader from './components/UniversalHeader';
 import { AppErrorHandler } from '../utils/AppErrorHandler';
 
 interface User {
@@ -25,15 +25,15 @@ interface User {
 }
 
 interface InventoryItem {
-  id: string;
-  name: string;
-  sku: string;
-  quantity: number;
-  location: string;
+  id: string;       // e.g., "ASSET-123"
+  name: string;     // e.g., "Cordless Drill"
+  sku: string;      // e.g., "DRL-001"
+  quantity: number; // stock count
+  location: string; // e.g., "Workshop"
 }
 
 export default function Inventory() {
-  // read params from scanner redirect
+  // from /scan redirect: /inventory?scanned=1&t=asset&id=ASSET-123
   const params = useLocalSearchParams<{ scanned?: string; t?: string; id?: string }>();
   const [scanFilter, setScanFilter] = useState<string>('');
 
@@ -43,7 +43,6 @@ export default function Inventory() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // apply filter if coming from scanner
   useEffect(() => {
     if (params.scanned === '1' && params.id) {
       setScanFilter(String(params.id));
@@ -77,7 +76,7 @@ export default function Inventory() {
 
   const fetchItems = async () => {
     try {
-      // temporary mock data
+      // mock data for now
       const mock: InventoryItem[] = [
         { id: 'ASSET-123', name: 'Cordless Drill', sku: 'DRL-001', quantity: 2, location: 'Workshop' },
         { id: 'ASSET-456', name: 'Hammer', sku: 'HAM-001', quantity: 5, location: 'Workshop' },
@@ -102,8 +101,13 @@ export default function Inventory() {
       x.name.toLowerCase().includes(q) ||
       x.sku.toLowerCase().includes(q) ||
       x.location.toLowerCase().includes(q);
+
     const matchesScan =
-      !scanFilter || x.id.includes(scanFilter) || x.sku.includes(scanFilter) || x.name.toLowerCase().includes(scanFilter.toLowerCase());
+      !scanFilter ||
+      x.id.includes(scanFilter) ||
+      x.sku.includes(scanFilter) ||
+      x.name.toLowerCase().includes(scanFilter.toLowerCase());
+
     return matchesSearch && matchesScan;
   });
 
@@ -111,7 +115,7 @@ export default function Inventory() {
     return (
       <Screen scroll>
         <Container>
-          <UniversalHeader title="Inventory" showBackButton={true} />
+          <UniversalHeader title="Inventory" showBackButton />
           <View style={styles.centerContent}>
             <Ionicons name="cube" size={48} color="#4CAF50" />
             <Text style={styles.loadingText}>Loading inventory...</Text>
@@ -124,7 +128,7 @@ export default function Inventory() {
   return (
     <Screen scroll>
       <Container>
-        <UniversalHeader title="Inventory" showBackButton={true} />
+        <UniversalHeader title="Inventory" showBackButton />
 
         {/* Search bar */}
         <View style={styles.searchSection}>
@@ -139,7 +143,10 @@ export default function Inventory() {
         </View>
 
         {/* Inventory list */}
-        <ScrollView style={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        <ScrollView
+          style={styles.content}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
           {filteredItems.map((item) => (
             <View
               key={item.id}
@@ -157,6 +164,7 @@ export default function Inventory() {
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemSku}>SKU: {item.sku}</Text>
               </View>
+
               <Text style={styles.itemDetail}>Location: {item.location}</Text>
               <Text style={styles.itemDetail}>Qty: {item.quantity}</Text>
 
@@ -168,6 +176,7 @@ export default function Inventory() {
                   <Ionicons name="eye" size={18} color="#2196F3" />
                   <Text style={[styles.actionText, { color: '#2196F3' }]}>View</Text>
                 </TouchableOpacity>
+
                 {user?.role === 'supervisor' && (
                   <TouchableOpacity
                     style={styles.actionButton}
