@@ -174,7 +174,7 @@ export default function Settings() {
           
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Ionicons name="vibrate" size={20} color="#4CAF50" />
+              <Ionicons name="phone-portrait" size={20} color="#4CAF50" />
               <View style={styles.settingText}>
                 <Text style={styles.settingTitle}>Vibration Feedback</Text>
                 <Text style={styles.settingDescription}>
@@ -309,7 +309,7 @@ export default function Settings() {
             <Ionicons name="chevron-forward" size={20} color="#666" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionItem}>
+          <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/help')}>
             <Ionicons name="help-circle" size={24} color="#FF9800" />
             <View style={styles.actionText}>
               <Text style={styles.actionTitle}>Help & Support</Text>

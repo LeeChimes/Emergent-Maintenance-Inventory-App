@@ -16,9 +16,17 @@ app = FastAPI(title="Asset Inventory API", version="1.0.0")
 api_router = APIRouter(prefix="/api")
 
 # Open CORS for simplicity (adjust for production as needed)
+ALLOWED_ORIGINS = [
+    "https://*.expo.dev",
+    "https://*.onrender.com",
+    "http://localhost",
+    "http://127.0.0.1",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # set specific origins in production
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
