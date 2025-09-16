@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import Screen from './components/Screen';
@@ -30,7 +30,6 @@ interface DeliveryItem {
   quantity_received?: number;
   unit: string;
   item_code?: string;
-  price_per_unit?: number;
   condition: string;
   notes?: string;
   matched_inventory_id?: string;

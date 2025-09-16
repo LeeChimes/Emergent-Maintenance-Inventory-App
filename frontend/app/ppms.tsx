@@ -6,6 +6,7 @@ import {
   
   
   TouchableOpacity,
+  ScrollView,
   Modal,
   TextInput,
   Alert,
@@ -160,7 +161,7 @@ export default function PPMs() {
       setPpms(mockPPMs);
     } catch (error) {
       console.error('Error fetching PPMs:', error);
-      AppErrorHandler.handleError(error, 'Failed to load PPMs');
+      AppErrorHandler.handleError(error as Error, 'Failed to load PPMs');
     }
   };
 
@@ -201,7 +202,7 @@ export default function PPMs() {
       Alert.alert('Success', 'PPM created successfully!');
     } catch (error) {
       console.error('Error creating PPM:', error);
-      AppErrorHandler.handleError(error, 'Failed to create PPM');
+      AppErrorHandler.handleError(error as Error, 'Failed to create PPM');
     }
   };
 
