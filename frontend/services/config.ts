@@ -1,1 +1,1 @@
-﻿export const Config = { HOME_PATH: "/dashboard" };
+export const Config = { HOME_PATH: "/dashboard" };

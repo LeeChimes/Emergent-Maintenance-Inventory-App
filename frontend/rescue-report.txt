@@ -1,0 +1,4 @@
+﻿Rescue run: 2025-09-17 17:11:26
+Set HOME_PATH to /dashboard
+Replaced app/scan.tsx with manual-only screen
+TypeScript errors captured in rescue-ts.txt
