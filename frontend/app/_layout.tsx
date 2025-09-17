@@ -1,21 +1,22 @@
-// frontend/app/_layout.tsx
-import React from 'react';
-import { View, StatusBar } from 'react-native';
-import { Stack } from 'expo-router';
-import FloatingScan from './components/FloatingScan';
+import React from "react";
+import { View, StyleSheet } from "react-native";
+import { Slot } from "expo-router";
+import { ThemeProvider } from "../theme";
+import TopBar from "./components/TopBar";
 
 export default function RootLayout() {
+  const styles = StyleSheet.create({
+    root: { flex: 1 },
+    content: { flex: 1 },
+  });
   return (
-    <View style={{ flex: 1, backgroundColor: '#111' }}>
-      <StatusBar barStyle="light-content" />
-      <Stack
-        screenOptions={{
-          headerShown: false, // we render our own headers via UniversalHeader
-          contentStyle: { backgroundColor: '#111' },
-        }}
-      />
-      {/* Global floating scan button on all screens (scan screen can hide it itself) */}
-      <FloatingScan />
-    </View>
+    <ThemeProvider>
+      <View style={styles.root}>
+        <TopBar />
+        <View style={styles.content}>
+          <Slot />
+        </View>
+      </View>
+    </ThemeProvider>
   );
 }

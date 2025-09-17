@@ -1,22 +1,23 @@
-// frontend/app/components/Screen.tsx
-import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React from "react";
+import { View, StyleSheet, StatusBar } from "react-native";
+import { useTheme } from "../../theme";
 
-interface ScreenProps {
-  children: React.ReactNode;
-  scroll?: boolean;
+type Props = { children: React.ReactNode; padded?: boolean };
+
+export default function Screen({ children, padded = true }: Props) {
+  const t = useTheme();
+  const styles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: t.colors.bg },
+    content: {
+      flex: 1,
+      paddingHorizontal: padded ? t.spacing.lg : 0,
+      paddingVertical: padded ? t.spacing.lg : 0,
+    },
+  });
+  return (
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" />
+      <View style={styles.content}>{children}</View>
+    </View>
+  );
 }
-
-export default function Screen({ children, scroll }: ScreenProps) {
-  if (scroll) {
-    return <ScrollView style={styles.container}>{children}</ScrollView>;
-  }
-  return <View style={styles.container}>{children}</View>;
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
-});

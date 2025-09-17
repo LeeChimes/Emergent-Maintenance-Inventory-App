@@ -1,0 +1,40 @@
+import React from "react";
+import { Pressable, Text, View } from "react-native";
+import UniversalHeader from "./UniversalHeader";
+import { useRouter } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "../../theme";
+import { Config } from "../../services/config";
+
+export default function TopBar() {
+  const router = useRouter();
+  const nav = useNavigation();
+  const t = useTheme();
+
+  const goHome = () => router.replace(Config.HOME_PATH);
+  const goBack = () => {
+    const can = typeof (nav as any)?.canGoBack === "function" ? (nav as any).canGoBack() : false;
+    if (can) router.back(); else goHome();
+  };
+  const logout = () => router.replace("/logout");
+
+  const Left = (
+    <Pressable onPress={goBack} accessibilityRole="button">
+      <Text style={{ color: t.colors.text, fontSize: t.typography.md }}>‹ Back</Text>
+    </Pressable>
+  );
+
+  const Right = (
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <Pressable onPress={goHome} accessibilityRole="button" style={{ paddingHorizontal: 6 }}>
+        <Text style={{ color: t.colors.text, fontSize: t.typography.md }}>Home</Text>
+      </Pressable>
+      <View style={{ width: 12 }} />
+      <Pressable onPress={logout} accessibilityRole="button" style={{ paddingHorizontal: 6 }}>
+        <Text style={{ color: t.colors.text, fontSize: t.typography.md }}>Logout</Text>
+      </Pressable>
+    </View>
+  );
+
+  return <UniversalHeader title="Maintenance Hub" left={Left} right={Right} />;
+}

@@ -1,46 +1,33 @@
-// frontend/app/components/FloatingScan.tsx
-import React from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { router, usePathname } from 'expo-router';
+import React from "react";
+import { Pressable, Text, StyleSheet, View } from "react-native";
+import { useTheme } from "../../theme";
 
-/**
- * Floating Scan button shown on every screen EXCEPT the scanner screen itself.
- * Tapping it opens /scan.
- */
-export default function FloatingScan() {
-  const pathname = usePathname();
+type Props = { label?: string; onPress?: () => void };
 
-  // Hide FAB on the scanner page to avoid overlaying the camera preview
-  if (pathname?.startsWith('/scan')) return null;
+export default function FloatingScan({ label = "Scan", onPress }: Props) {
+  const t = useTheme();
+  const styles = StyleSheet.create({
+    container: { position: "absolute", right: t.spacing.lg, bottom: t.spacing.xl },
+    fab: {
+      backgroundColor: t.colors.brandPrimary,
+      borderRadius: t.radius.pill,
+      paddingHorizontal: t.spacing.xl,
+      paddingVertical: t.spacing.md,
+      ...t.shadow.fab,
+    },
+    text: {
+      color: t.colors.textOnBrand,
+      fontSize: t.typography.md,
+      fontWeight: t.typography.bold,
+      lineHeight: t.typography.lh(t.typography.md),
+    },
+  });
 
   return (
-    <TouchableOpacity
-      style={styles.fab}
-      onPress={() => router.push('/scan')}
-      accessibilityRole="button"
-      accessibilityLabel="Open QR scanner"
-    >
-      <Ionicons name="qr-code" size={28} color="#fff" />
-    </TouchableOpacity>
+    <View style={styles.container}>
+      <Pressable onPress={onPress} style={styles.fab}>
+        <Text style={styles.text}>{label}</Text>
+      </Pressable>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 30,
-    backgroundColor: '#4CAF50',
-    borderRadius: 30,
-    width: 60,
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
-});

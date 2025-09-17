@@ -8,39 +8,32 @@ export default function UniversalHeader({ title, right, left }: Props) {
   const t = useTheme();
   const styles = StyleSheet.create({
     root: {
-      position: "relative",
       backgroundColor: t.colors.bgSurface,
       borderBottomColor: t.colors.border,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      paddingVertical: t.spacing.md,
+      paddingTop: t.spacing.lg,
+      paddingBottom: t.spacing.md,
       paddingHorizontal: t.spacing.lg,
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "space-between",
     },
-    sideLeft: { minWidth: 120, minHeight: 44, justifyContent: "center" },
-    sideRight: { minWidth: 120, minHeight: 44, justifyContent: "center", alignItems: "flex-end", marginLeft: "auto" },
-    centerOverlay: {
-      position: "absolute",
-      left: 0, right: 0, top: 0, bottom: 0,
-      alignItems: "center",
-      justifyContent: "center",
-      pointerEvents: "none",
-    },
+    side: { minWidth: 44, minHeight: 44, justifyContent: "center" },
     title: {
       color: t.colors.text,
       fontSize: t.typography.lg,
       fontWeight: t.typography.semibold,
       lineHeight: t.typography.lh(t.typography.lg),
+      textAlign: "center",
+      flex: 1,
     },
   });
 
   return (
     <View style={styles.root}>
-      <View style={styles.sideLeft}>{left ?? null}</View>
-      <View style={styles.centerOverlay}>
-        <Text numberOfLines={1} style={styles.title}>{title ?? ""}</Text>
-      </View>
-      <View style={styles.sideRight}>{right ?? null}</View>
+      <View style={styles.side}>{left ?? null}</View>
+      <Text numberOfLines={1} style={styles.title}>{title ?? ""}</Text>
+      <View style={styles.side}>{right ?? null}</View>
     </View>
   );
 }
