@@ -40,3 +40,7 @@ yarn-error.*
 artifacts/
 
 app-example
+
+# Local backups
+*.bak
+
