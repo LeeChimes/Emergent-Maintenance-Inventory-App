@@ -1,136 +1,156 @@
-// frontend/app/scan.tsx
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { BarCodeScanner } from 'expo-barcode-scanner';
-import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+﻿import React from "react";
+import { View, Text, StyleSheet, Pressable, Platform, Alert, Dimensions } from "react-native";
+import Screen from "./components/Screen";
+import { useTheme } from "../theme";
+import { useRouter } from "expo-router";
+import { getScanMode } from "../services/prefs";
 
-// If you already created utils/qr.ts earlier, keep this import.
-// If not yet, paste that file after this one and come back.
-type QRType = 'asset' | 'door' | 'delivery' | 'tool' | 'part';
-type QRPayload = { v: 1; t: QRType; id: string; extra?: Record<string, any> };
+const IS_WEB = Platform.OS === "web";
 
-function parseQR(data: string): QRPayload | null {
-  try {
-    const obj = JSON.parse(data);
-    if (!obj || typeof obj !== 'object') return null;
-    if (obj.v !== 1) return null;
-    if (!obj.t || !obj.id) return null;
-    return obj as QRPayload;
-  } catch {
-    return null;
-  }
-}
+let CameraPkg: any = null;
+let BarCodeScannerPkg: any = null;
+try { CameraPkg = require("expo-camera"); } catch {}
+try { BarCodeScannerPkg = require("expo-barcode-scanner"); } catch {}
 
-export default function ScanScreen() {
-  const [hasPerm, setHasPerm] = useState<boolean | null>(null);
-  const [scanned, setScanned] = useState(false);
+const CameraView = !IS_WEB ? (CameraPkg?.CameraView ?? CameraPkg?.Camera) : null;
+const BarCodeScanner = IS_WEB ? BarCodeScannerPkg?.BarCodeScanner : null;
 
-  useEffect(() => {
+type Perm = "unknown" | "granted" | "denied";
+
+export default function Scan() {
+  const t = useTheme();
+  const router = useRouter();
+
+  const initH = Math.max(320, Math.floor(Dimensions.get("window").height * 0.72));
+  const [camHeight, setCamHeight] = React.useState<number>(initH);
+  React.useEffect(() => {
+    const sub = Dimensions.addEventListener?.("change", ({ window }) => {
+      setCamHeight(Math.max(320, Math.floor(window.height * 0.72)));
+    });
+    return () => { (sub as any)?.remove?.(); };
+  }, []);
+
+  const [permission, setPermission] = React.useState<Perm>("unknown");
+  const [facing, setFacing] = React.useState<"back" | "front">("back");
+  const [mountKey, setMountKey] = React.useState<number>(0);
+  const [manualOnly, setManualOnly] = React.useState<boolean>(false);
+
+  // Load device preference
+  React.useEffect(() => {
     (async () => {
-      const { status } = await BarCodeScanner.requestPermissionsAsync();
-      setHasPerm(status === 'granted');
+      try {
+        const mode = await getScanMode();
+        setManualOnly(mode === "manual");
+      } catch { setManualOnly(false); }
     })();
   }, []);
 
-  const navigateFor = (p: QRPayload | null, raw: string) => {
-    // Non-JSON barcodes (EAN/UPC/etc.): send to Inventory by default
-    if (!p) {
-      router.replace(`/inventory?scanned=1&t=unknown&id=${encodeURIComponent(raw)}`);
-      return;
-    }
+  // Ask permissions only when not manualOnly
+  React.useEffect(() => {
+    if (manualOnly) return;
+    let mounted = true;
+    (async () => {
+      try {
+        if (IS_WEB && BarCodeScannerPkg?.getPermissionsAsync) {
+          const r = await BarCodeScannerPkg.getPermissionsAsync();
+          if (mounted) setPermission(r?.status === "granted" ? "granted" : "denied");
+          return;
+        }
+        if (!IS_WEB && CameraPkg?.getCameraPermissionsAsync) {
+          const r = await CameraPkg.getCameraPermissionsAsync();
+          if (mounted) setPermission(r?.status === "granted" ? "granted" : "denied");
+          return;
+        }
+        if (mounted) setPermission("denied");
+      } catch {
+        if (mounted) setPermission("denied");
+      }
+    })();
+    return () => { mounted = false; };
+  }, [manualOnly]);
 
-    switch (p.t) {
-      case 'door':
-        router.replace(`/ppms?scanned=1&t=door&id=${encodeURIComponent(p.id)}`);
-        break;
-      case 'asset':
-      case 'tool':
-      case 'part':
-        router.replace(`/inventory?scanned=1&t=${p.t}&id=${encodeURIComponent(p.id)}`);
-        break;
-      case 'delivery':
-        router.replace(`/deliveries?scanned=1&t=delivery&id=${encodeURIComponent(p.id)}`);
-        break;
-      default:
-        router.replace(`/inventory?scanned=1&t=${encodeURIComponent(p.t)}&id=${encodeURIComponent(p.id)}`);
-        break;
+  const requestPerms = async () => {
+    try {
+      if (IS_WEB && BarCodeScannerPkg?.requestPermissionsAsync) {
+        const r = await BarCodeScannerPkg.requestPermissionsAsync();
+        setPermission(r?.status === "granted" ? "granted" : "denied");
+        setMountKey((k) => k + 1);
+        return;
+      }
+      if (!IS_WEB && CameraPkg?.requestCameraPermissionsAsync) {
+        const r = await CameraPkg.requestCameraPermissionsAsync();
+        setPermission(r?.status === "granted" ? "granted" : "denied");
+        setMountKey((k) => k + 1);
+        return;
+      }
+      setPermission("denied");
+    } catch {
+      setPermission("denied");
     }
   };
 
-  const onBarCodeScanned = async ({ data }: { type: string; data: string }) => {
-    if (scanned) return;
-    setScanned(true);
-    try { await Haptics.selectionAsync(); } catch {}
-    const parsed = parseQR(data);
-    navigateFor(parsed, data);
+  const onScanned = (e: any) => {
+    const value = e?.data ?? e?.rawValue ?? "";
+    if (!value) return;
+    Alert.alert("Scanned", String(value));
   };
 
-  if (hasPerm === null) {
-    return (
-      <View style={[styles.screen, styles.center]}>
-        <Text style={{ color: '#ccc' }}>Requesting camera permission…</Text>
-      </View>
-    );
-  }
+  const s = StyleSheet.create({
+    wrap: { flex: 1 },
+    cameraFrame: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#000" },
+    cameraView: { width: "100%", maxWidth: 1100, height: camHeight, backgroundColor: "#000" },
+    overlay: { position: "absolute", top: 0, bottom: 0, left: 0, right: 0, alignItems: "center", justifyContent: "center" },
+    greenBox: { width: 260, height: 260, borderRadius: 18, borderWidth: 3, borderColor: "#2ecc71", opacity: 0.9 },
+    bottomBar: { paddingTop: 12, paddingBottom: 18, paddingHorizontal: 16, backgroundColor: "rgba(0,0,0,0.85)" },
+    bottomText: { color: t.colors.textOnBrand, textAlign: "center" },
+    ctaRow: { position: "absolute", bottom: 20, left: 16, right: 16, flexDirection: "row", gap: 12, justifyContent: "space-between" },
+    cta: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, backgroundColor: t.colors.brandPrimary },
+    ctaGhost: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, borderWidth: StyleSheet.hairlineWidth, borderColor: t.colors.border, backgroundColor: t.colors.bgElevated },
+    ctaText: { color: t.colors.textOnBrand, fontWeight: "700" },
+    ctaTextGhost: { color: t.colors.text, fontWeight: "700" },
+    infoText: { color: t.colors.text, marginBottom: 10, fontWeight: "700", textAlign: "center" },
+  });
 
-  if (hasPerm === false) {
-    return (
-      <View style={[styles.screen, styles.center, { padding: 24 }]}>
-        <Ionicons name="alert-circle" size={28} color="#F59E0B" />
-        <Text style={{ color: '#fff', marginTop: 10, fontWeight: '700' }}>Camera access denied</Text>
-        <Text style={{ color: '#bbb', marginTop: 6, textAlign: 'center' }}>
-          Enable camera permission in Settings to scan codes.
-        </Text>
-        <TouchableOpacity style={styles.btn} onPress={() => router.back()}>
-          <Text style={styles.btnTxt}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} accessibilityLabel="Close scanner">
-          <Ionicons name="close" size={26} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Scan</Text>
-        <View style={{ width: 26 }} />
-      </View>
-
-      <View style={styles.cameraWrap}>
-        <BarCodeScanner
-          onBarCodeScanned={scanned ? undefined : onBarCodeScanned}
-          style={StyleSheet.absoluteFillObject}
-        />
-        <View style={styles.frame} />
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={{ color: '#aaa' }}>Align code within the frame</Text>
-        {scanned ? (
-          <TouchableOpacity style={[styles.btn, { marginTop: 12 }]} onPress={() => setScanned(false)}>
-            <Text style={styles.btnTxt}>Scan Again</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
+  const manualPanel = (
+    <View style={[s.cameraView, { alignItems: "center", justifyContent: "center" }]}>
+      <Text style={s.infoText}>Manual scan mode is enabled for this device.</Text>
+      <Pressable onPress={() => router.push("/manual-entry")} style={s.cta}>
+        <Text style={s.ctaText}>Manual Entry</Text>
+      </Pressable>
     </View>
   );
-}
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#000' },
-  center: { justifyContent: 'center', alignItems: 'center' },
-  header: {
-    paddingTop: 16, paddingHorizontal: 16, paddingBottom: 10,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#111',
-  },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  cameraWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  frame: { borderWidth: 2, borderColor: '#4CAF50', width: 260, height: 260, borderRadius: 16 },
-  footer: { padding: 16, alignItems: 'center', backgroundColor: '#111' },
-  btn: { backgroundColor: '#3B82F6', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
-  btnTxt: { color: '#fff', fontWeight: '800' },
-});
+  return (
+    <Screen padded={false}>
+      <View style={s.wrap}>
+        <View style={s.cameraFrame}>
+          {manualOnly ? (
+            manualPanel
+          ) : permission !== "granted" ? (
+            <View style={[s.cameraView, { alignItems: "center", justifyContent: "center" }]}>
+              <Text style={s.infoText}>Camera permission needed</Text>
+              <Pressable onPress={requestPerms} style={s.ctaGhost}><Text style={s.ctaTextGhost}>Allow Camera</Text></Pressable>
+            </View>
+          ) : (IS_WEB && BarCodeScanner) ? (
+            <BarCodeScanner key={mountKey} style={s.cameraView} onBarCodeScanned={onScanned} />
+          ) : CameraView ? (
+            <CameraView key={mountKey} style={s.cameraView} facing={facing} onBarCodeScanned={onScanned}
+              barCodeScannerSettings={{ barCodeTypes: ["qr","pdf417","code128","code39","ean13","ean8","upc_a","upc_e"] }} />
+          ) : (
+            manualPanel
+          )}
+          <View style={s.overlay}><View style={s.greenBox} /></View>
+        </View>
+        <View style={s.bottomBar}><Text style={s.bottomText}>Align code within the frame</Text></View>
+        <View style={s.ctaRow}>
+          <Pressable onPress={() => router.push("/manual-entry")} style={s.cta}><Text style={s.ctaText}>Manual Entry</Text></Pressable>
+          {!IS_WEB && CameraView && !manualOnly && (
+            <Pressable onPress={() => setFacing((p) => (p === "back" ? "front" : "back"))} style={s.ctaGhost}>
+              <Text style={s.ctaTextGhost}>Flip Camera</Text>
+            </Pressable>
+          )}
+        </View>
+      </View>
+    </Screen>
+  );
+}

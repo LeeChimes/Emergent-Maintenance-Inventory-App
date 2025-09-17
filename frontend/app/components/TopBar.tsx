@@ -1,7 +1,7 @@
-import React from "react";
+ï»¿import React from "react";
 import { Pressable, Text, View } from "react-native";
 import UniversalHeader from "./UniversalHeader";
-import { useRouter } from "expo-router";
+import { useRouter, usePathname } from "expo-router";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../theme";
 import { Config } from "../../services/config";
@@ -10,26 +10,37 @@ export default function TopBar() {
   const router = useRouter();
   const nav = useNavigation();
   const t = useTheme();
+  const pathname = (usePathname() || "").split("?")[0];
+  const onScan = pathname === "/scan";
 
-  const goHome = () => router.replace(Config.HOME_PATH);
+  const HOME = (Config as any)?.HOME_PATH ?? "/dashboard";
+  const goHome = () => router.replace(HOME);
   const goBack = () => {
     const can = typeof (nav as any)?.canGoBack === "function" ? (nav as any).canGoBack() : false;
     if (can) router.back(); else goHome();
   };
   const logout = () => router.replace("/logout");
+  const toSettings = () => router.push("/settings");
 
   const Left = (
     <Pressable onPress={goBack} accessibilityRole="button">
-      <Text style={{ color: t.colors.text, fontSize: t.typography.md }}>‹ Back</Text>
+      <Text style={{ color: t.colors.text, fontSize: t.typography.md }}>{`< Back`}</Text>
     </Pressable>
   );
 
   const Right = (
     <View style={{ flexDirection: "row", alignItems: "center" }}>
-      <Pressable onPress={goHome} accessibilityRole="button" style={{ paddingHorizontal: 6 }}>
+      {onScan && (
+        <Pressable onPress={() => router.push("/manual-entry")} accessibilityRole="button" style={{ paddingHorizontal: 6 }}>
+          <Text style={{ color: t.colors.text, fontSize: t.typography.md }}>Manual</Text>
+        </Pressable>
+      )}
+      <Pressable onPress={goHome} accessibilityRole="button" style={{ paddingHorizontal: 10 }}>
         <Text style={{ color: t.colors.text, fontSize: t.typography.md }}>Home</Text>
       </Pressable>
-      <View style={{ width: 12 }} />
+      <Pressable onPress={toSettings} accessibilityRole="button" style={{ paddingHorizontal: 10 }}>
+        <Text style={{ color: t.colors.text, fontSize: t.typography.md }}>Settings</Text>
+      </Pressable>
       <Pressable onPress={logout} accessibilityRole="button" style={{ paddingHorizontal: 6 }}>
         <Text style={{ color: t.colors.text, fontSize: t.typography.md }}>Logout</Text>
       </Pressable>

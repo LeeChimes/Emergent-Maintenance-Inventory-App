@@ -1,5 +1,4 @@
 export const Config = {
-  // Set this to your existing user hub route.
-  // You can override at runtime via EXPO_PUBLIC_HOME_PATH in your .env.
-  HOME_PATH: (process?.env?.EXPO_PUBLIC_HOME_PATH as string) ?? "/working-mode",
+  // Computed automatically. Override via EXPO_PUBLIC_HOME_PATH if needed.
+  HOME_PATH: (process?.env?.EXPO_PUBLIC_HOME_PATH as string) || "/dashboard",
 };

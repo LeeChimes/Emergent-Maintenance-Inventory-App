@@ -1,10 +1,20 @@
+import React from "react";
+import { View, StyleSheet } from "react-native";
 import { Slot } from "expo-router";
 import { ThemeProvider } from "../theme";
+import TopBar from "./components/TopBar";
+import ScannerGate from "./components/ScannerGate";
 
 export default function RootLayout() {
+  const styles = StyleSheet.create({ root: { flex: 1 }, content: { flex: 1 } });
   return (
     <ThemeProvider>
-      <Slot />
+      <View style={styles.root}>
+        <TopBar />
+        {/* Shows only on /scanner and only if camera isn't granted */}
+        <ScannerGate />
+        <View style={styles.content}><Slot /></View>
+      </View>
     </ThemeProvider>
   );
 }

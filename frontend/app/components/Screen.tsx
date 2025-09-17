@@ -1,23 +1,36 @@
 import React from "react";
-import { View, StyleSheet, StatusBar } from "react-native";
+import { View, ScrollView, StyleSheet } from "react-native";
 import { useTheme } from "../../theme";
 
-type Props = { children: React.ReactNode; padded?: boolean };
+type Props = {
+  children?: React.ReactNode;
+  padded?: boolean;
+  scroll?: boolean; // legacy/tolerated
+};
 
-export default function Screen({ children, padded = true }: Props) {
+export default function Screen({ children, padded = true, scroll = false }: Props) {
   const t = useTheme();
+
   const styles = StyleSheet.create({
     root: { flex: 1, backgroundColor: t.colors.bg },
-    content: {
-      flex: 1,
+    inner: {
+      flexGrow: 1,
       paddingHorizontal: padded ? t.spacing.lg : 0,
-      paddingVertical: padded ? t.spacing.lg : 0,
+      paddingVertical: padded ? t.spacing.md : 0,
     },
   });
-  return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" />
-      <View style={styles.content}>{children}</View>
-    </View>
-  );
+
+  if (scroll) {
+    return (
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={styles.inner}
+        keyboardShouldPersistTaps="handled"
+      >
+        {children}
+      </ScrollView>
+    );
+  }
+
+  return <View style={[styles.root, styles.inner]}>{children}</View>;
 }

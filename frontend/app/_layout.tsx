@@ -5,17 +5,12 @@ import { ThemeProvider } from "../theme";
 import TopBar from "./components/TopBar";
 
 export default function RootLayout() {
-  const styles = StyleSheet.create({
-    root: { flex: 1 },
-    content: { flex: 1 },
-  });
+  const styles = StyleSheet.create({ root: { flex: 1 }, content: { flex: 1 } });
   return (
     <ThemeProvider>
       <View style={styles.root}>
         <TopBar />
-        <View style={styles.content}>
-          <Slot />
-        </View>
+        <View style={styles.content}><Slot /></View>
       </View>
     </ThemeProvider>
   );

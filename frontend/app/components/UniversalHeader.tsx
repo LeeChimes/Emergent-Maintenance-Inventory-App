@@ -1,46 +1,38 @@
-import React from "react";
+﻿import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "../../theme";
 
-type Props = { title?: string; right?: React.ReactNode; left?: React.ReactNode };
+type Props = {
+  title?: string;
+  subtitle?: string;
+  left?: React.ReactNode;
+  right?: React.ReactNode;
+  // tolerated legacy props (ignored)
+  showBackButton?: boolean;
+  scroll?: boolean;
+};
 
-export default function UniversalHeader({ title, right, left }: Props) {
+export default function UniversalHeader({ title, subtitle, left, right }: Props) {
   const t = useTheme();
-  const styles = StyleSheet.create({
-    root: {
-      position: "relative",
-      backgroundColor: t.colors.bgSurface,
-      borderBottomColor: t.colors.border,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      paddingVertical: t.spacing.md,
-      paddingHorizontal: t.spacing.lg,
-      flexDirection: "row",
-      alignItems: "center",
-    },
-    sideLeft: { minWidth: 120, minHeight: 44, justifyContent: "center" },
-    sideRight: { minWidth: 120, minHeight: 44, justifyContent: "center", alignItems: "flex-end", marginLeft: "auto" },
-    centerOverlay: {
-      position: "absolute",
-      left: 0, right: 0, top: 0, bottom: 0,
-      alignItems: "center",
-      justifyContent: "center",
-      pointerEvents: "none",
-    },
-    title: {
-      color: t.colors.text,
-      fontSize: t.typography.lg,
-      fontWeight: t.typography.semibold,
-      lineHeight: t.typography.lh(t.typography.lg),
-    },
+  const s = StyleSheet.create({
+    bar: { backgroundColor: t.colors.bg, paddingVertical: t.spacing.md, paddingHorizontal: t.spacing.lg },
+    row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+    side: { minWidth: 64, alignItems: "flex-start" },
+    sideRight: { minWidth: 64, alignItems: "flex-end" },
+    centerWrap: { position: "absolute", left: 0, right: 0, alignItems: "center" },
+    title: { color: t.colors.text, fontSize: t.typography.lg, fontWeight: t.typography.bold },
+    subtitle: { color: t.colors.textDim, marginTop: 4 },
   });
-
   return (
-    <View style={styles.root}>
-      <View style={styles.sideLeft}>{left ?? null}</View>
-      <View style={styles.centerOverlay}>
-        <Text numberOfLines={1} style={styles.title}>{title ?? ""}</Text>
+    <View style={s.bar}>
+      <View style={s.row}>
+        <View style={s.side}>{left}</View>
+        <View style={s.centerWrap}>
+          {!!title && <Text style={s.title}>{title}</Text>}
+          {!!subtitle && <Text style={s.subtitle}>{subtitle}</Text>}
+        </View>
+        <View style={s.sideRight}>{right}</View>
       </View>
-      <View style={styles.sideRight}>{right ?? null}</View>
     </View>
   );
 }

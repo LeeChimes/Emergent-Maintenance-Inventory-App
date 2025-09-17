@@ -35,7 +35,8 @@
           "backgroundColor": "#000000"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-barcode-scanner"
     ],
     "androidStatusBar": {
       "backgroundColor": "#111111",
