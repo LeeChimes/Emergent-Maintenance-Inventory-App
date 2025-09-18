@@ -62,7 +62,7 @@ export default function Dashboard() {
           <Card icon="alert-circle" color="#FF9800" label="Incidents" onPress={() => router.push('/incidents')} />
           <Card icon="cube" color="#2196F3" label="Inventory" onPress={() => router.push('/inventory')} />
           <Card icon="construct" color="#9C27B0" label="Parts" onPress={() => router.push('/parts')} />
-          <Card icon="business" color="#10B981" label="Suppliers" onPress={() => router.push('/suppliers')} />
+          <Card icon="business" color="#10B981" label="Suppliers" onPress={() => router.push('/suppliers-list')} />
           </View>
 
           <Text style={styles.section}>Help & Tools</Text>

@@ -5,6 +5,8 @@ module.exports = function (api) {
     plugins: [
       // Stable with Expo SDK 51; if you ever upgrade and it complains, swap to worklets plugin.
       'react-native-reanimated/plugin',
+      // Required for @env module
+      'module:react-native-dotenv',
     ],
   };
 };
