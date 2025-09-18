@@ -1,4 +1,5 @@
-﻿// frontend/app/dashboard.tsx
+﻿import SuppliersTile from "./components/SuppliersTile";
+// frontend/app/dashboard.tsx
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,7 +43,7 @@ export default function Dashboard() {
           <UniversalHeader title="Dashboard" />
           <View style={styles.center}>
             <ActivityIndicator size="large" color="#4CAF50" />
-            <Text style={styles.dim}>Loading…</Text>
+            <Text style={styles.dim}>Loadingâ€¦</Text>
           </View>
         </Container>
       </Screen>
@@ -54,7 +55,7 @@ export default function Dashboard() {
       <Container>
         <UniversalHeader title="Dashboard" />
         <ScrollView style={styles.content}>
-          <Text style={styles.welcome}>Welcome, {user?.name ?? 'User'} 👋</Text>
+          <Text style={styles.welcome}>Welcome, {user?.name ?? 'User'} ðŸ‘‹</Text>
 
           <Text style={styles.section}>Quick Links</Text>
           <View style={styles.grid}>

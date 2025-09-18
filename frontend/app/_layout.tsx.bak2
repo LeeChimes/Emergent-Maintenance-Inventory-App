@@ -3,8 +3,9 @@ import { View, StyleSheet } from "react-native";
 import { Slot } from "expo-router";
 import { ThemeProvider } from "../theme";
 import TopBar from "./components/TopBar";
+
+import DashboardSuppliersTile from "./components/DashboardSuppliersTile";
 import ScannerGate from "./components/ScannerGate";
-import DashboardQuick from "./components/DashboardQuick";
 
 export default function RootLayout() {
   const styles = StyleSheet.create({ root: { flex: 1 }, content: { flex: 1 } });
@@ -13,11 +14,16 @@ export default function RootLayout() {
       <View style={styles.root}>
         <TopBar />
         <ScannerGate />
-        <DashboardQuick />
-        <View style={styles.content}>
+        
+        <DashboardSuppliersTile />
+<View style={styles.content}>
           <Slot />
         </View>
       </View>
     </ThemeProvider>
   );
 }
+
+
+
+

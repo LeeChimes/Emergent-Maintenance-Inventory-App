@@ -2,7 +2,10 @@
 import { View, StyleSheet } from "react-native";
 import { Slot } from "expo-router";
 import { ThemeProvider } from "../theme";
-import TopBar from "./components/TopBar";`nimport DashboardQuick from "./components/DashboardQuick";
+import TopBar from "./components/TopBar";
+
+// ...existing code...
+import ScannerGate from "./components/ScannerGate";
 
 export default function RootLayout() {
   const styles = StyleSheet.create({ root: { flex: 1 }, content: { flex: 1 } });
@@ -10,9 +13,17 @@ export default function RootLayout() {
     <ThemeProvider>
       <View style={styles.root}>
         <TopBar />
-        <View style={styles.content}><Slot /></View>
+        <ScannerGate />
+        
+  <View style={styles.content}>
+          <Slot />
+        </View>
       </View>
     </ThemeProvider>
   );
 }
+
+
+
+
 

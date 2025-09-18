@@ -11,7 +11,7 @@ export default function GenerateQRScreen() {
   const [id, setId] = useState('');
   const [label, setLabel] = useState('');
 
-  const value = id ? buildQR(type, id, label ? { label } : undefined) : '';
+  const value = id ? buildQR({ t: type, id }) : '';
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })}>
