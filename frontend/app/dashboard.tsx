@@ -58,10 +58,11 @@ export default function Dashboard() {
 
           <Text style={styles.section}>Quick Links</Text>
           <View style={styles.grid}>
-            <Card icon="calendar" color="#4CAF50" label="PPMs" onPress={() => router.push('/ppms')} />
-            <Card icon="alert-circle" color="#FF9800" label="Incidents" onPress={() => router.push('/incidents')} />
-            <Card icon="cube" color="#2196F3" label="Inventory" onPress={() => router.push('/inventory')} />
-            <Card icon="construct" color="#9C27B0" label="Parts" onPress={() => router.push('/parts')} />
+          <Card icon="calendar" color="#4CAF50" label="PPMs" onPress={() => router.push('/ppms')} />
+          <Card icon="alert-circle" color="#FF9800" label="Incidents" onPress={() => router.push('/incidents')} />
+          <Card icon="cube" color="#2196F3" label="Inventory" onPress={() => router.push('/inventory')} />
+          <Card icon="construct" color="#9C27B0" label="Parts" onPress={() => router.push('/parts')} />
+          <Card icon="business" color="#10B981" label="Suppliers" onPress={() => router.push('/suppliers-list')} />
           </View>
 
           <Text style={styles.section}>Help & Tools</Text>
